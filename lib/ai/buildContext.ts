@@ -1,10 +1,12 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { WEEKDAY_NAMES, formatTime, isOpenNow } from "@/lib/hours";
+import { buildContactLinks } from "@/lib/contactLinks";
 
 const MAX_CONTEXT_CHARS = 6000;
 const CONTEXT_TTL_MS = 60_000;
 const SECTION_LIMITS = {
   business: 450,
+  contact: 300,
   services: 1100,
   products: 1500,
   hours: 800,
@@ -30,7 +32,7 @@ export type BusinessContext = {
     ai_instructions: string | null;
   };
   contextText: string;
-  products: { name: string; image_url: string | null }[];
+  products: { id: string; name: string; image_url: string | null }[];
 };
 
 function truncateLines(lines: string[], maxChars: number): string {
@@ -126,7 +128,7 @@ export async function buildBusinessContext(
   ] = await Promise.all([
     supabase
       .from("businesses")
-      .select("id,name,currency,timezone,ai_tone,ai_instructions,hours_note")
+      .select("id,name,currency,timezone,ai_tone,ai_instructions,hours_note,social_links")
       .eq("id", businessId)
       .eq("is_active", true)
       .maybeSingle(),
@@ -138,7 +140,7 @@ export async function buildBusinessContext(
     supabase
       .from("products")
       .select(
-        "name,description,price,stock_quantity,is_available,availability_note,image_url",
+        "id,name,description,price,stock_quantity,is_available,availability_note,image_url",
       )
       .eq("business_id", businessId)
       .limit(50),
@@ -220,6 +222,8 @@ export async function buildBusinessContext(
   hoursLines.push(`Currently: ${openNow ? "OPEN" : "CLOSED"} (${business.timezone})`);
   if (business.hours_note) hoursLines.push(`Note: ${business.hours_note}`);
 
+  const contactLinks = buildContactLinks(business.social_links);
+
   const sections = [
     section("Business", [
       `Name: ${business.name}`,
@@ -227,6 +231,13 @@ export async function buildBusinessContext(
       ...(business.ai_tone ? [`Tone: ${business.ai_tone}`] : []),
       ...(business.ai_instructions ? [`Instructions: ${business.ai_instructions}`] : []),
     ], SECTION_LIMITS.business),
+    section(
+      "Contact & social links",
+      contactLinks.length > 0
+        ? contactLinks.map((link) => `- ${link.label}: ${link.url}`)
+        : ["(none configured)"],
+      SECTION_LIMITS.contact,
+    ),
     section("Hours", hoursLines, SECTION_LIMITS.hours),
     section("Services", serviceLines.length > 0 ? serviceLines : ["(none listed)"], SECTION_LIMITS.services),
     section("Products", productLines.length > 0 ? productLines : ["(none listed)"], SECTION_LIMITS.products),
@@ -261,7 +272,7 @@ export async function buildBusinessContext(
       ai_instructions: business.ai_instructions,
     },
     contextText: fitContext(sections, businessId),
-    products: (products ?? []).map((p) => ({ name: p.name, image_url: p.image_url })),
+    products: (products ?? []).map((p) => ({ id: p.id, name: p.name, image_url: p.image_url })),
   };
 
   contextCache.set(businessId, { expiresAt: Date.now() + CONTEXT_TTL_MS, value });

@@ -4,6 +4,21 @@ import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/activityLog";
 import { isValidTimeZone } from "@/lib/timezone";
+import type { BusinessSocialLinks } from "@/lib/types";
+
+const KNOWN_SOCIAL_PLATFORMS = ["whatsapp", "instagram", "facebook", "tiktok", "website"] as const;
+
+// Trims every value and drops empty/unrecognized keys, so clearing a
+// field and saving actually removes it from the stored JSON instead of
+// persisting an empty string forever.
+function sanitizeSocialLinks(input: BusinessSocialLinks): BusinessSocialLinks {
+  const out: BusinessSocialLinks = {};
+  for (const key of KNOWN_SOCIAL_PLATFORMS) {
+    const value = input[key]?.trim();
+    if (value) out[key] = value;
+  }
+  return out;
+}
 
 export async function updateBusiness(input: {
   businessId: string;
@@ -16,6 +31,7 @@ export async function updateBusiness(input: {
   aiInstructions: string;
   hoursNote: string;
   whatsappPhoneNumberId: string;
+  socialLinks: BusinessSocialLinks;
   isActive: boolean;
 }) {
   const admin = await getCurrentAdmin();
@@ -56,6 +72,7 @@ export async function updateBusiness(input: {
       ai_instructions: input.aiInstructions.trim() || null,
       hours_note: input.hoursNote.trim() || null,
       whatsapp_phone_number_id: input.whatsappPhoneNumberId.trim() || null,
+      social_links: sanitizeSocialLinks(input.socialLinks),
       is_active: input.isActive,
     })
     .eq("id", input.businessId);

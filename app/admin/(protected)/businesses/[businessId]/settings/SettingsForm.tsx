@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateBusiness } from "./actions";
-import type { Business } from "@/lib/types";
+import type { Business, BusinessSocialLinks } from "@/lib/types";
 
 export function SettingsForm({ business }: { business: Business }) {
   const router = useRouter();
@@ -16,6 +16,7 @@ export function SettingsForm({ business }: { business: Business }) {
   const [aiInstructions, setAiInstructions] = useState(business.ai_instructions ?? "");
   const [hoursNote, setHoursNote] = useState(business.hours_note ?? "");
   const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState(business.whatsapp_phone_number_id ?? "");
+  const [socialLinks, setSocialLinks] = useState<BusinessSocialLinks>(business.social_links ?? {});
   const [isActive, setIsActive] = useState(business.is_active);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -29,7 +30,7 @@ export function SettingsForm({ business }: { business: Business }) {
 
     const result = await updateBusiness({
       businessId: business.id, name, slug, description, currency, timezone,
-      aiTone, aiInstructions, hoursNote, whatsappPhoneNumberId, isActive,
+      aiTone, aiInstructions, hoursNote, whatsappPhoneNumberId, socialLinks, isActive,
     });
 
     if (result?.error) {
@@ -126,6 +127,59 @@ export function SettingsForm({ business }: { business: Business }) {
           value={whatsappPhoneNumberId}
           onChange={(e) => setWhatsappPhoneNumberId(e.target.value)}
         />
+      </div>
+
+      <div className="rounded-lg border border-slate-200 p-3">
+        <p className="mb-3 text-sm font-medium text-slate-700">
+          Contact &amp; social links <span className="font-normal text-slate-400">— Mira shares these as real links when a customer asks</span>
+        </p>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-xs font-medium text-slate-600">WhatsApp number</label>
+            <input
+              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm"
+              placeholder="e.g. 2348012345678 (country code, no + or spaces)"
+              value={socialLinks.whatsapp ?? ""}
+              onChange={(e) => setSocialLinks((s) => ({ ...s, whatsapp: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600">Instagram</label>
+            <input
+              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              placeholder="e.g. yourbrand (no @)"
+              value={socialLinks.instagram ?? ""}
+              onChange={(e) => setSocialLinks((s) => ({ ...s, instagram: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600">Facebook</label>
+            <input
+              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              placeholder="e.g. facebook.com/yourbrand"
+              value={socialLinks.facebook ?? ""}
+              onChange={(e) => setSocialLinks((s) => ({ ...s, facebook: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600">TikTok</label>
+            <input
+              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              placeholder="e.g. tiktok.com/@yourbrand"
+              value={socialLinks.tiktok ?? ""}
+              onChange={(e) => setSocialLinks((s) => ({ ...s, tiktok: e.target.value }))}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-slate-600">Website</label>
+            <input
+              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              placeholder="e.g. yourbrand.com"
+              value={socialLinks.website ?? ""}
+              onChange={(e) => setSocialLinks((s) => ({ ...s, website: e.target.value }))}
+            />
+          </div>
+        </div>
       </div>
 
       <label className="flex items-center gap-2 text-sm">

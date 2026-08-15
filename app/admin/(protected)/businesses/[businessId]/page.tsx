@@ -32,6 +32,7 @@ export default async function BusinessDetailPage({
     { data: policies },
     { data: recentConversations },
     { data: recentActivity },
+    { data: flaggedConversations },
   ] = await Promise.all([
     supabase
       .from("business_hours")
@@ -56,7 +57,7 @@ export default async function BusinessDetailPage({
       .eq("is_active", true),
     supabase
       .from("conversations")
-      .select("id, session_token, channel, last_message_at")
+      .select("id, session_token, channel, needs_human, last_message_at")
       .eq("business_id", businessId)
       .order("last_message_at", { ascending: false })
       .limit(3),
@@ -66,7 +67,10 @@ export default async function BusinessDetailPage({
       .eq("business_id", businessId)
       .order("created_at", { ascending: false })
       .limit(5),
+    supabase.from("conversations").select("id").eq("business_id", businessId).eq("needs_human", true),
   ]);
+
+  const flaggedCount = flaggedConversations?.length ?? 0;
 
   const now = new Date();
   const activePromotionsCount = (allPromotions ?? []).filter((p) => {
@@ -166,6 +170,18 @@ export default async function BusinessDetailPage({
         </div>
       </div>
 
+      {flaggedCount > 0 && (
+        <Link
+          href={`/admin/businesses/${businessId}/conversations`}
+          className="mb-4 flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 hover:border-amber-400"
+        >
+          <span className="text-sm font-medium text-amber-800">
+            🚩 {flaggedCount} conversation{flaggedCount === 1 ? "" : "s"} need{flaggedCount === 1 ? "s" : ""} you
+          </span>
+          <span className="text-xs text-amber-700">View →</span>
+        </Link>
+      )}
+
       {statusReason && <p className="mb-6 text-sm text-amber-600">{statusReason}</p>}
       {!statusReason && <div className="mb-6" />}
 
@@ -247,6 +263,11 @@ export default async function BusinessDetailPage({
                   className="flex items-center justify-between rounded border border-slate-200 bg-white px-3 py-2 text-sm hover:border-accent"
                 >
                   <span className="flex items-center gap-2">
+                    {c.needs_human && (
+                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                        Needs you
+                      </span>
+                    )}
                     <span className="font-mono text-xs text-slate-500">{c.session_token.slice(0, 8)}…</span>
                     <span className={`text-xs font-medium ${c.channel === "whatsapp" ? "text-emerald-600" : "text-slate-400"}`}>
                       {c.channel === "whatsapp" ? "WhatsApp" : "Web"}

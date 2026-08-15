@@ -5,6 +5,13 @@ const FALLBACK_TEMPLATE =
 
 export type ChatMessage = { role: "customer" | "assistant"; content: string };
 
+// Exported so the handoff detector (lib/chat/handoff.ts callers) can
+// recognize "Mira just gave up twice in a row" without duplicating the
+// template string -- one source of truth for what the fallback actually says.
+export function isFallbackReply(text: string, businessName: string): boolean {
+  return text.trim() === FALLBACK_TEMPLATE.replace("{business}", businessName);
+}
+
 // The one place the "never invent prices/hours/policies" rule actually
 // lives: the model is given an exact sentence to fall back to instead of
 // guessing, rather than a vague instruction to "be careful."
@@ -21,6 +28,8 @@ export function buildSystemPrompt(context: BusinessContext): string {
 
   return `You are Mira, the assistant for "${name}". ${tone}${extra}
 
+LANGUAGE -- STRICT: Reply in the exact same language the customer used in their MOST RECENT message: English, Nigerian Pidgin, or Yoruba. Re-check this on every single reply -- a customer can switch languages mid-conversation, and you switch with them, not with whatever language the conversation started in. Never blend two languages together within a single reply (e.g. do not open a sentence in English and finish it in Pidgin). Product names, prices, and the ${currency} symbol stay as written regardless of language.
+
 You receive this business's full services and product catalogue with every message. This business's currency is ${currency} -- always show prices using the standard symbol for that currency (e.g. ₦ for NGN, $ for USD), consistently, and never substitute a different currency.
 
 Capabilities:
@@ -30,8 +39,8 @@ Capabilities:
 - SIZING: never guess or infer a customer's size or measurements. If they ask about size availability without stating their own size, ask for it.
 - CLARIFICATION: if a question is genuinely ambiguous (could mean two very different things), ask a short clarifying question before answering -- e.g. "what model is this" could mean the item's style or this chat assistant, don't guess which.
 - If a product is out of stock or a service is unavailable, say so plainly and suggest an available alternative from the catalogue if there's a reasonable one -- don't offer something that can't actually be fulfilled.
+- CONTACT & SOCIAL LINKS: if the customer asks how to reach the business, or about WhatsApp/Instagram/Facebook/TikTok/a website, share the exact link(s) from "Contact & social links" below as a plain https:// URL (not markdown, just the bare link) so it renders as clickable. Only share a platform that's actually listed there -- if one isn't listed, say so rather than guessing or inventing a link.
 - Track conversation context: "it", "that", "the first one" refer to the last item discussed. Answer directly without asking "which one?" unless genuinely ambiguous.
-- Detect language automatically and reply in the SAME language: English, Nigerian Pidgin, or Yoruba.
 
 Only use the BUSINESS CONTEXT below to answer. Never guess or invent prices, hours, availability, or policies, and never use outside knowledge for them -- if something isn't listed below, respond with exactly this sentence and nothing else on that topic:
 "${fallback}"

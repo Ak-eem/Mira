@@ -1,4 +1,5 @@
 export type ChatIntent =
+  | "human_handoff"
   | "product_search"
   | "sizing_question"
   | "faq_question"
@@ -9,7 +10,25 @@ export type ChatIntent =
 export function classifyIntent(message: string): ChatIntent {
   const msg = message.toLowerCase().trim();
 
-  // Model questions, check first to avoid false matches
+  // Explicit request for a human, checked before everything else so it
+  // always wins regardless of what the rest of the message is about --
+  // "I want to speak to a human about my order" should escalate, not
+  // fall through to faq_question because of "order". Requires a
+  // wanting/connecting verb directly next to the human-noun (not just
+  // the word "human"/"person" anywhere in the message), so an identity
+  // question like "are you human?" -- handled by model_question below --
+  // or an unrelated sentence that happens to mention "someone" doesn't
+  // false-positive into a handoff.
+  if (
+    /\b(speak|talk|chat)\s+(to|with)\s+(a |an )?(human|person|agent|representative|someone|somebody|real person|human being|manager|customer (service|care))\b/.test(msg) ||
+    /\b(connect|transfer|put)\s+me\s+(through\s+)?(to|with)\s+(a |an )?(human|person|agent|representative|someone|manager|customer (service|care))\b/.test(msg) ||
+    /\b(want|need)\s+(a |an )?(real )?(human|person|agent|representative)\b/.test(msg) ||
+    /\b(i ?wan|make ?i|abeg)\s+(talk|speak|yarn)\s+(to|with)?\s*(person|human|agent|somebody|human being)\b/.test(msg)
+  ) {
+    return "human_handoff";
+  }
+
+  // Model questions, checked next (after the handoff check above) to avoid false matches
   if (/\b(are you (an? )?(ai|robot|bot|human|real)|what (ai )?model|who are you|what are you|chatgpt|gemini|gpt|llm)\b/.test(msg)) {
     return "model_question";
   }

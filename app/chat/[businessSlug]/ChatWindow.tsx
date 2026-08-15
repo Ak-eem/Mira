@@ -2,11 +2,42 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Nunito } from "next/font/google";
+import { linkifyContent } from "@/lib/linkify";
 
 // Scoped to this file only, on purpose -- the admin side stays plain
 // system sans-serif, this is specifically about the customer-facing
 // surface feeling warmer and more personable.
 const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700"] });
+
+const VISITOR_ID_KEY = "mira_visitor_id";
+
+// A per-visitor id generated and stored on THIS side (localStorage),
+// rather than trusted to a server-set cookie. The embed widget runs
+// inside a cross-site <iframe> on a business's own website (see
+// public/embed.js) -- a cookie set from inside that iframe is a
+// third-party cookie, which Safari and Chrome increasingly refuse to
+// send back on later requests. localStorage inside the iframe's own
+// document doesn't have that problem, so this is what actually
+// identifies "this same visitor, next message" reliably.
+function getOrCreateVisitorId(): string {
+  if (typeof window === "undefined") return "";
+
+  try {
+    const existing = window.localStorage.getItem(VISITOR_ID_KEY);
+    if (existing) return existing;
+
+    const created = crypto.randomUUID();
+    window.localStorage.setItem(VISITOR_ID_KEY, created);
+    return created;
+  } catch {
+    // localStorage unavailable (private mode, disabled storage, etc.) --
+    // fall back to a per-call id rather than throwing. Conversation
+    // continuity degrades to "one conversation per message" for this
+    // visitor, which is still correctly isolated from every other
+    // visitor, just not persisted across reloads.
+    return crypto.randomUUID();
+  }
+}
 
 type ProductImage = { name: string; imageUrl: string };
 type Feedback = "up" | "down";
@@ -92,7 +123,7 @@ export function ChatWindow({
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ businessSlug, message: text }),
+        body: JSON.stringify({ businessSlug, message: text, visitorId: getOrCreateVisitorId() }),
       });
 
       if (!res.ok) {
@@ -256,7 +287,7 @@ export function ChatWindow({
                   : "inline-block max-w-[85%] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
               }
             >
-              {m.content}
+              {linkifyContent(m.content)}
             </span>
 
             {m.role === "assistant" && m.productImages && m.productImages.length > 0 && (

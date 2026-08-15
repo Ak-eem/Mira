@@ -1,5 +1,5 @@
-export type ProductImageRef = { name: string; imageUrl: string };
-export type ProductForMatching = { name: string; image_url: string | null };
+export type ProductImageRef = { productId: string; name: string; imageUrl: string };
+export type ProductForMatching = { id: string; name: string; image_url: string | null };
 
 const MAX_IMAGES_PER_REPLY = 3;
 
@@ -21,7 +21,7 @@ export function matchProductImages(
     if (!product.image_url) continue;
     if (!lowerReply.includes(product.name.toLowerCase())) continue;
 
-    matches.push({ name: product.name, imageUrl: product.image_url });
+    matches.push({ productId: product.id, name: product.name, imageUrl: product.image_url });
     if (matches.length >= MAX_IMAGES_PER_REPLY) break;
   }
 

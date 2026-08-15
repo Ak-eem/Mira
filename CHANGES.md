@@ -3,6 +3,96 @@
 Run the 3 new migrations first (0009, 0010, 0011) — everything else depends
 on them. No new env vars needed for any of this.
 
+## This session — Nudges + business portal
+Run migrations 0014-0018 in order. One new env var: `CRON_SECRET` (see
+.env.example). If deploying to Vercel, `vercel.json` wires up the hourly
+schedule automatically and Vercel sets the Authorization header itself —
+just add `CRON_SECRET` in the project's env vars. Any other host: point
+your own scheduler at `/api/cron/nudges` with the same header.
+
+**What's real and working:** the schema for all of it (business_owners,
+orders/order_items, product_interest, product_restock_events,
+nudge_rules/nudge_sends/nudge_opt_outs, business_subscriptions); the full
+business portal at `/portal` (its own login, business-scoped via new
+`is_business_owner()` RLS policies added alongside the existing admin
+ones — purely additive, nothing existing was touched); opt-out detection
+on WhatsApp ("stop" etc, checked before anything else, confirmation reply,
+respected globally across every rule); the rule-checking engine
+(`lib/nudges/checkRules.ts`) with per-trigger-type targeting, the
+max-per-week cap (configurable per business, admin sets it in Settings),
+and quiet hours (9am-9pm business-local); "replied" tracking (an inbound
+WhatsApp message after a nudge marks it replied); delivery/read receipts
+(new `value.statuses` handling in the WhatsApp webhook, alongside the
+existing `value.messages` handling); restock-event detection (wired into
+the existing product stock-quantity update); admin controls to invite
+portal owners (`auth.admin.inviteUserByEmail`) and set a business's
+plan/Nudges tier.
+
+**What's built but can't be tested end-to-end yet:** actual template
+sends (`lib/nudges/sendTemplate.ts` calls Meta's template message API
+correctly per their docs, but there's no approved template name to send
+with yet — a rule with no `template_name` set just gets skipped by the
+cron, silently and by design).
+
+**Deliberate scope decisions, flagged rather than silently made:**
+- Orders are logged manually in the portal for now (`orders/actions.ts`)
+  — nothing infers an order from a chat. That's a separate, bigger
+  decision (does Mira eventually take orders herself?) left alone here.
+- Billing is a manual flag in Settings (`business_subscriptions.status`),
+  no payment gateway wired up — matches "you invoice/track it yourself
+  right now."
+- Nudges only ever targets WhatsApp senders (`wa_<phone>`) — there's no
+  way to proactively reach a web widget visitor who isn't looking at the
+  page, so the web channel was left out entirely rather than half-built.
+- "Estimated revenue impact" (portal Nudges page) is a rough heuristic —
+  orders that got a nudge and later converted — not a real attribution
+  model. Labeled as an estimate in the UI.
+- Portal owners get read-only access to their catalogue/hours/etc, plus
+  write access to orders, nudge rules, and resolving their own handoffs.
+  Editing products/services/hours from the portal wasn't asked for and
+  isn't there yet.
+
+## This session — 4 bug fixes
+Run migration 0012 too (`needs_human` column + index) — no new env vars.
+
+- **Conversation isolation**: the embed widget runs inside a cross-site
+  `<iframe>` on a business's own website, so the `mira_session` cookie it
+  relied on for visitor identity is a third-party cookie — Safari ITP and
+  Chrome increasingly won't send it back reliably. `ChatWindow.tsx` now
+  generates a visitor id client-side (localStorage) and sends it
+  explicitly with every message; `app/api/chat/route.ts` uses that (not
+  the cookie) to decide identity (`web_{visitorId}`). WhatsApp's
+  `wa_{from}` was already correct and needed no change.
+- **Product images**: already fully wired for the customer-facing embed
+  widget and chat page (they're the same `ChatWindow.tsx` component under
+  the hood) — confirmed by reading the code and this file's own history
+  below. What was actually missing: the *admin* conversation transcript
+  viewer never fetched or rendered them, so a business owner reviewing a
+  chat couldn't see what the customer saw. Fixed in
+  `conversations/[conversationId]/page.tsx`.
+- **Language consistency**: the "reply in the same language" rule was one
+  bullet buried in an 8-item list. Pulled out into its own strict,
+  prominent block in `buildPrompt.ts`: match the customer's most recent
+  message specifically (not the conversation's opening language), and
+  never blend languages within one reply.
+- **Human handoff** (new feature): `classifyIntent.ts` gained a
+  `human_handoff` intent, checked before everything else so it wins
+  regardless of what else is in the message. `lib/chat/handoff.ts` is new
+  — frustration detection plus deterministic, never-model-generated canned
+  replies that never mention WhatsApp. Wired into both
+  `processMessage.ts` and `app/api/chat/route.ts` (still two separate
+  implementations — see below, unchanged from last time). Trigger =
+  explicit request OR the fallback reply repeating twice in a row. Flags
+  `conversations.needs_human`; the admin dashboard (businesses list,
+  business hub, conversations list, conversation thread) all surface it,
+  with a "Mark resolved" action on the thread page.
+
+What I didn't touch: WhatsApp still can't send actual image messages
+(unchanged scope from last time, see below); there's still no
+per-business-owner login, so "notify the business owner" means "show it
+in this admin dashboard" rather than email/push — there's no notification
+infra in the codebase yet to hook into for that.
+
 ## Bug fixes (from the earlier review)
 - `app/api/webhooks/whatsapp/route.ts`: added `after()` so the webhook acks
   Meta immediately instead of blocking on the LLM call; reply is now clipped

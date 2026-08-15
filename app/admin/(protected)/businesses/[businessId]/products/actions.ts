@@ -116,6 +116,18 @@ export async function updateProduct(input: {
       summary = `"${name}" marked ${input.isAvailable ? "available" : "unavailable"}`;
     }
     await logActivity(existing.business_id, "product", input.productId, "updated", summary, input.source ?? "admin_ui");
+
+    // Nudges' restock_alert trigger needs the specific 0 -> positive
+    // transition, not just "currently has stock" -- this is the one
+    // place that transition is actually visible (a single PATCH knows
+    // both the before and after value; the products table alone only
+    // ever has "now").
+    if (existing.stock_quantity === 0 && stockQuantity !== null && stockQuantity > 0) {
+      const { error: restockError } = await supabase
+        .from("product_restock_events")
+        .insert({ business_id: existing.business_id, product_id: input.productId });
+      if (restockError) console.error("Failed to record restock event:", restockError);
+    }
   }
 
   return { error: null };

@@ -1,3 +1,11 @@
+export type BusinessSocialLinks = {
+  whatsapp?: string;
+  instagram?: string;
+  facebook?: string;
+  tiktok?: string;
+  website?: string;
+};
+
 export type Business = {
   id: string;
   name: string;
@@ -9,6 +17,7 @@ export type Business = {
   ai_instructions: string | null;
   hours_note: string | null;
   whatsapp_phone_number_id: string | null;
+  social_links: BusinessSocialLinks;
   is_active: boolean;
   created_at: string;
   updated_at: string;

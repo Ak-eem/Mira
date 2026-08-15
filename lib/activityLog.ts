@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
 export type ActivityEntityType =
-  | "service" | "product" | "promotion" | "closure" | "faq" | "policy" | "hours" | "business";
+  | "service" | "product" | "promotion" | "closure" | "faq" | "policy" | "hours" | "business" | "conversation";
 export type ActivityAction = "created" | "updated" | "deleted";
 
 // Small shared helper so every actions.ts file writes to activity_log

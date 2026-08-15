@@ -3,11 +3,13 @@ import { randomUUID } from "crypto";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { buildBusinessContext, type BusinessContext } from "@/lib/ai/buildContext";
-import { buildSystemPrompt, buildMessages } from "@/lib/ai/buildPrompt";
+import { buildSystemPrompt, buildMessages, isFallbackReply } from "@/lib/ai/buildPrompt";
 import { classifyIntent } from "@/lib/ai/classifyIntent";
 import { generateReplyStream } from "@/lib/ai/generateReply";
 import { getOfflineGateReply } from "@/lib/chat/offlineReply";
+import { getHandoffReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
 import { matchProductImages } from "@/lib/chat/matchProductImages";
+import { recordProductInterest } from "@/lib/chat/recordProductInterest";
 
 const SESSION_COOKIE = "mira_session";
 
@@ -30,6 +32,7 @@ export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const businessSlug = body?.businessSlug as string | undefined;
   const message = body?.message as string | undefined;
+  const visitorId = body?.visitorId as string | undefined;
 
   if (!businessSlug || !message || !message.trim()) {
     return NextResponse.json(
@@ -57,10 +60,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Business not found." }, { status: 404 });
   }
 
-  let sessionToken = request.cookies.get(SESSION_COOKIE)?.value;
-  if (!sessionToken) {
-    sessionToken = randomUUID();
-  }
+  // Identity comes from the widget's own client-generated visitorId, sent
+  // explicitly in the request body -- NOT from reading the session cookie
+  // back. The embed widget runs inside a cross-site <iframe> on the
+  // business's own site (see public/embed.js), where a SameSite=Lax
+  // cookie set from in there is a third-party cookie: Safari ITP and
+  // Chrome's rollout both stop it from reliably round-tripping on later
+  // requests. When that happened silently, every message could look like
+  // a brand-new visitor with no session, and "find the open conversation
+  // for this session" had nothing trustworthy to key off -- the actual
+  // mechanism behind different customers' chats blurring into one
+  // thread. A visitor ID that lives in the iframe's own localStorage
+  // instead of a cookie isn't subject to that restriction (see
+  // ChatWindow.tsx's getOrCreateVisitorId). The cookie is still set below
+  // too (harmless, helps the standalone /chat page and any already-cached
+  // embed.js), but it is never the thing identity is decided from anymore.
+  const sessionToken = `web_${visitorId && visitorId.trim() ? visitorId.trim() : randomUUID()}`;
 
   const trimmedMessage = message.trim();
 
@@ -227,21 +242,10 @@ export async function POST(request: NextRequest) {
   }
 
   const intent = classifyIntent(trimmedMessage);
-  void intent;
 
-  let systemPrompt: string;
-  let llmMessages: { role: "user" | "assistant"; content: string }[];
   let context: BusinessContext;
-
   try {
     context = await buildBusinessContext(business.id);
-    systemPrompt = buildSystemPrompt(context);
-
-    const history = (priorMessages ?? []).map((m) => ({
-      role: m.role as "customer" | "assistant",
-      content: m.content,
-    }));
-    llmMessages = buildMessages(history, trimmedMessage);
   } catch (err) {
     console.error("Failed to build AI context:", err);
     return NextResponse.json(
@@ -249,6 +253,98 @@ export async function POST(request: NextRequest) {
       { status: 500 },
     );
   }
+
+  const businessName = context.business?.name ?? "this business";
+
+  // Same handoff trigger as lib/chat/processMessage.ts (the WhatsApp
+  // path) -- explicit request, or Mira having already given the canned
+  // fallback reply twice in a row for this conversation.
+  const recentAssistantReplies = (priorMessages ?? [])
+    .filter((m) => m.role === "assistant")
+    .slice(-2)
+    .map((m) => m.content);
+  const repeatedFallback =
+    recentAssistantReplies.length === 2 &&
+    recentAssistantReplies.every((text) => isFallbackReply(text, businessName));
+  const needsHandoff =
+    intent === "human_handoff" || repeatedFallback || isFrustrationSignal(trimmedMessage);
+
+  if (needsHandoff) {
+    const { data: flaggedRows, error: flagError } = await supabase
+      .from("conversations")
+      .update({ needs_human: true })
+      .eq("id", conversationId)
+      .eq("needs_human", false)
+      .select("id");
+
+    if (flagError) {
+      console.error("Failed to flag conversation for human handoff:", flagError);
+    }
+
+    const alreadyFlagged = !flagError && (flaggedRows?.length ?? 0) === 0;
+    const reason: HandoffReason = intent === "human_handoff" ? "requested" : "confused";
+    const handoffText = getHandoffReply(businessName, reason, alreadyFlagged);
+
+    const handoffStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({ token: handoffText })}\n\n`),
+        );
+
+        const { data: saved, error: insertError } = await supabase
+          .from("messages")
+          .insert({
+            conversation_id: conversationId,
+            business_id: business.id,
+            role: "assistant",
+            content: handoffText,
+            context_snapshot: { handoff: true, reason },
+          })
+          .select("id")
+          .single();
+
+        if (insertError) {
+          console.error("Handoff reply insert failed:", insertError);
+        }
+
+        await supabase
+          .from("conversations")
+          .update({ last_message_at: new Date().toISOString() })
+          .eq("id", conversationId);
+
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ done: true, messageId: saved?.id ?? null, productImages: [] })}\n\n`,
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    const handoffResponse = new NextResponse(handoffStream, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
+      },
+    });
+    handoffResponse.cookies.set(SESSION_COOKIE, sessionToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 30,
+      path: "/",
+    });
+    return handoffResponse;
+  }
+
+  const systemPrompt = buildSystemPrompt(context);
+  const history = (priorMessages ?? []).map((m) => ({
+    role: m.role as "customer" | "assistant",
+    content: m.content,
+  }));
+  const llmMessages = buildMessages(history, trimmedMessage);
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
@@ -266,6 +362,7 @@ export async function POST(request: NextRequest) {
         }
 
         const productImages = matchProductImages(replyText, context.products);
+        await recordProductInterest(supabase, business.id, sessionToken, productImages);
 
         const { data: saved, error: assistantInsertError } = await supabase
           .from("messages")

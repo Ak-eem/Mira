@@ -3,6 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { processMessage } from "@/lib/chat/processMessage";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { createHmac, timingSafeEqual } from "crypto";
+import { isOptOutMessage } from "@/lib/nudges/optOut";
 
 const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const WHATSAPP_WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
@@ -175,6 +176,20 @@ async function handleEntries(payload: unknown) {
           console.error("WhatsApp message handling failed:", err);
         }
       }
+
+      // Meta delivers delivery/read receipts for messages a business
+      // SENT (Nudges) in the same webhook shape as inbound messages,
+      // just under `statuses` instead of `messages`. Only ever relevant
+      // to nudge_sends -- ordinary reactive replies aren't tracked this
+      // granularly.
+      const statuses = Array.isArray(value.statuses) ? value.statuses : [];
+      for (const status of statuses) {
+        try {
+          await handleStatusUpdate(supabase, status);
+        } catch (err) {
+          console.error("WhatsApp status update handling failed:", err);
+        }
+      }
     }
   }
 }
@@ -208,6 +223,46 @@ async function handleSingleMessage(
     return;
   }
 
+  // Opt-out is checked before anything else touches this message --
+  // spec requires it respected across every rule immediately, and the
+  // confirmation reply is fixed/deterministic, not something to hand to
+  // the LLM.
+  if (isOptOutMessage(textBody)) {
+    const { error } = await supabase
+      .from("nudge_opt_outs")
+      .upsert({ business_id: businessId, customer_identifier: `wa_${from}` }, { onConflict: "business_id,customer_identifier" });
+    if (error) console.error("Failed to record nudge opt-out:", error);
+
+    await sendWhatsappReply(
+      phoneNumberId,
+      from,
+      "You're unsubscribed from update messages. You can still message us here any time -- this only stops proactive alerts.",
+    );
+    return;
+  }
+
+  // "Replied" analytics for Nudges: this inbound message counts as a
+  // reply to the most recent nudge sent to this customer, if any and if
+  // it hasn't already been marked. Scoped to the last 7 days so a
+  // message six months after a one-off nudge doesn't get misattributed.
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { data: recentNudge } = await supabase
+    .from("nudge_sends")
+    .select("id")
+    .eq("business_id", businessId)
+    .eq("customer_identifier", `wa_${from}`)
+    .is("replied_at", null)
+    .gte("sent_at", weekAgo)
+    .order("sent_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (recentNudge) {
+    await supabase
+      .from("nudge_sends")
+      .update({ replied_at: new Date().toISOString(), status: "replied" })
+      .eq("id", recentNudge.id);
+  }
+
   let replyText: string;
   try {
     const result = await processMessage(businessId, `wa_${from}`, textBody, "whatsapp");
@@ -218,6 +273,35 @@ async function handleSingleMessage(
   }
 
   await sendWhatsappReply(phoneNumberId, from, replyText);
+}
+
+// Meta's status payload: { id: "<outbound wamid>", status: "sent" |
+// "delivered" | "read" | "failed", timestamp, recipient_id, ... }. Only
+// ever matches a row here if that wamid was one of ours from
+// sendWhatsAppTemplate (see lib/nudges/sendTemplate.ts) -- a status
+// update for an ordinary reactive reply just won't find a match, which
+// is fine, those aren't tracked.
+async function handleStatusUpdate(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  status: unknown,
+) {
+  if (!isRecord(status)) return;
+
+  const wamid = typeof status.id === "string" ? status.id : undefined;
+  const state = typeof status.status === "string" ? status.status : undefined;
+  if (!wamid || !state) return;
+
+  const update: Record<string, unknown> = {};
+  if (state === "delivered") update.status = "delivered";
+  else if (state === "read") update.status = "read";
+  else if (state === "failed") update.status = "failed";
+  else return; // "sent" is already the default we insert with
+
+  if (state === "delivered") update.delivered_at = new Date().toISOString();
+  if (state === "read") update.read_at = new Date().toISOString();
+
+  const { error } = await supabase.from("nudge_sends").update(update).eq("whatsapp_message_id", wamid);
+  if (error) console.error("Failed to update nudge_sends from status webhook:", error);
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

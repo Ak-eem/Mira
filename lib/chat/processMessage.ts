@@ -1,10 +1,12 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
-import { buildSystemPrompt, buildMessages } from "@/lib/ai/buildPrompt";
+import { buildSystemPrompt, buildMessages, isFallbackReply } from "@/lib/ai/buildPrompt";
 import { classifyIntent } from "@/lib/ai/classifyIntent";
 import { generateReply } from "@/lib/ai/generateReply";
 import { getOfflineGateReply } from "@/lib/chat/offlineReply";
+import { getHandoffReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
 import { matchProductImages, type ProductImageRef } from "@/lib/chat/matchProductImages";
+import { recordProductInterest } from "@/lib/chat/recordProductInterest";
 
 export class ProcessMessageError extends Error {
   status: number;
@@ -141,14 +143,72 @@ export async function processMessage(
 
   const intent = classifyIntent(trimmedMessage);
   const context = await buildBusinessContext(businessId);
+  const businessName = context.business?.name ?? "this business";
+
+  // "Repeated confusion" half of the handoff trigger: either the customer
+  // sounds frustrated right now, or Mira has already given the canned
+  // "I don't have that information" fallback twice in a row -- two
+  // different signals for the same underlying thing, that this
+  // conversation isn't going anywhere without a person.
+  const recentAssistantReplies = (priorMessages ?? [])
+    .filter((m) => m.role === "assistant")
+    .slice(-2)
+    .map((m) => m.content);
+  const repeatedFallback =
+    recentAssistantReplies.length === 2 &&
+    recentAssistantReplies.every((text) => isFallbackReply(text, businessName));
+  const needsHandoff =
+    intent === "human_handoff" || repeatedFallback || isFrustrationSignal(trimmedMessage);
+
+  if (needsHandoff) {
+    // Flip false -> true and report whether THIS call is the one that did
+    // it, in one round trip -- zero rows back means it was already true.
+    const { data: flaggedRows, error: flagError } = await supabase
+      .from("conversations")
+      .update({ needs_human: true })
+      .eq("id", conversation.id)
+      .eq("needs_human", false)
+      .select("id");
+
+    if (flagError) {
+      console.error("Failed to flag conversation for human handoff:", flagError);
+    }
+
+    const alreadyFlagged = !flagError && (flaggedRows?.length ?? 0) === 0;
+    const reason: HandoffReason = intent === "human_handoff" ? "requested" : "confused";
+    const handoffText = getHandoffReply(businessName, reason, alreadyFlagged);
+
+    const { data: savedHandoff, error: handoffInsertError } = await supabase
+      .from("messages")
+      .insert({
+        conversation_id: conversation.id,
+        business_id: businessId,
+        role: "assistant",
+        content: handoffText,
+        context_snapshot: { handoff: true, reason },
+      })
+      .select("id")
+      .single();
+
+    if (handoffInsertError || !savedHandoff) {
+      console.error("Handoff reply insert failed:", handoffInsertError);
+      throw new ProcessMessageError("Something went wrong. Please try again.", 500);
+    }
+
+    await supabase
+      .from("conversations")
+      .update({ last_message_at: new Date().toISOString() })
+      .eq("id", conversation.id);
+
+    return { reply: handoffText, messageId: savedHandoff.id, productImages: [] };
+  }
+
   const systemPrompt = buildSystemPrompt(context);
   const history = (priorMessages ?? []).map((m) => ({
     role: m.role as "customer" | "assistant",
     content: m.content,
   }));
   const llmMessages = buildMessages(history, trimmedMessage);
-
-  void intent;
 
   let replyText: string;
   try {
@@ -162,6 +222,7 @@ export async function processMessage(
   }
 
   const productImages = matchProductImages(replyText, context.products);
+  await recordProductInterest(supabase, businessId, sessionToken, productImages);
 
   // Insert now selects the row back (previously fire-and-forget) --
   // deliberate change: feedback (thumbs up/down) needs a real message id
