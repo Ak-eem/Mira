@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { Nunito } from "next/font/google";
 import { linkifyContent } from "@/lib/linkify";
 
@@ -246,6 +246,21 @@ export function ChatWindow({
     }
   }
 
+      const messagesWithUniqueImages = useMemo(() => {
+        const seenImageUrls = new Set<string>();
+        return messages.map((message) => {
+          if (!message.productImages) return message;
+          const productImages = message.productImages.filter((product) => {
+            if (seenImageUrls.has(product.imageUrl)) return false;
+            seenImageUrls.add(product.imageUrl);
+            return true;
+          });
+          return productImages.length === message.productImages.length
+            ? message
+            : { ...message, productImages };
+        });
+      }, [messages]);
+
   return (
     <div className={`${embedMode ? "flex h-full flex-col" : "flex min-h-screen flex-col"} ${nunito.className}`}>
       <header
@@ -278,7 +293,7 @@ export function ChatWindow({
             </span>
           </div>
         )}
-        {messages.map((m, i) => (
+        {messagesWithUniqueImages.map((m, i) => (
           <div key={i} className={m.role === "customer" ? "text-right" : "text-left"}>
             <span
               className={
