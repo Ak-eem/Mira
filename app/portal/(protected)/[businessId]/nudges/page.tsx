@@ -45,30 +45,30 @@ export default async function NudgesPage({
   return (
     <div className="space-y-6">
       {!subscription?.nudges_addon && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800">
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
           The Nudges add-on isn&apos;t active on your plan yet — rules can be set up below, but nothing sends until
           it&apos;s turned on.
         </div>
       )}
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <p className="mb-3 font-medium">Last 30 days</p>
-        <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <p className="mb-4 font-medium text-slate-900">Last 30 days</p>
+        <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>
-            <p className="text-lg font-semibold">{sent}</p>
-            <p className="text-slate-500">Sent</p>
+            <p className="text-xl font-semibold text-slate-900">{sent}</p>
+            <p className="text-xs text-slate-500">Sent</p>
           </div>
           <div>
-            <p className="text-lg font-semibold">{delivered}</p>
-            <p className="text-slate-500">Delivered</p>
+            <p className="text-xl font-semibold text-slate-900">{delivered}</p>
+            <p className="text-xs text-slate-500">Delivered</p>
           </div>
           <div>
-            <p className="text-lg font-semibold">{replied}</p>
-            <p className="text-slate-500">Replied</p>
+            <p className="text-xl font-semibold text-slate-900">{replied}</p>
+            <p className="text-xs text-slate-500">Replied</p>
           </div>
           <div>
-            <p className="text-lg font-semibold">₦{estimatedRevenueImpact.toLocaleString()}</p>
-            <p className="text-slate-500">Est. revenue impact</p>
+            <p className="text-xl font-semibold text-slate-900">₦{estimatedRevenueImpact.toLocaleString()}</p>
+            <p className="text-xs text-slate-500">Est. revenue impact</p>
           </div>
         </div>
       </div>

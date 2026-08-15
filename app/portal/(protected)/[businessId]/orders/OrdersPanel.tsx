@@ -46,8 +46,8 @@ function NewOrderForm({ businessId }: { businessId: string }) {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
-      <p className="font-medium">Log an order</p>
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <p className="font-medium text-slate-900">Log an order</p>
 
       <div>
         <label className="block text-xs font-medium text-slate-600">Customer WhatsApp number</label>
@@ -132,7 +132,7 @@ function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
   }
 
   return (
-    <li className="rounded border border-slate-200 bg-white p-3">
+    <li className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
         <span className="font-mono text-xs text-slate-500">{order.customer_identifier.replace(/^wa_/, "")}</span>
         <select
@@ -164,9 +164,11 @@ export function OrdersPanel({ businessId, orders }: { businessId: string; orders
       <NewOrderForm businessId={businessId} />
 
       <div>
-        <p className="mb-3 font-medium">Recent orders</p>
+        <p className="mb-3 font-medium text-slate-900">Recent orders</p>
         {orders.length === 0 ? (
-          <p className="text-sm text-slate-500">No orders logged yet.</p>
+          <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
+            No orders logged yet.
+          </p>
         ) : (
           <ul className="space-y-2">
             {orders.map((order) => (

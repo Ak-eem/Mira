@@ -56,58 +56,74 @@ export default async function PortalDashboardPage({
   ]);
 
   const nudgesActive = subscription?.nudges_addon === true;
+  const needsYou = needsHumanCount ?? 0;
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-4">
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <p className="text-2xl font-semibold">{conversationCount ?? 0}</p>
-          <p className="text-sm text-slate-500">Conversations, last 30 days</p>
-        </div>
-        <div className="rounded-lg border border-slate-200 bg-white p-4">
-          <p className="text-2xl font-semibold">{needsHumanCount ?? 0}</p>
-          <p className="text-sm text-slate-500">
-            Need you now —{" "}
-            <Link href={`/portal/${businessId}/conversations`} className="text-accent hover:underline">
-              view
-            </Link>
-          </p>
+    <div className="space-y-8">
+      <div>
+        <p className="mb-3 text-sm font-medium text-slate-500">Last 30 days</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+            <p className="text-3xl font-semibold tracking-tight text-slate-900">{conversationCount ?? 0}</p>
+            <p className="mt-1 text-sm text-slate-500">Conversations</p>
+          </div>
+          <Link
+            href={`/portal/${businessId}/conversations`}
+            className={`rounded-xl border p-5 shadow-sm transition ${
+              needsYou > 0
+                ? "border-amber-300 bg-amber-50 hover:border-amber-400"
+                : "border-slate-200 bg-white hover:border-slate-300"
+            }`}
+          >
+            <p className={`text-3xl font-semibold tracking-tight ${needsYou > 0 ? "text-amber-700" : "text-slate-900"}`}>
+              {needsYou}
+            </p>
+            <p className={`mt-1 text-sm ${needsYou > 0 ? "text-amber-700" : "text-slate-500"}`}>
+              {needsYou > 0 ? "Need you now →" : "Need you now"}
+            </p>
+          </Link>
         </div>
       </div>
 
-      <div className="rounded-lg border border-slate-200 bg-white p-4">
-        <div className="mb-3 flex items-center justify-between">
-          <p className="font-medium">Nudges</p>
-          {!nudgesActive && <span className="text-xs text-slate-400">Not active on this plan</span>}
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="mb-4 flex items-center justify-between">
+          <p className="font-medium text-slate-900">Nudges</p>
+          {!nudgesActive && (
+            <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-500">Not active</span>
+          )}
         </div>
+
         {nudgesActive ? (
-          <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4">
-            <div>
-              <p className="text-lg font-semibold">{nudgesSent ?? 0}</p>
-              <p className="text-slate-500">Sent (30d)</p>
+          <>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+              <div>
+                <p className="text-xl font-semibold text-slate-900">{nudgesSent ?? 0}</p>
+                <p className="text-xs text-slate-500">Sent</p>
+              </div>
+              <div>
+                <p className="text-xl font-semibold text-slate-900">{nudgesDelivered ?? 0}</p>
+                <p className="text-xs text-slate-500">Delivered</p>
+              </div>
+              <div>
+                <p className="text-xl font-semibold text-slate-900">{nudgesReplied ?? 0}</p>
+                <p className="text-xs text-slate-500">Replied</p>
+              </div>
+              <div>
+                <p className="text-xl font-semibold text-slate-900">{nudgesOptedOut ?? 0}</p>
+                <p className="text-xs text-slate-500">Opted out, all time</p>
+              </div>
             </div>
-            <div>
-              <p className="text-lg font-semibold">{nudgesDelivered ?? 0}</p>
-              <p className="text-slate-500">Delivered</p>
-            </div>
-            <div>
-              <p className="text-lg font-semibold">{nudgesReplied ?? 0}</p>
-              <p className="text-slate-500">Replied</p>
-            </div>
-            <div>
-              <p className="text-lg font-semibold">{nudgesOptedOut ?? 0}</p>
-              <p className="text-slate-500">Opted out (all time)</p>
-            </div>
-          </div>
+            <Link
+              href={`/portal/${businessId}/nudges`}
+              className="mt-4 inline-block text-sm font-medium text-accent hover:underline"
+            >
+              Manage nudges →
+            </Link>
+          </>
         ) : (
           <p className="text-sm text-slate-500">
-            Ask Mira's team to turn on the Nudges add-on to send WhatsApp updates automatically.
+            Ask Mira&apos;s team to turn on the Nudges add-on to send WhatsApp updates automatically.
           </p>
-        )}
-        {nudgesActive && (
-          <Link href={`/portal/${businessId}/nudges`} className="mt-3 inline-block text-sm text-accent hover:underline">
-            Manage nudges →
-          </Link>
         )}
       </div>
     </div>

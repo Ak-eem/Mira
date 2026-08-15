@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
+import { PortalNav } from "./PortalNav";
 
 export default async function PortalBusinessLayout({
   children,
@@ -19,27 +20,14 @@ export default async function PortalBusinessLayout({
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold">{business.name}</h1>
+        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{business.name}</h1>
         {owner.businesses.length > 1 && (
-          <Link href="/portal" className="text-sm text-slate-500 hover:underline">
+          <Link href="/portal" className="text-sm text-slate-400 hover:text-slate-600">
             Switch business
           </Link>
         )}
       </div>
-      <nav className="mb-6 flex gap-4 border-b border-slate-200 text-sm">
-        <Link href={`/portal/${businessId}`} className="border-b-2 border-transparent px-1 pb-2 hover:border-accent">
-          Dashboard
-        </Link>
-        <Link href={`/portal/${businessId}/conversations`} className="border-b-2 border-transparent px-1 pb-2 hover:border-accent">
-          Conversations
-        </Link>
-        <Link href={`/portal/${businessId}/nudges`} className="border-b-2 border-transparent px-1 pb-2 hover:border-accent">
-          Nudges
-        </Link>
-        <Link href={`/portal/${businessId}/orders`} className="border-b-2 border-transparent px-1 pb-2 hover:border-accent">
-          Orders
-        </Link>
-      </nav>
+      <PortalNav businessId={businessId} />
       {children}
     </div>
   );

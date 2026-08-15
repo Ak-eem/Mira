@@ -5,6 +5,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { SettingsForm } from "./SettingsForm";
 import { OwnersPanel } from "./OwnersPanel";
 import { SubscriptionPanel } from "./SubscriptionPanel";
+import { DeleteBusinessPanel } from "./DeleteBusinessPanel";
 
 export default async function SettingsPage({
   params,
@@ -46,6 +47,7 @@ export default async function SettingsPage({
 
       <OwnersPanel businessId={businessId} owners={owners} />
       <SubscriptionPanel businessId={businessId} subscription={subscription} />
+      <DeleteBusinessPanel businessId={businessId} businessName={business.name} />
     </div>
   );
 }

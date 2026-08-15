@@ -20,18 +20,20 @@ export default async function PortalConversationsPage({
   return (
     <div>
       {(!conversations || conversations.length === 0) && (
-        <p className="text-sm text-slate-500">No conversations yet.</p>
+        <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
+          No conversations yet.
+        </p>
       )}
       <ul className="space-y-2">
         {conversations?.map((c) => (
           <li key={c.id}>
             <Link
               href={`/portal/${businessId}/conversations/${c.id}`}
-              className="flex items-center justify-between rounded border border-slate-200 bg-white p-3 hover:border-accent"
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-accent"
             >
               <span className="flex items-center gap-2">
                 {c.needs_human && (
-                  <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                  <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
                     Needs you
                   </span>
                 )}

@@ -18,7 +18,7 @@ export default async function OrdersPage({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-500">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
         Orders are logged here manually for now — Mira doesn&apos;t take orders directly yet. This is what Nudges
         (order shipped / abandoned cart) reads from.
       </div>

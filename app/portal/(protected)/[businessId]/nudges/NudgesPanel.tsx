@@ -50,15 +50,15 @@ function RuleCard({ businessId, rule }: { businessId: string; rule: Rule }) {
   }
 
   return (
-    <div className="rounded-lg border border-slate-200 bg-white p-4">
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
       <div className="mb-1 flex items-center justify-between">
-        <p className="font-medium">{info.title}</p>
-        <label className="flex items-center gap-2 text-sm">
+        <p className="font-medium text-slate-900">{info.title}</p>
+        <label className="flex items-center gap-2 text-sm text-slate-600">
           <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
           Active
         </label>
       </div>
-      <p className="mb-3 text-sm text-slate-500">{info.description}</p>
+      <p className="mb-4 text-sm text-slate-500">{info.description}</p>
 
       <div className="space-y-3">
         <div>
@@ -92,7 +92,7 @@ function RuleCard({ businessId, rule }: { businessId: string; rule: Rule }) {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+            className="rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-white transition hover:bg-accent-dark disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save"}
           </button>
