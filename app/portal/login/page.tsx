@@ -71,12 +71,15 @@ export default function PortalLoginPage() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-sm text-slate-500">
-          Need an account?{" "}
-          <Link href="/portal/signup" className="font-medium text-accent hover:underline">
+        <div className="mt-4 space-y-2 text-center">
+          <p className="text-sm text-slate-500">Need an account?</p>
+          <Link
+            href="/portal/signup"
+            className="inline-flex w-full items-center justify-center rounded bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark"
+          >
             Create account
           </Link>
-        </p>
+        </div>
 
         <p className="mt-4 text-center text-xs text-slate-400">
           Invited by your Mira contact? Check your email for a link to set your password.
