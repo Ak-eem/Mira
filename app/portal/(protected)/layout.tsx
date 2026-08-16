@@ -1,19 +1,22 @@
 import { redirect } from "next/navigation";
-import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
+import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "./SignOutButton";
 
-// Same reasoning as app/admin/(protected)/layout.tsx: app/portal/login/
-// deliberately sits outside this route group so a logged-out visitor
-// doesn't get bounced to a login page that bounces them right back.
+// This layout only guards authentication. Business ownership is handled by the
+// page below so authenticated users without a linked business get a useful
+// empty state instead of being sent back to login in a loop.
 export default async function PortalLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const owner = await getCurrentBusinessOwner();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!owner) {
-    redirect("/portal/login");
+  if (!user) {
+    redirect("/portal/login?next=/portal");
   }
 
   return (
@@ -24,7 +27,7 @@ export default async function PortalLayout({
             Mira <span className="font-normal text-accent">for Business</span>
           </span>
           <div className="flex items-center gap-4">
-            <span className="hidden text-sm text-slate-400 sm:inline">{owner.email}</span>
+            <span className="hidden text-sm text-slate-400 sm:inline">{user.email}</span>
             <SignOutButton />
           </div>
         </div>

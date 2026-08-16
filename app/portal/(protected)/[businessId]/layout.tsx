@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { PortalNav } from "./PortalNav";
 
@@ -11,8 +12,19 @@ export default async function PortalBusinessLayout({
   params: Promise<{ businessId: string }>;
 }) {
   const { businessId } = await params;
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect(`/portal/login?next=${encodeURIComponent(`/portal/${businessId}`)}`);
+  }
+
   const owner = await getCurrentBusinessOwner();
-  if (!owner) redirect("/portal/login");
+  if (!owner) {
+    redirect("/portal");
+  }
 
   const business = owner.businesses.find((b) => b.id === businessId);
   if (!business) notFound(); // this owner exists, just doesn't own this specific business

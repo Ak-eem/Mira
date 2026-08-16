@@ -5,6 +5,25 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
+function getSafeRedirect(search: string) {
+  const next = new URLSearchParams(search).get("next");
+
+  // Only allow same-origin paths. In particular, reject protocol-relative URLs.
+  if (!next || !next.startsWith("/") || next.startsWith("//")) {
+    return "/portal";
+  }
+
+  return next;
+}
+
+function getLoginErrorMessage(message?: string | null) {
+  if (message?.toLowerCase().includes("email not confirmed")) {
+    return "Your email address is not confirmed. Check your inbox for the confirmation link before signing in.";
+  }
+
+  return message || "Unable to sign in. Check your email and password and try again.";
+}
+
 export default function PortalLoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -17,17 +36,23 @@ export default function PortalLoginPage() {
     setSubmitting(true);
     setError(null);
 
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithPassword({ email, password });
 
-    if (error) {
-      setError(error.message);
+      if (error) {
+        setError(getLoginErrorMessage(error.message));
+        return;
+      }
+
+      const next = getSafeRedirect(window.location.search);
+      router.replace(next);
+      router.refresh();
+    } catch {
+      setError("Unable to sign in right now. Please try again.");
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    router.push("/portal");
-    router.refresh();
   }
 
   return (
@@ -60,7 +85,7 @@ export default function PortalLoginPage() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
 
           <button
             type="submit"
