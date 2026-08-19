@@ -11,6 +11,7 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -30,13 +31,19 @@ export default function SignupPage() {
     setSubmitting(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
     });
 
     if (error) {
       setError(error.message);
+      setSubmitting(false);
+      return;
+    }
+
+    if (!data.session) {
+      setMessage("Check your email to confirm your account before signing in.");
       setSubmitting(false);
       return;
     }
@@ -96,6 +103,7 @@ export default function SignupPage() {
           </div>
 
           {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+          {message && <p className="text-sm text-green-600" role="status">{message}</p>}
 
           <button
             type="submit"

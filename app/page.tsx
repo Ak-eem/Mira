@@ -28,7 +28,7 @@ export default function Home() {
             </Link>
             <div className="flex items-center gap-4 text-sm">
               <Link href="/login" className="font-medium text-slate-600 transition hover:text-accent">
-                Admin login
+                Login
               </Link>
               <Link
                 href="/signup"
