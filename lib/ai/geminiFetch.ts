@@ -9,7 +9,11 @@ const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 const TIMEOUT_MS = 10_000;
 const RETRY_DELAY_MS = 600;
-const GROQ_MODEL = "llama-3.3-70b-versatile";
+// llama-3.3-70b-versatile was deprecated by Groq (announced June 2026) --
+// every request was 404ing, silently falling through to the Gemini
+// fallback, which then timed out for a real fraction of users too. This
+// is Groq's own recommended replacement for that exact model.
+const GROQ_MODEL = "openai/gpt-oss-120b";
 
 type ProviderName = "gemini" | "groq";
 
