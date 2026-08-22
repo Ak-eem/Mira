@@ -397,7 +397,7 @@ export async function POST(request: NextRequest) {
         controller.close();
       } catch (err) {
         console.error("generateReplyStream failed:", err);
-        const errorMessage = "Something went wrong on our end. Please try again";
+        const errorMessage = "Something went wrong on our end. Please try again.";
 
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ error: errorMessage })}\n\n`),

@@ -8,6 +8,7 @@ import { linkifyContent } from "@/lib/linkify";
 // system sans-serif, this is specifically about the customer-facing
 // surface feeling warmer and more personable.
 const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700"] });
+const GENERIC_ERROR_MESSAGE = "Something went wrong on our end. Please try again.";
 
 const VISITOR_ID_KEY = "mira_visitor_id";
 
@@ -128,12 +129,12 @@ export function ChatWindow({
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        setError(data?.error ?? "Something went wrong.");
+        setError(data?.error ?? GENERIC_ERROR_MESSAGE);
         return;
       }
 
       if (!res.body) {
-        setError("The server returned an empty response.");
+        setError(GENERIC_ERROR_MESSAGE);
         return;
       }
 
@@ -203,7 +204,7 @@ export function ChatWindow({
         };
 
         if (parsed.error) {
-          setError(parsed.error);
+          setError(GENERIC_ERROR_MESSAGE);
           return;
         }
 
