@@ -129,7 +129,7 @@ export function ChatWindow({
 
       if (!res.ok) {
         const data = await res.json().catch(() => null);
-        setError(data?.error ?? GENERIC_ERROR_MESSAGE);
+        setError(GENERIC_ERROR_MESSAGE);
         return;
       }
 
