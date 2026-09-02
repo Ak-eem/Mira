@@ -129,8 +129,9 @@ export async function POST(request: NextRequest) {
         business_id: business.id,
         session_token: sessionToken,
         channel: "web",
+        last_message_at: new Date().toISOString(),
       })
-      .select("id, business_id")
+      .select("id, business_id, last_message_at")
       .single();
 
     if (convError?.code === "23505") {
@@ -163,6 +164,13 @@ export async function POST(request: NextRequest) {
       conversation = newConversation;
       isNewConversation = true;
     }
+  }
+
+  if (!conversation) {
+    return NextResponse.json(
+      { error: "Could not start conversation." },
+      { status: 500 },
+    );
   }
 
   if (conversation.business_id !== business.id) {

@@ -69,16 +69,17 @@ export async function processMessage(
   if (!conversation) {
     const { data: newConversation, error: convError } = await supabase
       .from("conversations")
-      .insert({ business_id: businessId, session_token: sessionToken, channel })
-      .select("id, business_id")
+      .insert({
+        business_id: businessId,
+        session_token: sessionToken,
+        channel,
+        last_message_at: new Date().toISOString(),
+      })
+      .select("id, business_id, last_message_at")
       .single();
 
     if (convError?.code === "23505") {
-      // Lost the race to open this conversation -- another concurrent
-      // request's insert won (see migration 0009's partial unique index).
-      // Pick up their row instead of erroring; only the winner triggers
-      // the offline-gate reply below, so we don't send it twice for what
-      // was really one "opening" moment.
+      // Lost the race to open this conversation; pick up the winner's row.
       const { data: winner, error: reselectError } = await supabase
         .from("conversations")
         .select("id, business_id, last_message_at")
@@ -99,6 +100,10 @@ export async function processMessage(
       conversation = newConversation;
       isNewConversation = true;
     }
+  }
+
+  if (!conversation) {
+    throw new ProcessMessageError("Could not start conversation.", 500);
   }
 
   if (conversation.business_id !== businessId) {
