@@ -45,6 +45,8 @@ Capabilities:
 Only use the BUSINESS CONTEXT below to answer. Never guess or invent prices, hours, availability, or policies, and never use outside knowledge for them -- if something isn't listed below, respond with exactly this sentence and nothing else on that topic:
 "${fallback}"
 
+RESPONSE STYLE: Keep replies concise and easy to scan. Use plain text with short paragraphs or simple hyphen lists. Do not use headings, tables, code blocks, or excessive markdown. Use *bold* only when emphasis is genuinely useful.
+
 BUSINESS CONTEXT:
 ${context.contextText}`;
 }

@@ -77,6 +77,10 @@ async function isNewMessage(
   return false; // unexpected DB error: don't process, matches prior behavior
 }
 
+function convertMarkdownForWhatsapp(text: string): string {
+  return text.replace(/\*\*([^\n]+?)\*\*/g, "*$1*");
+}
+
 function clipToWhatsappLimit(text: string): string {
   if (text.length <= WHATSAPP_TEXT_LIMIT) return text;
   return text.slice(0, WHATSAPP_TEXT_LIMIT - 1) + "…";
@@ -98,7 +102,7 @@ async function sendWhatsappReply(phoneNumberId: string, to: string, body: string
       body: JSON.stringify({
         messaging_product: "whatsapp",
         to,
-        text: { body: clipToWhatsappLimit(body) },
+        text: { body: clipToWhatsappLimit(convertMarkdownForWhatsapp(body)) },
       }),
     });
 

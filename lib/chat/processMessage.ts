@@ -7,6 +7,7 @@ import { getOfflineGateReply } from "@/lib/chat/offlineReply";
 import { getHandoffReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
 import { matchProductImages, type ProductImageRef } from "@/lib/chat/matchProductImages";
 import { recordProductInterest } from "@/lib/chat/recordProductInterest";
+import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
 
 export class ProcessMessageError extends Error {
   status: number;
@@ -34,7 +35,7 @@ export async function processMessage(
 
   let { data: conversation, error: conversationLookupError } = await supabase
     .from("conversations")
-    .select("id, business_id")
+    .select("id, business_id, last_message_at")
     .eq("business_id", businessId)
     .eq("session_token", sessionToken)
     .eq("status", "open")
@@ -43,6 +44,24 @@ export async function processMessage(
   if (conversationLookupError) {
     console.error("Conversation lookup failed:", conversationLookupError);
     throw new ProcessMessageError("Something went wrong. Please try again.", 500);
+  }
+
+  if (
+    conversation &&
+    Date.now() - new Date(conversation.last_message_at).getTime() >= CONVERSATION_IDLE_TIMEOUT_MS
+  ) {
+    const { error: closeError } = await supabase
+      .from("conversations")
+      .update({ status: "closed" })
+      .eq("id", conversation.id)
+      .eq("status", "open");
+
+    if (closeError) {
+      console.error("Expired conversation close failed:", closeError);
+      throw new ProcessMessageError("Something went wrong. Please try again.", 500);
+    }
+
+    conversation = null;
   }
 
   let isNewConversation = false;
@@ -62,7 +81,7 @@ export async function processMessage(
       // was really one "opening" moment.
       const { data: winner, error: reselectError } = await supabase
         .from("conversations")
-        .select("id, business_id")
+        .select("id, business_id, last_message_at")
         .eq("business_id", businessId)
         .eq("session_token", sessionToken)
         .eq("status", "open")
