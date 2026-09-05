@@ -113,10 +113,26 @@ export function ChatWindow({
   embedMode?: boolean;
 }) {
   const [visitorId] = useState(() => {
-    if (typeof crypto !== "undefined" && typeof crypto.randomUUID === "function") {
-      return crypto.randomUUID();
+    const storageKey = `mira_visitor_${businessSlug}`;
+    try {
+      if (typeof window !== "undefined" && window.localStorage) {
+        const existing = window.localStorage.getItem(storageKey);
+        if (existing) return existing;
+
+        const generated =
+          typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+            ? crypto.randomUUID()
+            : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+        window.localStorage.setItem(storageKey, generated);
+        return generated;
+      }
+    } catch {
+      // localStorage unavailable (private browsing, disabled storage, etc.)
+      // -- fall through to an in-memory-only id below.
     }
-    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
   });
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
