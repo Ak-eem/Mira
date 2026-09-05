@@ -426,6 +426,9 @@ export function ChatWindow({
           Send
         </button>
       </form>
+      <div className="border-t border-slate-100 bg-slate-50/60 pb-2 pt-1.5 text-center text-[11px] text-slate-400">
+        Powered by <span className="font-medium text-slate-500">Mira AI</span>
+      </div>
     </div>
   );
 }
