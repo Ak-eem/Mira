@@ -4,7 +4,7 @@ The custom verification flow is intentionally server-only. It uses the existing 
 
 ## Setup
 
-1. Apply `supabase/migrations/0021_email_verification_codes.sql`.
+1. Apply `supabase/migrations/0021_email_verification_codes.sql`, then `0022_email_verification_delivery_and_rate_limits.sql`, then `0023_email_verification_failed_delivery_retry.sql`.
 2. Set these server-side environment variables (the repository does not contain values):
    - `EMAIL_VERIFICATION_PEPPER`: a long random secret used as the HMAC key for OTP hashes.
    - `RESEND_API_KEY`: the Resend API key.
@@ -14,15 +14,18 @@ The custom verification flow is intentionally server-only. It uses the existing 
 ## Endpoints
 
 - `POST /api/auth/email-verification/send` with `{ "email": "user@example.com" }` creates and sends a six-digit OTP using the inline-CSS template in `lib/email/templates.ts`.
-- `POST /api/auth/email-verification/verify` with `{ "email": "user@example.com", "otp": "123456" }` verifies the code. A successful verification consumes and invalidates it.
+- `POST /api/auth/email-verification/verify` with `{ "email": "user@example.com", "otp": "123456" }` verifies the code. A successful verification consumes and invalidates it and sets a short-lived, HttpOnly signup-confirmation marker.
+- The same verify endpoint accepts `{ "email": "user@example.com", "userId": "..." }` only after that marker exists, then confirms the matching Supabase user server-side.
 
-The database functions serialize requests per email. Codes are HMAC-SHA256 hashed with `EMAIL_VERIFICATION_PEPPER`, expire after 10 minutes, are single-use, invalidate after 5 failed attempts, enforce a 60-second resend cooldown, and allow at most 5 sends per email per hour. A blocked send returns HTTP 429 with `Retry-After`.
+The database functions serialize requests per email. Codes are HMAC-SHA256 hashed with `EMAIL_VERIFICATION_PEPPER`, expire after 10 minutes, are single-use, invalidate after 5 failed attempts, enforce a 60-second resend cooldown, and allow at most 5 sends per email per hour. Public sends also enforce IP, provider, and global hourly limits. A blocked send returns HTTP 429 with `Retry-After`.
+
+If Resend rejects delivery, the undelivered reservation and its aggregate rate-limit increments are removed by `0023_email_verification_failed_delivery_retry.sql`, so the user can retry immediately without consuming the OTP or quota.
 
 ## Signup integration
 
-In the existing client signup handler (`app/portal/signup/page.tsx`), call the send endpoint after `supabase.auth.signUp` succeeds, then route the user to a client verification screen that submits the OTP to the verify endpoint. Do not import `lib/auth/email-verification.ts`, `lib/email/resend.ts`, or the service-role client into a client component.
+The existing client signup handler (`app/portal/signup/page.tsx`) sends the OTP before calling `supabase.auth.signUp`. It only enables account creation after the six-digit code has been verified; after signup, it calls the server-side confirmation path with the newly-created user ID. Do not import `lib/auth/email-verification.ts`, `lib/email/resend.ts`, or the service-role client into a client component.
 
-If Supabase Auth email confirmation is enabled, decide on one confirmation source before production: disable the duplicate Supabase confirmation email for this custom flow, or keep Supabase confirmation and use this flow only as a separate application-level verification. After a successful custom verification, the server-side integration should mark the matching Supabase user as confirmed with the Admin API (`auth.admin.updateUserById(..., { email_confirm: true })`) when that is the chosen confirmation source.
+If Supabase Auth email confirmation is enabled, this flow uses the custom OTP as the confirmation source by calling `auth.admin.updateUserById(..., { email_confirm: true })` after the OTP has been verified. Configure Supabase so it does not send a duplicate confirmation email for this flow.
 
 ## Welcome email
 

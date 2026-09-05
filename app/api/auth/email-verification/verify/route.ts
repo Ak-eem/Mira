@@ -9,6 +9,8 @@ import {
 
 export const runtime = "nodejs";
 
+const EMAIL_VERIFICATION_CONFIRMED_COOKIE = "email_verification_confirmed";
+
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { email?: unknown; otp?: unknown; userId?: unknown };
@@ -22,6 +24,11 @@ export async function POST(request: Request) {
     const flowTokenHash = hashEmailVerificationFlowToken(body.email, flowToken);
 
     if (typeof body.userId === "string") {
+      const confirmedTokenHash = cookieStore.get(EMAIL_VERIFICATION_CONFIRMED_COOKIE)?.value;
+      if (confirmedTokenHash !== flowTokenHash) {
+        return NextResponse.json({ error: "Verify this email before confirming the account" }, { status: 400 });
+      }
+
       const supabase = createServiceRoleClient();
       const { data, error } = await supabase.auth.admin.getUserById(body.userId);
       if (error || !data.user || data.user.email?.trim().toLowerCase() !== body.email.trim().toLowerCase()) {
@@ -33,7 +40,9 @@ export async function POST(request: Request) {
         });
         if (updateError) throw updateError;
       }
-      return NextResponse.json({ ok: true, emailConfirmed: true });
+      const response = NextResponse.json({ ok: true, emailConfirmed: true });
+      response.cookies.delete(EMAIL_VERIFICATION_CONFIRMED_COOKIE);
+      return response;
     }
 
     if (typeof body.otp !== "string") {
@@ -51,7 +60,15 @@ export async function POST(request: Request) {
       );
     }
 
-    return NextResponse.json({ ok: true, emailVerified: true, requiresSignup: true });
+    const response = NextResponse.json({ ok: true, emailVerified: true, requiresSignup: true });
+    response.cookies.set(EMAIL_VERIFICATION_CONFIRMED_COOKIE, flowTokenHash, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60,
+      path: "/",
+    });
+    return response;
   } catch {
     return NextResponse.json({ error: "Unable to verify email" }, { status: 500 });
   }
