@@ -234,14 +234,22 @@ export async function processMessage(
   }));
   const llmMessages = buildMessages(history, trimmedMessage);
 
+  // Mirrors the duplicated pipeline in app/api/chat/route.ts (the web
+  // widget) apart from streaming -- see the comment there for why a
+  // straight call-through between the two isn't safe yet. Keep this catch
+  // in sync with that one: never let err.message reach
+  // ProcessMessageError.message. Today the only caller (the WhatsApp
+  // webhook) discards it and substitutes its own generic reply anyway, but
+  // .status exists on this class for a future caller that maps
+  // status/message straight onto an HTTP response -- and generateReply()'s
+  // errors can be a missing-env-var name or a raw provider error body (see
+  // lib/ai/generateReply.ts). The real error is already fully logged
+  // above, so nothing is lost by keeping it out of the thrown message.
   let replyText: string;
   try {
     replyText = await generateReply(systemPrompt, llmMessages);
   } catch (err) {
     console.error("generateReply failed:", err);
-    if (err instanceof Error) {
-      throw new ProcessMessageError(err.message, 502);
-    }
     throw new ProcessMessageError("The assistant is unavailable right now.", 502);
   }
 
