@@ -11,7 +11,19 @@ export type ChatIntent =
 export function classifyIntent(message: string): ChatIntent {
   const msg = message.toLowerCase().trim();
 
-  // 1. Explicit request for a human (checked first so escalations always take priority)
+  // 1. Prompt injection, role override, system prompt extraction, or DB probing attempts
+  // Checked first to ensure security attacks are caught and refused before secondary logic.
+  if (
+    /\b(ignore (all |your |previous )?(instructions|prompts|rules)|reveal (your |the )?(system prompt|instructions|system instructions)|repeat (the |all )?(above|system)|system prompt|developer mode|dan mode|jailbreak|disregard previous|override (system|rules|instructions)|pretend to be|act as (a|an)?)\b/.test(msg) ||
+    /\b(what (are|were) your (initial|original|system) (instructions|prompt))\b/.test(msg) ||
+    /\b(list|show|dump|get|select|fetch)\s+(all\s+)?(records|rows|tables?|data|schema|database|databases|entries)\b/.test(msg) ||
+    /\b(show|dump|list)\s+(me\s+)?(the\s+)?(schema|database|db|tables?|businesses\s+table)\b/.test(msg) ||
+    /\b(sql\s+injection|select\s+\*\s+from|drop\s+table|information_schema)\b/.test(msg)
+  ) {
+    return "prompt_injection";
+  }
+
+  // 2. Explicit request for a human (checked next so legitimate customer escalations take priority)
   if (
     /\b(speak|talk|chat)\s+(to|with)\s+(a |an )?(human|person|agent|representative|someone|somebody|real person|human being|manager|customer (service|care))\b/.test(msg) ||
     /\b(connect|transfer|put)\s+me\s+(through\s+)?(to|with)\s+(a |an )?(human|person|agent|representative|someone|manager|customer (service|care))\b/.test(msg) ||
@@ -19,14 +31,6 @@ export function classifyIntent(message: string): ChatIntent {
     /\b(i ?wan|make ?i|abeg)\s+(talk|speak|yarn)\s+(to|with)?\s*(person|human|agent|somebody|human being)\b/.test(msg)
   ) {
     return "human_handoff";
-  }
-
-  // 2. Prompt injection, role override, or system prompt extraction attempts
-  if (
-    /\b(ignore (all |your |previous )?(instructions|prompts|rules)|reveal (your |the )?(system prompt|instructions|system instructions)|repeat (the |all )?(above|system)|system prompt|developer mode|dan mode|jailbreak|disregard previous|override (system|rules|instructions)|pretend to be|act as (a|an)?)\b/.test(msg) ||
-    /\b(what (are|were) your (initial|original|system) (instructions|prompt))\b/.test(msg)
-  ) {
-    return "prompt_injection";
   }
 
   // 3. Model questions (checked next to distinguish identity questions from handoffs)
