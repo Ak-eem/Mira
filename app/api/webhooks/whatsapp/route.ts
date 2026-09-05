@@ -5,7 +5,7 @@ import { withConversationLease } from "@/lib/chat/durable";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { enqueueInboundMessage, claimInboundMessage, markInboundDone, markInboundFailed } from "@/lib/whatsapp/inboundQueue";
-import { sendWhatsAppReply } from "@/lib/whatsapp/sendMessage";
+import { sendWhatsappReply } from "@/lib/whatsapp/sendMessage";
 export const runtime = "nodejs";
 const MAX_MESSAGE_LENGTH = 4000; const VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN; const APP_SECRET = process.env.WHATSAPP_APP_SECRET;
 type R = Record<string, unknown>; const isRecord = (v: unknown): v is R => typeof v === "object" && v !== null; const records = (v: unknown): R[] => Array.isArray(v) ? v.filter(isRecord) : [];
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       const limits = await Promise.all([checkRateLimit(client, `wa:${item.from}`, 20), checkRateLimit(client, `wa-ip:${ip}`, 120), checkRateLimit(client, "wa-global", 2000)]); const rejected = limits.find((x) => !x.allowed); if (rejected) return NextResponse.json({ error: "Too many messages." }, { status: rejected.error ? 503 : 429, headers: { "Retry-After": String(rejected.retryAfterSeconds ?? 60) } });
       const queued = await enqueueInboundMessage(client, item.id, item.phoneId, item.raw); if (queued.status === "done" || !(await claimInboundMessage(client, queued.id))) continue;
       const business = await client.from("businesses").select("id").eq("whatsapp_phone_number_id", item.phoneId).eq("is_active", true).maybeSingle(); if (business.error) throw business.error; if (!business.data) { await markInboundDone(client, queued.id); continue; }
-      try { const result = await withConversationLease(client, `wa:${business.data.id}:${item.from}`, () => processMessage(business.data.id, `wa_${item.from}`, item.text, "whatsapp")); await sendWhatsAppReply(item.phoneId, item.from, result.reply); await markInboundDone(client, queued.id); } catch (error) { await markInboundFailed(client, queued.id, error instanceof Error ? error.message : "processing failed"); throw error; }
+      try { const result = await withConversationLease(client, `wa:${business.data.id}:${item.from}`, () => processMessage(business.data.id, `wa_${item.from}`, item.text, "whatsapp")); await sendWhatsappReply(item.phoneId, item.from, result.reply); await markInboundDone(client, queued.id); } catch (error) { await markInboundFailed(client, queued.id, error instanceof Error ? error.message : "processing failed"); throw error; }
     }
     return NextResponse.json({ status: "received" }, { status: 200 });
   } catch (error) { console.error("WhatsApp inbound processing failed after durable enqueue:", error); return NextResponse.json({ error: "Temporary processing failure." }, { status: 500 }); }
