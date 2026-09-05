@@ -4,6 +4,8 @@ import { buildContactLinks } from "@/lib/contactLinks";
 
 const MAX_CONTEXT_CHARS = 6000;
 const CONTEXT_TTL_MS = 60_000;
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 const SECTION_LIMITS = {
   business: 450,
   contact: 300,
@@ -35,6 +37,17 @@ export type BusinessContext = {
   products: { id: string; name: string; image_url: string | null }[];
 };
 
+/**
+ * Sanitizes user-configurable business text fields to prevent tag-injection
+ * or boundary breaking inside the AI prompt.
+ */
+function sanitizeText(input: string | null | undefined): string {
+  if (!input) return "";
+  return input
+    .replace(/<\/?(?:BUSINESS_KNOWLEDGE_BASE|SYSTEM|INSTRUCTIONS|PROMPT|USER)[^>]*>/gi, "")
+    .trim();
+}
+
 function truncateLines(lines: string[], maxChars: number): string {
   const kept: string[] = [];
   let length = 0;
@@ -57,13 +70,6 @@ function section(title: string, lines: string[], maxChars: number): { title: str
   return { title, text: `${title}:\n${truncateLines(lines, maxChars)}` };
 }
 
-// Sections are now tried in priority order, not the order a human would
-// naturally list them in. If a business has enough services/products
-// that everything can't fit in MAX_CONTEXT_CHARS, whatever gets cut
-// should be the least operationally important thing (Policies, FAQs),
-// never whether the business is open right now -- a customer asking
-// "are you open" getting silently dropped is a much worse failure than
-// a long policy getting trimmed.
 function fitContext(
   sections: { title: string; text: string }[],
   businessId: string,
@@ -92,10 +98,6 @@ function fitContext(
     break;
   }
 
-  // No error-tracking service wired up yet, so this is the only trace
-  // that a business's grounding got cut -- better than nothing, but a
-  // real alerting hook (or just raising MAX_CONTEXT_CHARS once this
-  // shows up in practice) is worth doing before this matters for real.
   if (droppedTitles.length > 0) {
     console.warn(
       `[buildContext] business ${businessId}: context exceeded ${MAX_CONTEXT_CHARS} chars, dropped section(s): ${droppedTitles.join(", ")}`,
@@ -105,9 +107,21 @@ function fitContext(
   return lines.join("\n\n").slice(0, MAX_CONTEXT_CHARS);
 }
 
+/**
+ * Builds business context scoped strictly to `businessId`.
+ *
+ * TENANT ISOLATION GUARANTEE:
+ * All database queries are explicitly filtered at the query level by `.eq("business_id", businessId)`
+ * or `.eq("id", businessId)`. No external parameter or customer message can alter these query filters.
+ */
 export async function buildBusinessContext(
   businessId: string,
 ): Promise<BusinessContext> {
+  // Validate UUID format to reject malformed identifiers before running queries
+  if (!businessId || !UUID_REGEX.test(businessId)) {
+    return { found: false, contextText: "", products: [] };
+  }
+
   const cached = contextCache.get(businessId);
   if (cached) {
     if (cached.expiresAt > Date.now()) return cached.value;
@@ -116,6 +130,7 @@ export async function buildBusinessContext(
 
   const supabase = createServiceRoleClient();
 
+  // All queries below explicitly scope results to `businessId`
   const [
     { data: business },
     { data: services },
@@ -189,6 +204,9 @@ export async function buildBusinessContext(
   const openNow = isOpenNow(hours ?? [], business.timezone);
   const currency = business.currency;
 
+  const sanitizedTone = sanitizeText(business.ai_tone);
+  const sanitizedInstructions = sanitizeText(business.ai_instructions);
+
   const serviceLines = (services ?? []).map((service) => {
     const price = service.price != null ? `${currency} ${service.price}` : "price on request";
     const availability = service.is_available
@@ -228,8 +246,8 @@ export async function buildBusinessContext(
     section("Business", [
       `Name: ${business.name}`,
       `Currency: ${currency}`,
-      ...(business.ai_tone ? [`Tone: ${business.ai_tone}`] : []),
-      ...(business.ai_instructions ? [`Instructions: ${business.ai_instructions}`] : []),
+      ...(sanitizedTone ? [`Tone: ${sanitizedTone}`] : []),
+      ...(sanitizedInstructions ? [`Custom Guidance: ${sanitizedInstructions}`] : []),
     ], SECTION_LIMITS.business),
     section(
       "Contact & social links",
@@ -258,7 +276,9 @@ export async function buildBusinessContext(
     ),
     section(
       "Policies",
-      (policies ?? []).length > 0 ? (policies ?? []).map((policy) => `${policy.title}:\n${policy.content}`) : ["(none)"],
+      (policies ?? []).map((policy) => `${policy.title}:\n${policy.content}`).length > 0
+        ? (policies ?? []).map((policy) => `${policy.title}:\n${policy.content}`)
+        : ["(none)"],
       SECTION_LIMITS.policies,
     ),
   ];
@@ -268,8 +288,8 @@ export async function buildBusinessContext(
     business: {
       name: business.name,
       currency: business.currency,
-      ai_tone: business.ai_tone,
-      ai_instructions: business.ai_instructions,
+      ai_tone: sanitizedTone || null,
+      ai_instructions: sanitizedInstructions || null,
     },
     contextText: fitContext(sections, businessId),
     products: (products ?? []).map((p) => ({ id: p.id, name: p.name, image_url: p.image_url })),
