@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     const email = renderVerificationOtpEmail({
-      otp: (await import("@/lib/auth/email-verification-code" as string)).default,
+      otp: reservation.code,
       expiresInMinutes: reservation.expiresInMinutes,
     });
     await sendEmailWithResend({ to: reservation.email, subject: email.subject, html: email.html });

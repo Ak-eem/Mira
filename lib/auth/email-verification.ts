@@ -10,7 +10,7 @@ export const EMAIL_VERIFICATION_HOURLY_SEND_LIMIT = 5;
 export const EMAIL_VERIFICATION_FLOW_COOKIE = "email_verification_flow";
 
 export type IssueEmailVerificationResult =
-  | { sent: true; email: string; codeId: string; expiresInMinutes: number }
+  | { sent: true; email: string; code: string; codeId: string; expiresInMinutes: number }
   | {
       sent: false;
       email: string;
@@ -102,6 +102,7 @@ export async function issueEmailVerification(
   return {
     sent: true,
     email: normalizedEmail,
+    code,
     codeId: result.code_id,
     expiresInMinutes: EMAIL_VERIFICATION_TTL_MINUTES,
   };
