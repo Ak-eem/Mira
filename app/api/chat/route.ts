@@ -376,6 +376,22 @@ export async function POST(request: NextRequest) {
   }));
   const llmMessages = buildMessages(history, trimmedMessage);
 
+  // This block duplicates lib/chat/processMessage.ts's pipeline (business
+  // context, handoff/offline gating, prompt building, the AI call, then
+  // persisting the reply) apart from streaming: processMessage() awaits
+  // generateReply() and returns one final string for the WhatsApp path,
+  // while the widget needs generateReplyStream()'s token-by-token output
+  // for live-typing SSE. That mismatch is why this isn't a straight
+  // call-through to processMessage() today -- doing so would silently drop
+  // streaming for web visitors. See the matching comment in
+  // processMessage.ts.
+  //
+  // The catch below never forwards err.message in the SSE `error` field --
+  // it can be a missing-env-var name or a raw provider error body (see
+  // lib/ai/generateReply.ts). ChatWindow.tsx currently discards this
+  // field's content anyway and shows its own fixed copy on any error (see
+  // its GENERIC_ERROR_MESSAGE), but the raw payload is still visible to
+  // anyone inspecting the network response, so keep it generic here too.
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       let replyText = "";
@@ -427,7 +443,8 @@ export async function POST(request: NextRequest) {
         controller.close();
       } catch (err) {
         console.error("generateReplyStream failed:", err);
-        const errorMessage = "Something went wrong on our end. Please try again.";
+        const errorMessage =
+          "Sorry, something went wrong on our end -- please try again in a moment.";
 
         controller.enqueue(
           encoder.encode(`data: ${JSON.stringify({ error: errorMessage })}\n\n`),
