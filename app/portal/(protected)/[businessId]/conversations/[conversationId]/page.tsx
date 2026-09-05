@@ -2,9 +2,11 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { resolveHandoff } from "../actions";
 import { linkifyContent } from "@/lib/linkify";
+import { ReplyForm } from "./ReplyForm";
 
 type MessageContextSnapshot = {
   productImages?: { name: string; imageUrl: string }[];
+  operatorReply?: boolean;
 };
 
 export default async function PortalConversationThreadPage({
@@ -17,7 +19,7 @@ export default async function PortalConversationThreadPage({
 
   const { data: conversation } = await supabase
     .from("conversations")
-    .select("id, business_id, session_token, needs_human")
+    .select("id, business_id, session_token, needs_human, channel")
     .eq("id", conversationId)
     .eq("business_id", businessId)
     .maybeSingle();
@@ -34,8 +36,17 @@ export default async function PortalConversationThreadPage({
 
   return (
     <div>
-      <h2 className="mb-2 text-lg font-semibold tracking-tight text-slate-900">
+      <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-900">
         Conversation <span className="font-mono text-sm font-normal text-slate-400">{conversation.session_token.slice(0, 8)}…</span>
+        <span
+          className={
+            conversation.channel === "whatsapp"
+              ? "rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700"
+              : "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
+          }
+        >
+          {conversation.channel === "whatsapp" ? "WhatsApp" : "Web widget"}
+        </span>
       </h2>
 
       {conversation.needs_human && (
@@ -58,10 +69,9 @@ export default async function PortalConversationThreadPage({
 
       <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         {messages?.map((m) => {
-          const productImages =
-            m.role === "assistant"
-              ? (m.context_snapshot as MessageContextSnapshot | null)?.productImages ?? []
-              : [];
+          const snapshot = m.context_snapshot as MessageContextSnapshot | null;
+          const productImages = m.role === "assistant" ? snapshot?.productImages ?? [] : [];
+          const isOperatorReply = m.role === "assistant" && snapshot?.operatorReply === true;
 
           return (
             <div key={m.id} className={m.role === "customer" ? "text-right" : "text-left"}>
@@ -69,7 +79,9 @@ export default async function PortalConversationThreadPage({
                 className={
                   m.role === "customer"
                     ? "inline-block max-w-[85%] rounded-lg bg-accent px-3 py-2 text-sm text-white"
-                    : "inline-block max-w-[85%] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                    : isOperatorReply
+                      ? "inline-block max-w-[85%] rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm"
+                      : "inline-block max-w-[85%] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
                 }
               >
                 {linkifyContent(m.content)}
@@ -89,7 +101,10 @@ export default async function PortalConversationThreadPage({
                 </div>
               )}
 
-              <p className="mt-0.5 text-xs text-slate-400">{new Date(m.created_at).toLocaleTimeString()}</p>
+              <p className="mt-0.5 text-xs text-slate-400">
+                {isOperatorReply && <span className="mr-2 font-medium text-sky-600">You replied</span>}
+                {new Date(m.created_at).toLocaleTimeString()}
+              </p>
             </div>
           );
         })}
@@ -97,6 +112,8 @@ export default async function PortalConversationThreadPage({
           <p className="text-sm text-slate-500">No messages in this conversation.</p>
         )}
       </div>
+
+      <ReplyForm businessId={businessId} conversationId={conversationId} />
     </div>
   );
 }
