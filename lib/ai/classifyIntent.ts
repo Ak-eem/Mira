@@ -1,5 +1,6 @@
 export type ChatIntent =
   | "human_handoff"
+  | "prompt_injection"
   | "product_search"
   | "sizing_question"
   | "faq_question"
@@ -10,15 +11,7 @@ export type ChatIntent =
 export function classifyIntent(message: string): ChatIntent {
   const msg = message.toLowerCase().trim();
 
-  // Explicit request for a human, checked before everything else so it
-  // always wins regardless of what the rest of the message is about --
-  // "I want to speak to a human about my order" should escalate, not
-  // fall through to faq_question because of "order". Requires a
-  // wanting/connecting verb directly next to the human-noun (not just
-  // the word "human"/"person" anywhere in the message), so an identity
-  // question like "are you human?" -- handled by model_question below --
-  // or an unrelated sentence that happens to mention "someone" doesn't
-  // false-positive into a handoff.
+  // 1. Explicit request for a human (checked first so escalations always take priority)
   if (
     /\b(speak|talk|chat)\s+(to|with)\s+(a |an )?(human|person|agent|representative|someone|somebody|real person|human being|manager|customer (service|care))\b/.test(msg) ||
     /\b(connect|transfer|put)\s+me\s+(through\s+)?(to|with)\s+(a |an )?(human|person|agent|representative|someone|manager|customer (service|care))\b/.test(msg) ||
@@ -28,27 +21,35 @@ export function classifyIntent(message: string): ChatIntent {
     return "human_handoff";
   }
 
-  // Model questions, checked next (after the handoff check above) to avoid false matches
+  // 2. Prompt injection, role override, or system prompt extraction attempts
+  if (
+    /\b(ignore (all |your |previous )?(instructions|prompts|rules)|reveal (your |the )?(system prompt|instructions|system instructions)|repeat (the |all )?(above|system)|system prompt|developer mode|dan mode|jailbreak|disregard previous|override (system|rules|instructions)|pretend to be|act as (a|an)?)\b/.test(msg) ||
+    /\b(what (are|were) your (initial|original|system) (instructions|prompt))\b/.test(msg)
+  ) {
+    return "prompt_injection";
+  }
+
+  // 3. Model questions (checked next to distinguish identity questions from handoffs)
   if (/\b(are you (an? )?(ai|robot|bot|human|real)|what (ai )?model|who are you|what are you|chatgpt|gemini|gpt|llm)\b/.test(msg)) {
     return "model_question";
   }
 
-  // Sizing, pronouns + size words, or direct size queries
+  // 4. Sizing questions
   if (/\b(it|this|that|the|one)\b.*\b(small|medium|large|xl|xxl|size|fit)\b/.test(msg) || /\b(what sizes?|do you have.*size|available.*size|size.*available)\b/.test(msg)) {
     return "sizing_question";
   }
 
-  // FAQ patterns
+  // 5. FAQ patterns
   if (/\b(how (do|can|to|much)|delivery|deliver|return|refund|payment|pay|order|location|address|hours?\b|open|closed|policy|warranty|guarantee)\b/.test(msg)) {
     return "faq_question";
   }
 
-  // Product search, mentions product categories, colours prices
+  // 6. Product search
   if (/\b(dress|shoe|heel|bag|gown|top|skirt|trouser|sandal|accessory|jewel|watch|outfit)\b/.test(msg) || /\b(red|blue|black|white|green|yellow|pink|purple|gold|silver|brown)\b/.test(msg) || /\b(under |less than |cheap|affordable|budget|₦)\b/.test(msg) || /\b(show me|looking for|i need|i want|get me|recommend|suggest|catalogue|products?)\b/.test(msg)) {
     return "product_search";
   }
 
-  // Greeting
+  // 7. Greeting
   if (/^(hi|hello|hey|good morning|good afternoon|good evening|yo|sup)\b/.test(msg)) {
     return "greeting";
   }
