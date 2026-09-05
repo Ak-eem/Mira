@@ -13,6 +13,16 @@ export function isFrustrationSignal(message: string): boolean {
   return FRUSTRATION_PATTERN.test(message.trim());
 }
 
+// Shown for every customer message that arrives after a conversation has
+// already been flagged for a human -- deliberately different from
+// getHandoffReply's "already flagged" copy below, which is for the rare
+// case of losing a flagging race in the same request. This is the common
+// path: the AI is intentionally not re-engaging with the message content
+// at all here, so the copy must not imply otherwise.
+export function getPausedReply(businessName: string): string {
+  return `Thanks for the extra info — I've added it to what the ${businessName} team can see, and they'll pick up the full conversation here shortly.`;
+}
+
 // Deterministic, never model-generated -- the bug this exists to fix is
 // specifically "the model improvises" at the handoff moment, so this path
 // never calls the LLM. Never mentions WhatsApp: a customer already inside
@@ -25,8 +35,8 @@ export function getHandoffReply(
 ): string {
   if (reason === "requested") {
     return alreadyFlagged
-      ? `I've already let the ${businessName} team know you'd like to speak with someone — they'll jump in here as soon as they can. I'm still around if there's anything else I can help with in the meantime.`
-      : `Got it — I've let the ${businessName} team know you'd like to speak with someone, and they'll follow up right here as soon as they can. Happy to keep helping with anything else meanwhile.`;
+      ? `I've already let the ${businessName} team know you'd like to speak with someone — they'll jump in here as soon as they can.`
+      : `Got it — I've let the ${businessName} team know you'd like to speak with someone, and they'll follow up right here as soon as they can.`;
   }
 
   return alreadyFlagged

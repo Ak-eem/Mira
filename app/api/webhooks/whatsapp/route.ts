@@ -4,15 +4,11 @@ import { processMessage } from "@/lib/chat/processMessage";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { createHmac, timingSafeEqual } from "crypto";
 import { isOptOutMessage } from "@/lib/nudges/optOut";
+import { sendWhatsappReply } from "@/lib/whatsapp/sendMessage";
 
-const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
 const WHATSAPP_WEBHOOK_VERIFY_TOKEN = process.env.WHATSAPP_WEBHOOK_VERIFY_TOKEN;
 const WHATSAPP_APP_SECRET = process.env.WHATSAPP_APP_SECRET;
 
-// Cloud API hard-rejects text['body'] over 4096 characters. MAX_OUTPUT_TOKENS
-// in generateReply.ts (2048) can produce a reply past that on a verbose
-// answer, so clip rather than let the send fail silently.
-const WHATSAPP_TEXT_LIMIT = 4096;
 
 // Uses Node's crypto module (createHmac/timingSafeEqual), so pin this route
 // to the Node runtime rather than Edge.
@@ -75,44 +71,6 @@ async function isNewMessage(
 
   console.error("Failed to record WhatsApp processed message:", error);
   return false; // unexpected DB error: don't process, matches prior behavior
-}
-
-function convertMarkdownForWhatsapp(text: string): string {
-  return text.replace(/\*\*([^\n]+?)\*\*/g, "*$1*");
-}
-
-function clipToWhatsappLimit(text: string): string {
-  if (text.length <= WHATSAPP_TEXT_LIMIT) return text;
-  return text.slice(0, WHATSAPP_TEXT_LIMIT - 1) + "…";
-}
-
-async function sendWhatsappReply(phoneNumberId: string, to: string, body: string) {
-  if (!WHATSAPP_TOKEN) {
-    console.error("WHATSAPP_TOKEN is not configured.");
-    return;
-  }
-
-  try {
-    const response = await fetch(`https://graph.facebook.com/v21.0/${phoneNumberId}/messages`, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to,
-        text: { body: clipToWhatsappLimit(convertMarkdownForWhatsapp(body)) },
-      }),
-    });
-
-    if (!response.ok) {
-      const details = await response.text();
-      console.error("WhatsApp send failed:", response.status, details);
-    }
-  } catch (error) {
-    console.error("WhatsApp send exception:", error);
-  }
 }
 
 export async function GET(request: NextRequest) {

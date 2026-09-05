@@ -4,3 +4,4 @@ node_modules/
 .env*.local
 tmp_*.txt
 .env
+*.tsbuildinfo
