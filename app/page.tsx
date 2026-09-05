@@ -126,6 +126,20 @@ export default function Home() {
           </div>
         </ScrollReveal>
       </section>
+
+      <footer className="mx-auto max-w-6xl border-t border-slate-200/80 px-6 py-8 sm:px-8 lg:px-10">
+        <div className="flex flex-col items-center justify-between gap-4 text-xs text-slate-500 sm:flex-row">
+          <p>© {new Date().getFullYear()} Mira for Business. All rights reserved.</p>
+          <div className="flex items-center gap-6">
+            <Link href="/privacy" className="font-medium text-slate-600 transition hover:text-accent">
+              Privacy Policy
+            </Link>
+            <Link href="/terms" className="font-medium text-slate-600 transition hover:text-accent">
+              Terms of Service
+            </Link>
+          </div>
+        </div>
+      </footer>
     </main>
   );
 }
