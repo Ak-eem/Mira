@@ -9,9 +9,9 @@ Mira is a vertical-agnostic AI customer-service platform for any business that t
 - Per-business AI grounded in that business's data
 - WhatsApp Cloud API and embeddable web chat widget
 - Products catalog with stock-aware answers
-- Order tracking
+- Order status logging (currently manual: a business logs orders in the portal; Mira answers status questions against those records, it doesn't create orders itself yet)
 - Business insights dashboard
-- Multi-language support and fuzzy search
+- Multi-language responses and loose product-name matching, both handled by the underlying LLM's own language and semantic understanding rather than a dedicated translation or fuzzy-search engine
 - Row-level security (RLS) for tenant isolation
 - Groq + Gemini fallback for resilient AI responses
 
@@ -23,7 +23,7 @@ Mira is a vertical-agnostic AI customer-service platform for any business that t
 - Tailwind CSS
 - Supabase Postgres + Auth
 - Gemini 3.6 Flash
-- Groq / Llama 3.3 70B
+- Groq / openai/gpt-oss-120b
 - Vercel
 
 ## Live demo
@@ -38,14 +38,18 @@ cd Mira
 npm install
 ```
 
-Create `.env.local` in the project root and add the required environment variables. Use placeholders for values that are specific to your deployment:
+Create `.env.local` in the project root and add the required environment variables — see `.env.example` for the full, authoritative list. At minimum, for local development:
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
-GEMINI_API_KEY=your_gemini_api_key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your_supabase_publishable_key
+SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+AI_PROVIDER=groq
 GROQ_API_KEY=your_groq_api_key
+LLM_API_KEY=your_gemini_api_key
 ```
+
+WhatsApp and cron-related variables are only required if you're testing those integrations locally — see `.env.example`.
 
 Then start the development server:
 
