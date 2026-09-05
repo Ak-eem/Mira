@@ -128,6 +128,59 @@ export function ChatWindow({
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Picks up operator replies sent from the admin dashboard while this
+  // conversation is flagged for a human -- the normal chat flow is pure
+  // request/response, so without this, an operator's reply would only
+  // ever appear the next time the customer sends a message themselves.
+  // Deliberately narrow: only ever appends messages tagged
+  // operatorReply=true that aren't already in local state, never touches
+  // customer messages or normal AI replies, which the request/response
+  // flow already renders on its own.
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch(
+          `/api/chat/messages?businessSlug=${encodeURIComponent(businessSlug)}&visitorId=${encodeURIComponent(visitorId)}`,
+        );
+        if (!res.ok) return;
+
+        const data = (await res.json().catch(() => null)) as {
+          messages?: {
+            id: string;
+            role: "customer" | "assistant";
+            content: string;
+            productImages?: ProductImage[];
+            isOperatorReply?: boolean;
+          }[];
+        } | null;
+
+        const operatorReplies = (data?.messages ?? []).filter((m) => m.isOperatorReply);
+        if (operatorReplies.length === 0) return;
+
+        setMessages((prev) => {
+          const existingIds = new Set(prev.map((m) => m.id).filter(Boolean));
+          const newOnes = operatorReplies.filter((m) => !existingIds.has(m.id));
+          if (newOnes.length === 0) return prev;
+          return [
+            ...prev,
+            ...newOnes.map((m) => ({
+              role: m.role,
+              content: m.content,
+              id: m.id,
+              productImages: m.productImages,
+            })),
+          ];
+        });
+      } catch {
+        // Silent -- this is a background convenience poll, not core chat
+        // function. A failed poll just means the reply shows up on the
+        // next successful one instead.
+      }
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [businessSlug, visitorId]);
+
   async function submitFeedback(index: number, messageId: string, rating: Feedback) {
     setMessages((prev) => {
       const next = [...prev];

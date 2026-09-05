@@ -7,7 +7,7 @@ import { buildSystemPrompt, buildMessages, isFallbackReply } from "@/lib/ai/buil
 import { classifyIntent } from "@/lib/ai/classifyIntent";
 import { generateReplyStream } from "@/lib/ai/generateReply";
 import { getOfflineGateReply } from "@/lib/chat/offlineReply";
-import { getHandoffReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
+import { getHandoffReply, getPausedReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
 import { matchProductImages } from "@/lib/chat/matchProductImages";
 import { recordProductInterest } from "@/lib/chat/recordProductInterest";
 import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
   const { data: existingConversation, error: conversationLookupError } =
     await supabase
       .from("conversations")
-      .select("id, business_id, last_message_at")
+      .select("id, business_id, last_message_at, needs_human")
       .eq("business_id", business.id)
       .eq("session_token", sessionToken)
       .eq("status", "open")
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
         channel: "web",
         last_message_at: new Date().toISOString(),
       })
-      .select("id, business_id, last_message_at")
+      .select("id, business_id, last_message_at, needs_human")
       .single();
 
     if (convError?.code === "23505") {
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       // winner's row; only the winner triggers the offline-gate reply.
       const { data: winner, error: reselectError } = await supabase
         .from("conversations")
-        .select("id, business_id, last_message_at")
+        .select("id, business_id, last_message_at, needs_human")
         .eq("business_id", business.id)
         .eq("session_token", sessionToken)
         .eq("status", "open")
@@ -286,6 +286,66 @@ export async function POST(request: NextRequest) {
 
   const businessName = context.business?.name ?? "this business";
 
+  // If an earlier message already flagged this conversation for a human,
+  // stay paused for any new message -- see the matching comment in
+  // lib/chat/processMessage.ts for why. Checked before intent
+  // classification so nothing below re-decides handoff status per message.
+  if (conversation.needs_human) {
+    const waitingReply = getPausedReply(businessName);
+    const pausedStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({ token: waitingReply })}\n\n`),
+        );
+
+        const { data: saved, error: insertError } = await supabase
+          .from("messages")
+          .insert({
+            conversation_id: conversationId,
+            business_id: business.id,
+            role: "assistant",
+            content: waitingReply,
+            context_snapshot: { handoff: true, paused: true },
+          })
+          .select("id")
+          .single();
+
+        if (insertError) {
+          console.error("Paused-conversation reply insert failed:", insertError);
+        }
+
+        await supabase
+          .from("conversations")
+          .update({ last_message_at: new Date().toISOString() })
+          .eq("id", conversationId);
+
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ done: true, messageId: saved?.id ?? null, productImages: [] })}\n\n`,
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    const pausedResponse = new NextResponse(pausedStream, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
+      },
+    });
+    pausedResponse.cookies.set(SESSION_COOKIE, sessionToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 30,
+      path: "/",
+    });
+    return pausedResponse;
+  }
+
   // Same handoff trigger as lib/chat/processMessage.ts (the WhatsApp
   // path) -- explicit request, or Mira having already given the canned
   // fallback reply twice in a row for this conversation.
@@ -308,10 +368,16 @@ export async function POST(request: NextRequest) {
       .select("id");
 
     if (flagError) {
+      // Don't tell the customer a human is on it if we couldn't actually
+      // record that -- see the matching comment in processMessage.ts.
       console.error("Failed to flag conversation for human handoff:", flagError);
+      return NextResponse.json(
+        { error: "Something went wrong. Please try again." },
+        { status: 500 },
+      );
     }
 
-    const alreadyFlagged = !flagError && (flaggedRows?.length ?? 0) === 0;
+    const alreadyFlagged = (flaggedRows?.length ?? 0) === 0;
     const reason: HandoffReason = intent === "human_handoff" ? "requested" : "confused";
     const handoffText = getHandoffReply(businessName, reason, alreadyFlagged);
 

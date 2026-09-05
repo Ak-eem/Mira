@@ -4,7 +4,7 @@ import { buildSystemPrompt, buildMessages, isFallbackReply } from "@/lib/ai/buil
 import { classifyIntent } from "@/lib/ai/classifyIntent";
 import { generateReply } from "@/lib/ai/generateReply";
 import { getOfflineGateReply } from "@/lib/chat/offlineReply";
-import { getHandoffReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
+import { getHandoffReply, getPausedReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
 import { matchProductImages, type ProductImageRef } from "@/lib/chat/matchProductImages";
 import { recordProductInterest } from "@/lib/chat/recordProductInterest";
 import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
@@ -35,7 +35,7 @@ export async function processMessage(
 
   let { data: conversation, error: conversationLookupError } = await supabase
     .from("conversations")
-    .select("id, business_id, last_message_at")
+    .select("id, business_id, last_message_at, needs_human")
     .eq("business_id", businessId)
     .eq("session_token", sessionToken)
     .eq("status", "open")
@@ -75,14 +75,14 @@ export async function processMessage(
         channel,
         last_message_at: new Date().toISOString(),
       })
-      .select("id, business_id, last_message_at")
+      .select("id, business_id, last_message_at, needs_human")
       .single();
 
     if (convError?.code === "23505") {
       // Lost the race to open this conversation; pick up the winner's row.
       const { data: winner, error: reselectError } = await supabase
         .from("conversations")
-        .select("id, business_id, last_message_at")
+        .select("id, business_id, last_message_at, needs_human")
         .eq("business_id", businessId)
         .eq("session_token", sessionToken)
         .eq("status", "open")
@@ -165,9 +165,46 @@ export async function processMessage(
     }
   }
 
-  const intent = classifyIntent(trimmedMessage);
   const context = await buildBusinessContext(businessId);
   const businessName = context.business?.name ?? "this business";
+
+  // If an earlier message already flagged this conversation for a human,
+  // stay paused: don't classify intent or generate a fresh AI reply for
+  // ANY new customer message, no matter what it says. This is the fix
+  // for a real bug -- previously every message was independently
+  // re-evaluated by intent/frustration/repeated-fallback heuristics, so
+  // a plain, answerable follow-up question could still land back in the
+  // handoff branch (or slip past it) depending on what the last couple
+  // of replies happened to look like. Only resolving the handoff (an
+  // operator marks it resolved) lifts this pause.
+  if (conversation.needs_human) {
+    const waitingReply = getPausedReply(businessName);
+    const { data: saved, error: pausedInsertError } = await supabase
+      .from("messages")
+      .insert({
+        conversation_id: conversation.id,
+        business_id: businessId,
+        role: "assistant",
+        content: waitingReply,
+        context_snapshot: { handoff: true, paused: true },
+      })
+      .select("id")
+      .single();
+
+    if (pausedInsertError || !saved) {
+      console.error("Paused-conversation reply insert failed:", pausedInsertError);
+      throw new ProcessMessageError("Something went wrong. Please try again.", 500);
+    }
+
+    await supabase
+      .from("conversations")
+      .update({ last_message_at: new Date().toISOString() })
+      .eq("id", conversation.id);
+
+    return { reply: waitingReply, messageId: saved.id, productImages: [] };
+  }
+
+  const intent = classifyIntent(trimmedMessage);
 
   // "Repeated confusion" half of the handoff trigger: either the customer
   // sounds frustrated right now, or Mira has already given the canned
@@ -186,7 +223,10 @@ export async function processMessage(
 
   if (needsHandoff) {
     // Flip false -> true and report whether THIS call is the one that did
-    // it, in one round trip -- zero rows back means it was already true.
+    // it, in one round trip -- zero rows back means a concurrent request
+    // won the race and flagged it first (we already know needs_human was
+    // false as of our SELECT above, so a real flagError here is a genuine
+    // write failure, not just "already flagged").
     const { data: flaggedRows, error: flagError } = await supabase
       .from("conversations")
       .update({ needs_human: true })
@@ -195,10 +235,15 @@ export async function processMessage(
       .select("id");
 
     if (flagError) {
+      // Don't tell the customer a human is now on this if we couldn't
+      // actually record that -- nobody would ever see it flagged on the
+      // business side, so promising a handoff here would be a lie the
+      // customer has no way to know about. Fail loudly instead.
       console.error("Failed to flag conversation for human handoff:", flagError);
+      throw new ProcessMessageError("Something went wrong. Please try again.", 500);
     }
 
-    const alreadyFlagged = !flagError && (flaggedRows?.length ?? 0) === 0;
+    const alreadyFlagged = (flaggedRows?.length ?? 0) === 0;
     const reason: HandoffReason = intent === "human_handoff" ? "requested" : "confused";
     const handoffText = getHandoffReply(businessName, reason, alreadyFlagged);
 
@@ -226,6 +271,7 @@ export async function processMessage(
 
     return { reply: handoffText, messageId: savedHandoff.id, productImages: [] };
   }
+
 
   const systemPrompt = buildSystemPrompt(context);
   const history = (priorMessages ?? []).map((m) => ({
