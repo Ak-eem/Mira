@@ -87,7 +87,7 @@ export function renderVerificationOtpEmail({
   };
 }
 
-const SUPPORT_EMAIL = "support@miraapp.com.ng";
+const SUPPORT_EMAIL = "mirasupport@gmail.com";
 const SUPPORT_WHATSAPP_URL = "https://wa.me/2348020821800";
 
 export function renderWelcomeEmail({
