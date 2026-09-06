@@ -87,6 +87,9 @@ export function renderVerificationOtpEmail({
   };
 }
 
+const SUPPORT_EMAIL = "mirasupport@gmail.com";
+const SUPPORT_WHATSAPP_URL = "https://wa.me/2348020821800";
+
 export function renderWelcomeEmail({
   recipientName,
   loginUrl,
@@ -111,9 +114,14 @@ export function renderWelcomeEmail({
           <tr><td style="padding:12px 32px 36px;text-align:center;">
             <h1 style="margin:0;font-size:24px;line-height:32px;font-weight:700;">Welcome to Mira</h1>
             <p style="margin:20px 0 0;text-align:left;font-size:15px;line-height:24px;color:${ink};">${greeting}</p>
-            <p style="margin:12px 0 0;text-align:left;font-size:15px;line-height:24px;color:${muted};">Your email is verified and your Mira for Business account is ready. We are glad to have you here.</p>
+            <p style="margin:12px 0 0;text-align:left;font-size:15px;line-height:24px;color:${muted};">Your account is ready.</p>
             ${loginBlock ? `<div style="margin-top:28px;text-align:center;">${loginBlock}</div>` : ""}
-            <p style="margin:28px 0 0;font-size:13px;line-height:20px;color:${muted};">You can reply to this email if you need help.</p>
+          </td></tr>
+          <tr><td style="padding:20px 32px 28px;border-top:1px solid #e6e8ef;text-align:center;">
+            <p style="margin:0;font-size:13px;line-height:20px;color:${muted};">
+              Need help? Email <a href="mailto:${SUPPORT_EMAIL}" style="color:${accent};text-decoration:none;">${SUPPORT_EMAIL}</a>
+              or message us on <a href="${SUPPORT_WHATSAPP_URL}" style="color:${accent};text-decoration:none;">WhatsApp</a>.
+            </p>
           </td></tr>
         </table>
       </td></tr>
