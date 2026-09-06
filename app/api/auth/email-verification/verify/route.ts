@@ -6,10 +6,13 @@ import {
   hashEmailVerificationFlowToken,
   verifyEmailVerification,
 } from "@/lib/auth/email-verification";
+import { sendEmailWithResend } from "@/lib/email/resend";
+import { renderWelcomeEmail } from "@/lib/email/templates";
 
 export const runtime = "nodejs";
 
 const EMAIL_VERIFICATION_CONFIRMED_COOKIE = "email_verification_confirmed";
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://miraapp.com.ng";
 
 export async function POST(request: Request) {
   try {
@@ -39,6 +42,19 @@ export async function POST(request: Request) {
           email_confirm: true,
         });
         if (updateError) throw updateError;
+
+        // Best-effort: a failed welcome email should never block account confirmation.
+        try {
+          const welcomeEmail = renderWelcomeEmail({
+            loginUrl: `${SITE_URL}/portal/login`,
+          });
+          await sendEmailWithResend({ to: body.email, subject: welcomeEmail.subject, html: welcomeEmail.html });
+        } catch (welcomeError) {
+          console.error(
+            "welcome email failed to send:",
+            welcomeError instanceof Error ? welcomeError.message : welcomeError,
+          );
+        }
       }
       const response = NextResponse.json({ ok: true, emailConfirmed: true });
       response.cookies.delete(EMAIL_VERIFICATION_CONFIRMED_COOKIE);
