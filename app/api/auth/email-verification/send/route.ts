@@ -40,11 +40,12 @@ export async function POST(request: Request) {
       );
     }
 
-    const email = renderVerificationOtpEmail({
+    const otpEmail = renderVerificationOtpEmail({
       otp: reservation.code,
+      email: reservation.email,
       expiresInMinutes: reservation.expiresInMinutes,
     });
-    await sendEmailWithResend({ to: reservation.email, subject: email.subject, html: email.html });
+    await sendEmailWithResend({ to: reservation.email, subject: otpEmail.subject, html: otpEmail.html });
 
     const response = NextResponse.json({ ok: true, expiresInMinutes: reservation.expiresInMinutes });
     response.cookies.set(EMAIL_VERIFICATION_FLOW_COOKIE, flowToken, {
