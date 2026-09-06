@@ -21,17 +21,17 @@ function escapeHtml(value: string): string {
 }
 
 const baseFont = "-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif";
-const serifFont = "Georgia,'Iowan Old Style','Palatino Linotype',Palatino,serif";
-const accent = "#c15f3c";
-const accentSoft = "#f1e2d8";
-const ink = "#2b2621";
-const muted = "#7a746a";
-const panel = "#f5f2ea";
-const card = "#fbfaf6";
-const cardBorder = "#e6e1d3";
+const accent = "#0f766e";
+const accentDark = "#115e59";
+const accentSoft = "#ecfdf5";
+const ink = "#0f172a";
+const muted = "#64748b";
+const panel = "#f8fafc";
+const card = "#ffffff";
+const cardBorder = "#e2e8f0";
 
 function logoMark(size = 15): string {
-  return `<span style="font-family:${serifFont};font-size:${size}px;font-weight:600;color:${ink};">Mira</span>`;
+  return `<span style="font-family:${baseFont};font-size:${size}px;font-weight:700;letter-spacing:-0.01em;color:${ink};">Mira</span>`;
 }
 
 export function renderVerificationOtpEmail({
@@ -47,7 +47,7 @@ export function renderVerificationOtpEmail({
     .map(
       (d) => `
     <td style="padding:0 4px;">
-      <div style="width:44px;height:56px;line-height:56px;text-align:center;background-color:${accentSoft};border:1px solid ${cardBorder};border-radius:8px;font-size:26px;font-weight:700;color:${accent};font-family:${serifFont};">${d}</div>
+      <div style="width:44px;height:56px;line-height:56px;text-align:center;background-color:${accentSoft};border:1px solid ${cardBorder};border-radius:8px;font-size:26px;font-weight:700;color:${accentDark};font-family:'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;">${d}</div>
     </td>`,
     )
     .join("");
