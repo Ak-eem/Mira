@@ -2,6 +2,7 @@ import "server-only";
 
 type VerificationTemplateInput = {
   otp: string;
+  email: string;
   expiresInMinutes?: number;
 };
 
@@ -20,17 +21,36 @@ function escapeHtml(value: string): string {
 }
 
 const baseFont = "-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif";
-const accent = "#5b4bdb";
-const ink = "#172033";
-const muted = "#667085";
-const panel = "#f7f8fc";
+const accent = "#0f766e";
+const accentDark = "#115e59";
+const accentSoft = "#ecfdf5";
+const ink = "#0f172a";
+const muted = "#64748b";
+const panel = "#f8fafc";
+const card = "#ffffff";
+const cardBorder = "#e2e8f0";
+
+function logoMark(size = 15): string {
+  return `<span style="font-family:${baseFont};font-size:${size}px;font-weight:700;letter-spacing:-0.01em;color:${ink};">Mira</span>`;
+}
 
 export function renderVerificationOtpEmail({
   otp,
+  email,
   expiresInMinutes = 10,
 }: VerificationTemplateInput): { subject: string; html: string } {
   const safeOtp = escapeHtml(otp);
+  const safeEmail = escapeHtml(email);
   const safeExpiry = escapeHtml(String(expiresInMinutes));
+  const digitCells = safeOtp
+    .split("")
+    .map(
+      (d) => `
+    <td style="padding:0 4px;">
+      <div style="width:44px;height:56px;line-height:56px;text-align:center;background-color:${accentSoft};border:1px solid ${cardBorder};border-radius:8px;font-size:26px;font-weight:700;color:${accentDark};font-family:'SF Mono',SFMono-Regular,Menlo,Consolas,monospace;">${d}</div>
+    </td>`,
+    )
+    .join("");
 
   return {
     subject: "Your Mira verification code",
@@ -38,18 +58,27 @@ export function renderVerificationOtpEmail({
 <html lang="en">
   <body style="margin:0;background-color:${panel};font-family:${baseFont};color:${ink};">
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background-color:${panel};">
-      <tr><td align="center" style="padding:40px 16px;">
-        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;max-width:560px;border-collapse:collapse;background-color:#ffffff;border:1px solid #e6e8ef;border-radius:16px;">
-          <tr><td style="padding:32px 32px 12px;text-align:center;">
-            <div style="font-size:20px;font-weight:700;letter-spacing:-0.02em;">Mira <span style="font-weight:400;color:${accent};">for Business</span></div>
+      <tr><td align="center" style="padding:48px 16px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;max-width:460px;border-collapse:collapse;">
+
+          <tr><td style="padding:0 4px 24px;text-align:center;">
+            ${logoMark(19)}
+            <p style="margin:10px 0 0;font-size:14px;line-height:21px;color:${muted};">A code to keep your business account safe.</p>
           </td></tr>
-          <tr><td style="padding:12px 32px 32px;text-align:center;">
-            <h1 style="margin:0;font-size:24px;line-height:32px;font-weight:700;">Verify your email</h1>
-            <p style="margin:14px 0 0;font-size:15px;line-height:24px;color:${muted};">Enter this one-time code to finish setting up your Mira account.</p>
-            <div style="margin:28px 0;padding:18px 16px;background-color:${panel};border-radius:12px;color:${accent};font-size:36px;line-height:44px;font-weight:700;letter-spacing:0.24em;">${safeOtp}</div>
-            <p style="margin:0;font-size:13px;line-height:20px;color:${muted};">This code expires in ${safeExpiry} minutes and can only be used once.</p>
-            <p style="margin:24px 0 0;font-size:13px;line-height:20px;color:${muted};">If you did not request this email, you can safely ignore it.</p>
+
+          <tr><td style="background-color:${card};border:1px solid ${cardBorder};border-radius:16px;padding:36px 32px;text-align:center;">
+            <table role="presentation" cellspacing="0" cellpadding="0" style="margin:0 auto 22px;">
+              <tr>${digitCells}</tr>
+            </table>
+            <p style="margin:0 0 18px;font-size:13px;line-height:20px;color:${muted};">Sent to <span style="color:${ink};font-weight:600;">${safeEmail}</span></p>
+            <p style="margin:0;font-size:12px;line-height:19px;color:${muted};">Valid for ${safeExpiry} minutes. Never share this code with anyone.</p>
           </td></tr>
+
+          <tr><td style="padding:22px 4px 0;text-align:center;">
+            ${logoMark(12)}
+            <p style="margin:6px 0 0;font-size:12px;line-height:18px;color:${muted};">Didn't request this? Ignore this email.</p>
+          </td></tr>
+
         </table>
       </td></tr>
     </table>
