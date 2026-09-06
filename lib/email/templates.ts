@@ -113,7 +113,6 @@ export function renderWelcomeEmail({
             <p style="margin:20px 0 0;text-align:left;font-size:15px;line-height:24px;color:${ink};">${greeting}</p>
             <p style="margin:12px 0 0;text-align:left;font-size:15px;line-height:24px;color:${muted};">Your email is verified and your Mira for Business account is ready. We are glad to have you here.</p>
             ${loginBlock ? `<div style="margin-top:28px;text-align:center;">${loginBlock}</div>` : ""}
-            <p style="margin:28px 0 0;font-size:13px;line-height:20px;color:${muted};">You can reply to this email if you need help.</p>
           </td></tr>
         </table>
       </td></tr>
