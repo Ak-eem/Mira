@@ -20,10 +20,11 @@ export async function POST(request: NextRequest) {
   if (rejected) return NextResponse.json({ error: rejected.error ? "Chat protection is temporarily unavailable." : "Too many messages. Please try again later." }, { status: rejected.error ? 503 : 429, headers: { "Retry-After": String(rejected.retryAfterSeconds ?? 60) } });
   const business = await client.from("businesses").select("id,is_active").eq("slug", slug).maybeSingle();
   if (business.error) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
-  if (!business.data?.is_active) return NextResponse.json({ error: "Business not found." }, { status: 404 });
+  if (!business.data || !business.data.is_active) return NextResponse.json({ error: "Business not found." }, { status: 404 });
+  const businessId = business.data.id;
   const session = `web_${visitor || randomUUID()}`;
   try {
-    const result = await withConversationLease(client, `web:${business.data.id}:${session}`, () => processMessage(business.data.id, session, message, "web"));
+    const result = await withConversationLease(client, `web:${businessId}:${session}`, () => processMessage(businessId, session, message, "web"));
     const encoder = new TextEncoder(); const stream = new ReadableStream<Uint8Array>({ start(controller) { controller.enqueue(encoder.encode(`data: ${JSON.stringify({ token: result.reply })}\n\n`)); controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true, messageId: result.messageId, productImages: result.productImages })}\n\n`)); controller.close(); } });
     const response = new NextResponse(stream, { headers: { "Content-Type": "text/event-stream; charset=utf-8", "Cache-Control": "no-cache, no-transform", Connection: "keep-alive" } });
     response.cookies.set("mira_session", session, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", maxAge: 60 * 60 * 24 * 30, path: "/" }); return response;

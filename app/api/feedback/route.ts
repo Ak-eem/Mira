@@ -1,14 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { checkRateLimit } from "@/lib/rateLimit";
-
-function getClientIdentifier(request: NextRequest): string {
-  const forwardedFor = request.headers.get("x-forwarded-for");
-  return forwardedFor ? forwardedFor.split(",")[0].trim() : "unknown";
-}
+import { checkRateLimit, FEEDBACK_RATE_LIMIT_PER_MINUTE, getRequestIp } from "@/lib/rateLimit";
 
 export async function POST(request: NextRequest) {
-  const rateLimit = checkRateLimit(`feedback_${getClientIdentifier(request)}`);
+  const supabase = createServiceRoleClient();
+  const rateLimit = await checkRateLimit(supabase, `feedback:${getRequestIp(request)}`, FEEDBACK_RATE_LIMIT_PER_MINUTE);
   if (!rateLimit.allowed) {
     return NextResponse.json({ error: "Too many requests." }, { status: 429 });
   }
@@ -23,8 +19,6 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
-
-  const supabase = createServiceRoleClient();
 
   // Confirms this is a real assistant message before recording feedback
   // against it -- one extra query, keeps the endpoint from silently
