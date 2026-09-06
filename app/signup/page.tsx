@@ -10,13 +10,59 @@ export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [otp, setOtp] = useState("");
+  const [verificationSent, setVerificationSent] = useState(false);
+  const [emailVerified, setEmailVerified] = useState(false);
+  const [verificationBusy, setVerificationBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  async function sendVerification() {
+    setError(null);
+    setVerificationBusy(true);
+    try {
+      const response = await fetch("/api/auth/email-verification/send", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Unable to send verification email");
+      setVerificationSent(true);
+    } catch (sendError) {
+      setError(sendError instanceof Error ? sendError.message : "Unable to send verification email");
+    } finally {
+      setVerificationBusy(false);
+    }
+  }
+
+  async function verifyEmail() {
+    setError(null);
+    setVerificationBusy(true);
+    try {
+      const response = await fetch("/api/auth/email-verification/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, otp }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error ?? "Unable to verify email");
+      setEmailVerified(true);
+    } catch (verifyError) {
+      setError(verifyError instanceof Error ? verifyError.message : "Unable to verify email");
+    } finally {
+      setVerificationBusy(false);
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
+    if (!emailVerified) {
+      setError("Verify your email before creating an account.");
+      return;
+    }
 
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
@@ -36,14 +82,20 @@ export default function SignupPage() {
       password,
     });
 
-    if (error) {
-      setError(error.message);
+    if (error || !data.user) {
+      setError(error?.message ?? "Unable to create account");
       setSubmitting(false);
       return;
     }
 
-    if (!data.session) {
-      setMessage("Check your email to confirm your account before signing in.");
+    const confirmResponse = await fetch("/api/auth/email-verification/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, userId: data.user.id }),
+    });
+    const confirmation = await confirmResponse.json();
+    if (!confirmResponse.ok || !confirmation.emailConfirmed) {
+      setError(confirmation.error ?? "Unable to confirm account email");
       setSubmitting(false);
       return;
     }
@@ -73,10 +125,48 @@ export default function SignupPage() {
               type="email"
               className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => { setEmail(e.target.value); setEmailVerified(false); }}
               required
+              disabled={emailVerified}
             />
+            {!emailVerified && (
+              <button
+                type="button"
+                onClick={sendVerification}
+                disabled={verificationBusy || !email}
+                className="mt-2 text-sm font-semibold text-accent transition hover:underline disabled:opacity-50"
+              >
+                {verificationBusy ? "Sending…" : verificationSent ? "Resend code" : "Send verification code"}
+              </button>
+            )}
           </div>
+
+          {verificationSent && !emailVerified && (
+            <div>
+              <label className="block text-sm font-medium text-slate-700">6-digit verification code</label>
+              <div className="mt-2 flex gap-2">
+                <input
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm tracking-[0.3em] outline-none transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={verifyEmail}
+                  disabled={verificationBusy || otp.length !== 6}
+                  className="rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-accent-dark disabled:opacity-50"
+                >
+                  Verify
+                </button>
+              </div>
+            </div>
+          )}
+
+          {emailVerified && <p className="text-sm text-green-600">Email verified. You can create your account.</p>}
 
           <div>
             <label className="block text-sm font-medium text-slate-700">Password</label>
@@ -103,11 +193,10 @@ export default function SignupPage() {
           </div>
 
           {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
-          {message && <p className="text-sm text-green-600" role="status">{message}</p>}
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || !emailVerified}
             className="w-full rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-200/70 transition hover:bg-accent-dark disabled:opacity-50"
           >
             {submitting ? "Creating account…" : "Create account"}
