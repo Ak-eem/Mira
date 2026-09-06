@@ -1,6 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 type Client = ReturnType<typeof createServiceRoleClient>;
 export const CHAT_RATE_LIMIT_PER_MINUTE = 20;
+export const FEEDBACK_RATE_LIMIT_PER_MINUTE = 30;
 export type RateLimitResult = { allowed: boolean; retryAfterSeconds?: number; error?: string };
 /** Atomic Postgres fixed-window limiter; safe across serverless instances and restarts. */
 export async function checkRateLimit(client: Client, key: string, limit: number, windowSeconds = 60): Promise<RateLimitResult> {
