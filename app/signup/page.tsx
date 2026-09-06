@@ -1,9 +1,22 @@
-"use client";
+'use client';
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+
+function getApiErrorMessage(value: unknown, fallback: string): string {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    "error" in value &&
+    typeof value.error === "string"
+  ) {
+    return value.error;
+  }
+
+  return fallback;
+}
 
 export default function SignupPage() {
   const router = useRouter();
@@ -26,11 +39,19 @@ export default function SignupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Unable to send verification email");
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(
+          getApiErrorMessage(result, "Unable to send verification email")
+        );
+      }
       setVerificationSent(true);
     } catch (sendError) {
-      setError(sendError instanceof Error ? sendError.message : "Unable to send verification email");
+      setError(
+        sendError instanceof Error
+          ? sendError.message
+          : "Unable to send verification email"
+      );
     } finally {
       setVerificationBusy(false);
     }
@@ -45,11 +66,19 @@ export default function SignupPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp }),
       });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error ?? "Unable to verify email");
+      const result = await response.json().catch(() => null);
+      if (!response.ok) {
+        throw new Error(
+          getApiErrorMessage(result, "Unable to verify email")
+        );
+      }
       setEmailVerified(true);
     } catch (verifyError) {
-      setError(verifyError instanceof Error ? verifyError.message : "Unable to verify email");
+      setError(
+        verifyError instanceof Error
+          ? verifyError.message
+          : "Unable to verify email"
+      );
     } finally {
       setVerificationBusy(false);
     }
@@ -76,32 +105,45 @@ export default function SignupPage() {
 
     setSubmitting(true);
 
-    const supabase = createClient();
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-    });
+    try {
+      const supabase = createClient();
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
 
-    if (error || !data.user) {
-      setError(error?.message ?? "Unable to create account");
+      if (signUpError || !data.user) {
+        setError(
+          signUpError && typeof signUpError.message === "string"
+            ? signUpError.message
+            : "Unable to create account"
+        );
+        return;
+      }
+
+      const confirmResponse = await fetch("/api/auth/email-verification/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, userId: data.user.id }),
+      });
+      const confirmation = await confirmResponse.json().catch(() => null);
+      if (!confirmResponse.ok || confirmation?.emailConfirmed !== true) {
+        const message = confirmation && typeof confirmation.error === "string" ? confirmation.error : "Unable to confirm account email";
+        setError(message);
+        return;
+      }
+
+      router.push("/portal/signup/complete");
+      router.refresh();
+    } catch (submitError) {
+      setError(
+        submitError instanceof Error && submitError.message
+          ? submitError.message
+          : "Unable to create account"
+      );
+    } finally {
       setSubmitting(false);
-      return;
     }
-
-    const confirmResponse = await fetch("/api/auth/email-verification/verify", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, userId: data.user.id }),
-    });
-    const confirmation = await confirmResponse.json();
-    if (!confirmResponse.ok || !confirmation.emailConfirmed) {
-      setError(confirmation.error ?? "Unable to confirm account email");
-      setSubmitting(false);
-      return;
-    }
-
-    router.push("/portal/signup/complete");
-    router.refresh();
   }
 
   return (
