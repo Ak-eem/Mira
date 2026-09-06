@@ -5,6 +5,7 @@ import { checkRateLimit } from "@/lib/rateLimit";
 type MessageContextSnapshot = {
   productImages?: { name: string; imageUrl: string }[];
   operatorReply?: boolean;
+  systemNotice?: boolean;
 };
 
 // Read-only polling for the web widget -- only needed once a conversation
@@ -81,6 +82,7 @@ export async function GET(request: NextRequest) {
         content: m.content,
         productImages: snapshot?.productImages ?? [],
         isOperatorReply: snapshot?.operatorReply === true,
+        isSystemNotice: snapshot?.systemNotice === true,
       };
     }),
   });

@@ -72,7 +72,7 @@ export async function replyToConversation(
 
   const { data: conversation, error: convError } = await supabase
     .from("conversations")
-    .select("id, session_token, channel")
+    .select("id, session_token, channel, claimed_by")
     .eq("id", conversationId)
     .eq("business_id", businessId)
     .maybeSingle();
@@ -80,6 +80,10 @@ export async function replyToConversation(
   if (convError || !conversation) {
     console.error("replyToConversation: conversation lookup failed", convError);
     return { error: "Conversation not found." };
+  }
+
+  if (!conversation.claimed_by) {
+    return { error: "Take over this conversation before replying." };
   }
 
   const { data: insertedMessage, error: insertError } = await supabase
@@ -140,3 +144,140 @@ export async function replyToConversation(
   return {};
 }
 
+
+// Explicitly claims a flagged conversation for this operator -- distinct
+// from just replying. Once claimed, Mira goes fully silent (see the
+// matching check in lib/chat/processMessage.ts and app/api/chat/route.ts)
+// and a system-notice message marks the handover in the thread itself,
+// so anyone reading the transcript later can see exactly when and by
+// whom a human stepped in.
+export async function takeOverConversation(businessId: string, conversationId: string): Promise<void> {
+  const admin = await getCurrentAdmin();
+  if (!admin) {
+    console.error("takeOverConversation called without an authenticated admin");
+    return;
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("conversations")
+    .update({ claimed_by: admin.email, claimed_at: new Date().toISOString() })
+    .eq("id", conversationId)
+    .eq("business_id", businessId);
+
+  if (error) {
+    console.error("takeOverConversation: update failed", error);
+    return;
+  }
+
+  const { error: noticeError } = await supabase.from("messages").insert({
+    conversation_id: conversationId,
+    business_id: businessId,
+    role: "assistant",
+    content: `${admin.email} took over this conversation.`,
+    context_snapshot: { systemNotice: true },
+  });
+
+  if (noticeError) {
+    console.error("takeOverConversation: system notice insert failed", noticeError);
+  }
+
+  await logActivity(
+    businessId,
+    "conversation",
+    conversationId,
+    "updated",
+    `${admin.email} took over conversation`,
+    "admin_ui",
+  );
+
+  revalidatePath(`/admin/businesses/${businessId}/conversations/${conversationId}`);
+  revalidatePath(`/admin/businesses/${businessId}/conversations`);
+}
+
+// Reverses a take-over: clears the claim AND needs_human entirely, so
+// the conversation goes right back to being handled normally by Mira,
+// not just back into the "flagged, unclaimed" limbo state.
+export async function handBackToAI(businessId: string, conversationId: string): Promise<void> {
+  const admin = await getCurrentAdmin();
+  if (!admin) {
+    console.error("handBackToAI called without an authenticated admin");
+    return;
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("conversations")
+    .update({ claimed_by: null, claimed_at: null, needs_human: false })
+    .eq("id", conversationId)
+    .eq("business_id", businessId);
+
+  if (error) {
+    console.error("handBackToAI: update failed", error);
+    return;
+  }
+
+  const { error: noticeError } = await supabase.from("messages").insert({
+    conversation_id: conversationId,
+    business_id: businessId,
+    role: "assistant",
+    content: `${admin.email} handed the conversation back to Mira.`,
+    context_snapshot: { systemNotice: true },
+  });
+
+  if (noticeError) {
+    console.error("handBackToAI: system notice insert failed", noticeError);
+  }
+
+  await logActivity(
+    businessId,
+    "conversation",
+    conversationId,
+    "updated",
+    `${admin.email} handed conversation back to Mira`,
+    "admin_ui",
+  );
+
+  revalidatePath(`/admin/businesses/${businessId}/conversations/${conversationId}`);
+  revalidatePath(`/admin/businesses/${businessId}/conversations`);
+}
+
+// Closes the conversation out entirely -- reuses the same status='closed'
+// mechanism already used for idle-timeout closes (see
+// CONVERSATION_IDLE_TIMEOUT_MS in lib/chat/conversation.ts), so a
+// customer messaging again afterward transparently starts a fresh
+// conversation rather than needing any special "reopen" handling.
+export async function endConversation(businessId: string, conversationId: string): Promise<void> {
+  const admin = await getCurrentAdmin();
+  if (!admin) {
+    console.error("endConversation called without an authenticated admin");
+    return;
+  }
+
+  const supabase = await createClient();
+
+  const { error } = await supabase
+    .from("conversations")
+    .update({ status: "closed", claimed_by: null, claimed_at: null, needs_human: false })
+    .eq("id", conversationId)
+    .eq("business_id", businessId);
+
+  if (error) {
+    console.error("endConversation: update failed", error);
+    return;
+  }
+
+  await logActivity(
+    businessId,
+    "conversation",
+    conversationId,
+    "updated",
+    `${admin.email} ended conversation`,
+    "admin_ui",
+  );
+
+  revalidatePath(`/admin/businesses/${businessId}/conversations/${conversationId}`);
+  revalidatePath(`/admin/businesses/${businessId}/conversations`);
+}

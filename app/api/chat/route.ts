@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
   const { data: existingConversation, error: conversationLookupError } =
     await supabase
       .from("conversations")
-      .select("id, business_id, last_message_at, needs_human")
+      .select("id, business_id, last_message_at, needs_human, claimed_by")
       .eq("business_id", business.id)
       .eq("session_token", sessionToken)
       .eq("status", "open")
@@ -131,7 +131,7 @@ export async function POST(request: NextRequest) {
         channel: "web",
         last_message_at: new Date().toISOString(),
       })
-      .select("id, business_id, last_message_at, needs_human")
+      .select("id, business_id, last_message_at, needs_human, claimed_by")
       .single();
 
     if (convError?.code === "23505") {
@@ -140,7 +140,7 @@ export async function POST(request: NextRequest) {
       // winner's row; only the winner triggers the offline-gate reply.
       const { data: winner, error: reselectError } = await supabase
         .from("conversations")
-        .select("id, business_id, last_message_at, needs_human")
+        .select("id, business_id, last_message_at, needs_human, claimed_by")
         .eq("business_id", business.id)
         .eq("session_token", sessionToken)
         .eq("status", "open")
@@ -285,6 +285,46 @@ export async function POST(request: NextRequest) {
   }
 
   const businessName = context.business?.name ?? "this business";
+
+  // If an operator has explicitly claimed this conversation, Mira stays
+  // completely silent -- the customer's message was already saved above,
+  // but no automated reply of any kind goes back. See the matching
+  // comment in lib/chat/processMessage.ts for why this is different from
+  // the "flagged but not yet claimed" case just below.
+  if (conversation.claimed_by) {
+    const silentStream = new ReadableStream<Uint8Array>({
+      async start(controller) {
+        await supabase
+          .from("conversations")
+          .update({ last_message_at: new Date().toISOString() })
+          .eq("id", conversationId);
+
+        controller.enqueue(
+          encoder.encode(
+            `data: ${JSON.stringify({ done: true, messageId: null, productImages: [], silent: true })}\n\n`,
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    const silentResponse = new NextResponse(silentStream, {
+      headers: {
+        "Content-Type": "text/event-stream; charset=utf-8",
+        "Cache-Control": "no-cache, no-transform",
+        Connection: "keep-alive",
+        "X-Accel-Buffering": "no",
+      },
+    });
+    silentResponse.cookies.set(SESSION_COOKIE, sessionToken, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 30,
+      path: "/",
+    });
+    return silentResponse;
+  }
 
   // If an earlier message already flagged this conversation for a human,
   // stay paused for any new message -- see the matching comment in

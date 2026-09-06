@@ -20,8 +20,9 @@ export class ProcessMessageError extends Error {
 
 export type ProcessMessageResult = {
   reply: string;
-  messageId: string;
+  messageId: string | null;
   productImages: ProductImageRef[];
+  silent?: boolean;
 };
 
 export async function processMessage(
@@ -35,7 +36,7 @@ export async function processMessage(
 
   let { data: conversation, error: conversationLookupError } = await supabase
     .from("conversations")
-    .select("id, business_id, last_message_at, needs_human")
+    .select("id, business_id, last_message_at, needs_human, claimed_by")
     .eq("business_id", businessId)
     .eq("session_token", sessionToken)
     .eq("status", "open")
@@ -75,14 +76,14 @@ export async function processMessage(
         channel,
         last_message_at: new Date().toISOString(),
       })
-      .select("id, business_id, last_message_at, needs_human")
+      .select("id, business_id, last_message_at, needs_human, claimed_by")
       .single();
 
     if (convError?.code === "23505") {
       // Lost the race to open this conversation; pick up the winner's row.
       const { data: winner, error: reselectError } = await supabase
         .from("conversations")
-        .select("id, business_id, last_message_at, needs_human")
+        .select("id, business_id, last_message_at, needs_human, claimed_by")
         .eq("business_id", businessId)
         .eq("session_token", sessionToken)
         .eq("status", "open")
@@ -167,6 +168,22 @@ export async function processMessage(
 
   const context = await buildBusinessContext(businessId);
   const businessName = context.business?.name ?? "this business";
+
+  // If an operator has explicitly claimed this conversation, Mira stays
+  // completely silent -- the customer's message was already saved above,
+  // the operator sees it, but no automated reply of any kind goes back.
+  // This is deliberately different from the "flagged but not yet
+  // claimed" case below, which still gets a polite acknowledgment --
+  // once a human is actually on it, an automated reply on top of that
+  // would be confusing.
+  if (conversation.claimed_by) {
+    await supabase
+      .from("conversations")
+      .update({ last_message_at: new Date().toISOString() })
+      .eq("id", conversation.id);
+
+    return { reply: "", messageId: null, productImages: [], silent: true };
+  }
 
   // If an earlier message already flagged this conversation for a human,
   // stay paused: don't classify intent or generate a fresh AI reply for

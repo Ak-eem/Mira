@@ -226,15 +226,19 @@ async function handleSingleMessage(
   }
 
   let replyText: string;
+  let silent = false;
   try {
     const result = await processMessage(businessId, `wa_${from}`, textBody, "whatsapp");
     replyText = result.reply;
+    silent = result.silent === true;
   } catch (err) {
     console.error("WhatsApp processMessage failed:", err);
     replyText = "Sorry, something went wrong on our end -- please try again in a moment.";
   }
 
-  await sendWhatsappReply(phoneNumberId, from, replyText);
+  if (!silent) {
+    await sendWhatsappReply(phoneNumberId, from, replyText);
+  }
 }
 
 // Meta's status payload: { id: "<outbound wamid>", status: "sent" |
