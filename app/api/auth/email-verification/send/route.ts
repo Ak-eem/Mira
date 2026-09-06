@@ -56,7 +56,8 @@ export async function POST(request: Request) {
       path: "/",
     });
     return response;
-  } catch {
+  } catch (err) {
+    console.error("email-verification/send failed:", err instanceof Error ? err.message : err);
     if (reservation?.sent) {
       try {
         const cookieStore = await cookies();

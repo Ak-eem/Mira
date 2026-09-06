@@ -33,7 +33,8 @@ export async function sendEmailWithResend({
   });
 
   if (!response.ok) {
-    throw new Error(`Resend email request failed with status ${response.status}`);
+    const detail = await response.text().catch(() => "");
+    throw new Error(`Resend email request failed with status ${response.status}: ${detail}`);
   }
 
   const result = (await response.json()) as ResendResponse;
