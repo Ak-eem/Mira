@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
-import { hasEntitlement } from "@/lib/plans";
+import { isLocked } from "@/lib/plans";
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -22,9 +22,19 @@ export async function GET(request: NextRequest) {
   if (business.error) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
   if (!business.data) return NextResponse.json({ error: "Not found." }, { status: 404 });
 
-  const { data: subscription } = await client.from("business_subscriptions").select("plan,status,trial_started_at,trial_ends_at").eq("business_id", business.data.id).maybeSingle();
-  if (subscription && !hasEntitlement(subscription)) {
-    return NextResponse.json({ locked: true, needsHuman: false, messages: [], error: "This chat is temporarily unavailable. Please ask the business owner to upgrade." }, { status: 402 });
+  const { data: subscription, error: subscriptionError } = await client
+    .from("business_subscriptions")
+    .select("owner_id,plan,status,trial_started_at,trial_ends_at")
+    .eq("business_id", business.data.id)
+    .maybeSingle();
+  if (subscriptionError) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+  if (isLocked(subscription)) {
+    return NextResponse.json({
+      locked: true,
+      needsHuman: false,
+      messages: [],
+      error: "This chat is temporarily unavailable. Please ask the business owner to upgrade.",
+    }, { status: 402 });
   }
 
   const conversation = await client.from("conversations").select("id,needs_human").eq("business_id", business.data.id).eq("session_token", `web_${visitor}`).eq("status", "open").maybeSingle();

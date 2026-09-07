@@ -1,5 +1,5 @@
--- Trial/paywall state is owned by business_owners, so one person cannot
--- create multiple active trials across businesses.
+-- Billing state is authoritative in business_subscriptions.
+-- A trial is permanently consumed once trial_started_at is set for an owner.
 alter table business_subscriptions
   add column if not exists owner_id uuid references auth.users(id) on delete set null,
   add column if not exists trial_started_at timestamptz,
@@ -9,12 +9,11 @@ alter table business_subscriptions drop constraint if exists business_subscripti
 alter table business_subscriptions add constraint business_subscriptions_status_check
   check (status in ('trialing', 'active', 'past_due', 'cancelled'));
 
-create unique index if not exists idx_business_subscriptions_one_active_trial_per_owner
+-- Historical trial rows remain unique even after they expire or are cancelled.
+create unique index if not exists idx_business_subscriptions_one_trial_per_owner
   on business_subscriptions (owner_id)
-  where status = 'trialing' and owner_id is not null;
+  where owner_id is not null and trial_started_at is not null;
 
--- Called after a business row is created. The platform-admin path is kept
--- server-authoritative and the unique index is the final concurrency guard.
 create or replace function provision_business_trial(p_business_id uuid, p_owner_id uuid)
 returns void
 language plpgsql
@@ -40,17 +39,14 @@ begin
   );
 exception
   when unique_violation then
-    raise exception using
-      errcode = 'P0001',
-      message = 'TRIAL_ALREADY_USED';
+    raise exception using errcode = 'P0001', message = 'TRIAL_ALREADY_USED';
 end;
 $$;
 
 revoke all on function provision_business_trial(uuid, uuid) from public;
 grant execute on function provision_business_trial(uuid, uuid) to authenticated;
 
--- Database-level enforcement protects server actions and API/service-role
--- paths alike. Legacy businesses without a subscription remain unchanged.
+-- Protect every business-scoped mutable/read model from expired or missing billing.
 create or replace function enforce_active_business_subscription()
 returns trigger
 language plpgsql
@@ -71,14 +67,18 @@ begin
   from business_subscriptions
   where business_id = target_business_id;
 
-  if not found or subscription_status = 'active'
-     or (subscription_status = 'trialing' and trial_end > now()) then
+  if found and (subscription_status = 'active'
+     or (subscription_status = 'trialing' and trial_end > now())) then
     return coalesce(new, old);
   end if;
 
-  raise exception using
-    errcode = 'P0001',
-    message = 'SUBSCRIPTION_REQUIRED';
+  -- Only allow business-row creation without a subscription so the atomic
+  -- provisioning action can create the initial business before its trial row.
+  if tg_table_name = 'businesses' and tg_op = 'INSERT' then
+    return new;
+  end if;
+
+  raise exception using errcode = 'P0001', message = 'SUBSCRIPTION_REQUIRED';
 end;
 $$;
 
@@ -87,8 +87,8 @@ declare
   table_name text;
 begin
   foreach table_name in array array[
-    'businesses', 'products', 'services', 'faqs', 'policies',
-    'business_hours', 'closures', 'promotions', 'conversations', 'messages'
+    'products', 'services', 'faqs', 'policies', 'business_hours',
+    'closures', 'promotions', 'conversations', 'messages'
   ] loop
     execute format('drop trigger if exists require_active_subscription on %I', table_name);
     execute format(

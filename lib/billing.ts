@@ -1,18 +1,18 @@
 import { createClient } from "@/lib/supabase/server";
-import { hasEntitlement, remainingTrialDays, type BusinessSubscription } from "@/lib/plans";
+import { isLocked, remainingTrialDays, type BusinessSubscription } from "@/lib/plans";
 
 export async function getBusinessEntitlement(businessId: string) {
   const supabase = await createClient();
   const { data: subscription } = await supabase
     .from("business_subscriptions")
-    .select("plan, status, trial_started_at, trial_ends_at")
+    .select("owner_id, plan, status, trial_started_at, trial_ends_at")
     .eq("business_id", businessId)
     .maybeSingle();
 
   const typedSubscription = (subscription ?? null) as BusinessSubscription | null;
   return {
     subscription: typedSubscription,
-    entitled: hasEntitlement(typedSubscription),
+    entitled: !isLocked(typedSubscription),
     trialDaysRemaining: remainingTrialDays(typedSubscription),
   };
 }
