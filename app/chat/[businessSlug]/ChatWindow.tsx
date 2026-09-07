@@ -138,6 +138,11 @@ export function ChatWindow({
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showEndConfirm, setShowEndConfirm] = useState(false);
+  const [ending, setEnding] = useState(false);
+  const [endedConversationId, setEndedConversationId] = useState<string | null>(null);
+  const [conversationEnded, setConversationEnded] = useState(false);
+  const [ratingState, setRatingState] = useState<"pending" | "submitting" | "done" | "skipped">("pending");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -215,6 +220,55 @@ export function ChatWindow({
     } catch {
       // Feedback is a nice-to-have, not core chat function -- fail silently
       // rather than surface an error banner over a submitted reply.
+    }
+  }
+
+  // Lets the customer end the conversation themselves, distinct from an
+  // operator ending it from admin/portal (see ended_by in
+  // supabase/migrations/0026_customer_rating.sql). Scoped the same way as
+  // every other customer chat call: businessSlug + visitorId resolve to
+  // the same business_id + session_token the backend already trusts, so
+  // a customer can only ever end their own conversation.
+  async function confirmEndConversation() {
+    setEnding(true);
+    setShowEndConfirm(false);
+    try {
+      const res = await fetch("/api/chat/end", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessSlug, visitorId }),
+      });
+      const data = (await res.json().catch(() => null)) as { conversationId?: string | null } | null;
+      setConversationEnded(true);
+      setEndedConversationId(data?.conversationId ?? null);
+    } catch {
+      // Ending is best-effort from the customer's point of view -- even if
+      // this request fails, showing the ended/rating state is harmless,
+      // and a stray open conversation just times out via the normal 24h
+      // idle close in lib/chat/processMessage.ts.
+      setConversationEnded(true);
+    } finally {
+      setEnding(false);
+    }
+  }
+
+  async function submitRating(rating: number) {
+    if (!endedConversationId) {
+      setRatingState("skipped");
+      return;
+    }
+    setRatingState("submitting");
+    try {
+      await fetch("/api/chat/rate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessSlug, visitorId, conversationId: endedConversationId, rating }),
+      });
+    } catch {
+      // Rating is optional feedback, not core chat function -- same
+      // fail-silent spirit as submitFeedback above.
+    } finally {
+      setRatingState("done");
     }
   }
 
@@ -377,23 +431,57 @@ export function ChatWindow({
       <header
         className={
           embedMode
-            ? "glass-panel-strong flex items-center justify-end px-3 py-2"
+            ? "glass-panel-strong flex items-center justify-between gap-2 px-3 py-2"
             : "glass-panel-strong flex items-center justify-between px-4 py-3"
         }
       >
         {!embedMode && <span className="font-semibold">{businessName}</span>}
-        {openNow !== null && (
-          <span
-            className={
-              openNow
-                ? "text-xs font-medium text-emerald-600"
-                : "text-xs font-medium text-slate-400"
-            }
-          >
-            {openNow ? "● Open now" : "Closed"}
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {openNow !== null && (
+            <span
+              className={
+                openNow
+                  ? "text-xs font-medium text-emerald-600"
+                  : "text-xs font-medium text-slate-400"
+              }
+            >
+              {openNow ? "● Open now" : "Closed"}
+            </span>
+          )}
+          {messages.length > 0 && !conversationEnded && !showEndConfirm && (
+            <button
+              type="button"
+              onClick={() => setShowEndConfirm(true)}
+              className="text-xs font-medium text-slate-400 hover:text-slate-600"
+            >
+              End chat
+            </button>
+          )}
+        </div>
       </header>
+
+      {showEndConfirm && (
+        <div className="glass-panel-strong flex items-center justify-between gap-3 px-4 py-2 text-xs">
+          <span className="text-slate-600">End this conversation?</span>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setShowEndConfirm(false)}
+              className="rounded px-2 py-1 font-medium text-slate-500 hover:text-slate-700"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmEndConversation}
+              disabled={ending}
+              className="rounded bg-accent px-2 py-1 font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+            >
+              End chat
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
@@ -491,24 +579,65 @@ export function ChatWindow({
         <div ref={bottomRef} />
       </div>
 
-      <form
-        onSubmit={handleSend}
-        className="glass-panel-strong flex gap-2 px-4 py-3"
-      >
-        <input
-          className="flex-1 rounded border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Ask a question…"
-        />
-        <button
-          type="submit"
-          disabled={sending || !input.trim()}
-          className="glass-hover rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+      {conversationEnded ? (
+        <div className="glass-panel-strong flex flex-col items-center gap-2 px-4 py-4">
+          {ratingState === "done" ? (
+            <p className="text-sm font-medium text-slate-600">Thanks for your feedback! 💛</p>
+          ) : ratingState === "skipped" ? (
+            <p className="text-sm text-slate-500">Conversation ended.</p>
+          ) : (
+            <>
+              <p className="text-sm font-medium text-slate-600">How was your experience?</p>
+              <div className="flex gap-3">
+                {[
+                  { rating: 1, emoji: "😠", label: "Very unhappy" },
+                  { rating: 2, emoji: "🙁", label: "Unhappy" },
+                  { rating: 3, emoji: "😐", label: "Neutral" },
+                  { rating: 4, emoji: "🙂", label: "Happy" },
+                  { rating: 5, emoji: "😄", label: "Very happy" },
+                ].map((option) => (
+                  <button
+                    key={option.rating}
+                    type="button"
+                    aria-label={option.label}
+                    disabled={ratingState === "submitting"}
+                    onClick={() => submitRating(option.rating)}
+                    className="glass-hover rounded-full p-1.5 text-2xl leading-none disabled:opacity-50"
+                  >
+                    {option.emoji}
+                  </button>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={() => setRatingState("skipped")}
+                className="text-xs font-medium text-slate-400 hover:text-slate-600"
+              >
+                No thanks
+              </button>
+            </>
+          )}
+        </div>
+      ) : (
+        <form
+          onSubmit={handleSend}
+          className="glass-panel-strong flex gap-2 px-4 py-3"
         >
-          Send
-        </button>
-      </form>
+          <input
+            className="flex-1 rounded border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Ask a question…"
+          />
+          <button
+            type="submit"
+            disabled={sending || !input.trim()}
+            className="glass-hover rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+          >
+            Send
+          </button>
+        </form>
+      )}
       <div className="glass-panel-strong border-t-0 pb-2 pt-1.5 text-center text-[11px] text-slate-400">
         Powered by <span className="font-medium text-slate-500">Mira AI</span>
       </div>
