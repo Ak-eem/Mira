@@ -75,7 +75,7 @@ const GENERIC_ERROR_MESSAGE = "Something went wrong on our end. Please try again
 type ProductImage = { name: string; imageUrl: string };
 type Feedback = "up" | "down";
 type Message = {
-  role: "customer" | "assistant";
+  role: "customer" | "assistant" | "system";
   content: string;
   id?: string;
   productImages?: ProductImage[];
@@ -146,12 +146,12 @@ export function ChatWindow({
 
   // Picks up operator replies sent from the admin dashboard while this
   // conversation is flagged for a human -- the normal chat flow is pure
-  // request/response, so without this, an operator's reply would only
-  // ever appear the next time the customer sends a message themselves.
-  // Deliberately narrow: only ever appends messages tagged
-  // operatorReply=true that aren't already in local state, never touches
-  // customer messages or normal AI replies, which the request/response
-  // flow already renders on its own.
+  // request/response, so without this, an operator's reply (or a
+  // took-over/handed-back system notice) would only ever appear the next
+  // time the customer sends a message themselves. Deliberately narrow:
+  // only ever appends operator replies and system notices that aren't
+  // already in local state, never touches customer messages or normal AI
+  // replies, which the request/response flow already renders on its own.
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
@@ -167,20 +167,21 @@ export function ChatWindow({
             content: string;
             productImages?: ProductImage[];
             isOperatorReply?: boolean;
+            isSystemNotice?: boolean;
           }[];
         } | null;
 
-        const operatorReplies = (data?.messages ?? []).filter((m) => m.isOperatorReply);
-        if (operatorReplies.length === 0) return;
+        const relevant = (data?.messages ?? []).filter((m) => m.isOperatorReply || m.isSystemNotice);
+        if (relevant.length === 0) return;
 
         setMessages((prev) => {
           const existingIds = new Set(prev.map((m) => m.id).filter(Boolean));
-          const newOnes = operatorReplies.filter((m) => !existingIds.has(m.id));
+          const newOnes = relevant.filter((m) => !existingIds.has(m.id));
           if (newOnes.length === 0) return prev;
           return [
             ...prev,
             ...newOnes.map((m) => ({
-              role: m.role,
+              role: (m.isSystemNotice ? "system" : m.role) as Message["role"],
               content: m.content,
               id: m.id,
               productImages: m.productImages,
@@ -403,7 +404,14 @@ export function ChatWindow({
             </span>
           </div>
         )}
-        {messagesWithUniqueImages.map((m, i) => (
+        {messagesWithUniqueImages.map((m, i) =>
+          m.role === "system" ? (
+            <div key={i} className="message-enter text-center">
+              <span className="glass-panel inline-block rounded-full px-3 py-1 text-xs text-slate-500">
+                {m.content}
+              </span>
+            </div>
+          ) : (
           <div
             key={i}
             className={`message-enter ${m.role === "customer" ? "text-right" : "text-left"}`}
@@ -461,7 +469,8 @@ export function ChatWindow({
               </div>
             )}
           </div>
-        ))}
+          )
+        )}
         {sending && (
           <div className="flex gap-1 px-1">
             <span
