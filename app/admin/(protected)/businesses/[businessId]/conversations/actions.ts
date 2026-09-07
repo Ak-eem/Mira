@@ -276,7 +276,7 @@ export async function endConversation(businessId: string, conversationId: string
 
   const { error } = await supabase
     .from("conversations")
-    .update({ status: "closed", claimed_by: null, claimed_at: null, needs_human: false })
+    .update({ status: "closed", ended_by: "operator", claimed_by: null, claimed_at: null, needs_human: false })
     .eq("id", conversationId)
     .eq("business_id", businessId);
 

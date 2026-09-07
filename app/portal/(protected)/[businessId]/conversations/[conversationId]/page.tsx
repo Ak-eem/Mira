@@ -21,7 +21,9 @@ export default async function PortalConversationThreadPage({
 
   const { data: conversation } = await supabase
     .from("conversations")
-    .select("id, business_id, session_token, needs_human, channel, claimed_by")
+    .select(
+      "id, business_id, session_token, needs_human, channel, claimed_by, ended_by, customer_rating, customer_rating_emoji",
+    )
     .eq("id", conversationId)
     .eq("business_id", businessId)
     .maybeSingle();
@@ -55,6 +57,16 @@ export default async function PortalConversationThreadPage({
         >
           {conversation.channel === "whatsapp" ? "WhatsApp" : "Web widget"}
         </span>
+        {conversation.ended_by === "customer" && (
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+            Ended by customer
+          </span>
+        )}
+        {conversation.customer_rating && (
+          <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-500">
+            {conversation.customer_rating_emoji} {conversation.customer_rating}/5
+          </span>
+        )}
       </h2>
 
       {conversation.needs_human && !isClaimed && (
