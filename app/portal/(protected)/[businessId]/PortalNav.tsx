@@ -10,10 +10,10 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   return (
     <Link
       href={href}
-      className={`border-b-2 px-1 pb-3 text-sm transition ${
+      className={`glass-hover rounded-lg px-3 py-1.5 text-sm transition ${
         active
-          ? "border-accent font-medium text-accent"
-          : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
+          ? "bg-white/70 font-medium text-accent shadow-[0_1px_2px_rgba(15,118,110,0.08)]"
+          : "text-slate-500 hover:text-slate-700"
       }`}
     >
       {children}
@@ -23,7 +23,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 
 export function PortalNav({ businessId }: { businessId: string }) {
   return (
-    <nav className="mb-6 flex gap-6 border-b border-slate-200">
+    <nav className="glass-panel mb-6 flex gap-1 rounded-xl p-1.5">
       <NavLink href={`/portal/${businessId}`}>Dashboard</NavLink>
       <NavLink href={`/portal/${businessId}/conversations`}>Conversations</NavLink>
       <NavLink href={`/portal/${businessId}/nudges`}>Nudges</NavLink>
