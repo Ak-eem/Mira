@@ -20,8 +20,8 @@ export default async function PortalLayout({
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="border-b border-slate-200 bg-white">
+    <div className="mira-wash min-h-screen">
+      <header className="glass-panel-strong sticky top-0 z-10">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
           <span className="text-base font-semibold tracking-tight text-slate-900">
             Mira <span className="font-normal text-accent">for Business</span>

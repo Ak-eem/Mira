@@ -370,12 +370,14 @@ export function ChatWindow({
       }, [messages]);
 
   return (
-    <div className={`${embedMode ? "flex h-full flex-col" : "flex min-h-screen flex-col"} ${nunito.className}`}>
+    <div
+      className={`${embedMode ? "flex h-full flex-col" : "flex min-h-screen flex-col"} mira-wash ${nunito.className}`}
+    >
       <header
         className={
           embedMode
-            ? "flex items-center justify-end border-b border-slate-200 bg-white px-3 py-2"
-            : "flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3"
+            ? "glass-panel-strong flex items-center justify-end px-3 py-2"
+            : "glass-panel-strong flex items-center justify-between px-4 py-3"
         }
       >
         {!embedMode && <span className="font-semibold">{businessName}</span>}
@@ -395,20 +397,23 @@ export function ChatWindow({
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
           <div className="text-left">
-            <span className="inline-block max-w-[85%] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+            <span className="glass-panel inline-block max-w-[85%] rounded-lg px-3 py-2 text-sm">
               Hi! 👋 Ask me anything about {businessName} — hours, prices, what we
               offer, and more.
             </span>
           </div>
         )}
         {messagesWithUniqueImages.map((m, i) => (
-          <div key={i} className={m.role === "customer" ? "text-right" : "text-left"}>
+          <div
+            key={i}
+            className={`message-enter ${m.role === "customer" ? "text-right" : "text-left"}`}
+          >
             {m.role === "assistant" ? (
-              <div className="inline-block max-w-[85%] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm">
+              <div className="glass-panel inline-block max-w-[85%] rounded-lg px-3 py-2 text-sm">
                 {renderAssistantContent(m.content)}
               </div>
             ) : (
-              <span className="inline-block max-w-[85%] rounded-lg bg-accent px-3 py-2 text-sm text-white">
+              <span className="inline-block max-w-[85%] rounded-lg bg-accent px-3 py-2 text-sm text-white shadow-[0_8px_20px_-12px_rgba(15,118,110,0.6)]">
                 {linkifyContent(m.content)}
               </span>
             )}
@@ -479,10 +484,10 @@ export function ChatWindow({
 
       <form
         onSubmit={handleSend}
-        className="flex gap-2 border-t border-slate-200 bg-white px-4 py-3"
+        className="glass-panel-strong flex gap-2 px-4 py-3"
       >
         <input
-          className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+          className="flex-1 rounded border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Ask a question…"
@@ -490,12 +495,12 @@ export function ChatWindow({
         <button
           type="submit"
           disabled={sending || !input.trim()}
-          className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+          className="glass-hover rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
         >
           Send
         </button>
       </form>
-      <div className="border-t border-slate-100 bg-slate-50/60 pb-2 pt-1.5 text-center text-[11px] text-slate-400">
+      <div className="glass-panel-strong border-t-0 pb-2 pt-1.5 text-center text-[11px] text-slate-400">
         Powered by <span className="font-medium text-slate-500">Mira AI</span>
       </div>
     </div>

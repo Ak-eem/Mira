@@ -63,16 +63,16 @@ export default async function PortalDashboardPage({
       <div>
         <p className="mb-3 text-sm font-medium text-slate-500">Last 30 days</p>
         <div className="grid grid-cols-2 gap-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="glass-panel rounded-xl p-5">
             <p className="text-3xl font-semibold tracking-tight text-slate-900">{conversationCount ?? 0}</p>
             <p className="mt-1 text-sm text-slate-500">Conversations</p>
           </div>
           <Link
             href={`/portal/${businessId}/conversations`}
-            className={`rounded-xl border p-5 shadow-sm transition ${
+            className={`glass-hover rounded-xl p-5 transition ${
               needsYou > 0
-                ? "border-amber-300 bg-amber-50 hover:border-amber-400"
-                : "border-slate-200 bg-white hover:border-slate-300"
+                ? "glass-alert-pulse border border-amber-300/50 bg-amber-50/70 backdrop-blur-md"
+                : "glass-panel"
             }`}
           >
             <p className={`text-3xl font-semibold tracking-tight ${needsYou > 0 ? "text-amber-700" : "text-slate-900"}`}>
@@ -85,7 +85,7 @@ export default async function PortalDashboardPage({
         </div>
       </div>
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="glass-panel rounded-xl p-5">
         <div className="mb-4 flex items-center justify-between">
           <p className="font-medium text-slate-900">Nudges</p>
           {!nudgesActive && (
