@@ -143,6 +143,7 @@ export function ChatWindow({
   const [endedConversationId, setEndedConversationId] = useState<string | null>(null);
   const [conversationEnded, setConversationEnded] = useState(false);
   const [ratingState, setRatingState] = useState<"pending" | "submitting" | "done" | "skipped">("pending");
+  const [locked, setLocked] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -163,9 +164,21 @@ export function ChatWindow({
         const res = await fetch(
           `/api/chat/messages?businessSlug=${encodeURIComponent(businessSlug)}&visitorId=${encodeURIComponent(visitorId)}`,
         );
+
+        // A locked business responds 402 with {locked:true} (see
+        // app/api/chat/messages/route.ts) instead of the normal message
+        // list. Stop polling entirely once that's detected -- there's
+        // nothing further to fetch until the business is unlocked, and
+        // continuing to poll would just repeat the same 402 every tick.
+        if (res.status === 402) {
+          setLocked(true);
+          clearInterval(interval);
+          return;
+        }
         if (!res.ok) return;
 
         const data = (await res.json().catch(() => null)) as {
+          locked?: boolean;
           messages?: {
             id: string;
             role: "customer" | "assistant";
@@ -175,6 +188,12 @@ export function ChatWindow({
             isSystemNotice?: boolean;
           }[];
         } | null;
+
+        if (data?.locked) {
+          setLocked(true);
+          clearInterval(interval);
+          return;
+        }
 
         const relevant = (data?.messages ?? []).filter((m) => m.isOperatorReply || m.isSystemNotice);
         if (relevant.length === 0) return;
@@ -290,8 +309,12 @@ export function ChatWindow({
       });
 
       if (!res.ok) {
-        const data = await res.json().catch(() => null);
-        setError(GENERIC_ERROR_MESSAGE);
+        const data = (await res.json().catch(() => null)) as { locked?: boolean; error?: string } | null;
+        if (res.status === 402 || data?.locked) {
+          setLocked(true);
+        } else {
+          setError(GENERIC_ERROR_MESSAGE);
+        }
         return;
       }
 
@@ -423,6 +446,24 @@ export function ChatWindow({
             : { ...message, productImages };
         });
       }, [messages]);
+
+  // Once locked (detected via a 402 from either the polling loop or a
+  // send attempt -- see the useEffect and handleSend above), nothing else
+  // in the widget is reachable: no message history, no input, no rating
+  // prompt. This mirrors the initial-load check in page.tsx for a
+  // business that's inactive from the start; this is the same outcome
+  // reached mid-session instead of at first render.
+  if (locked) {
+    return (
+      <div
+        className={`${embedMode ? "flex h-full flex-col" : "flex min-h-screen flex-col"} mira-wash items-center justify-center ${nunito.className}`}
+      >
+        <div className="glass-panel-strong mx-4 max-w-sm rounded-lg px-6 py-8 text-center">
+          <p className="text-sm text-slate-600">This business is temporarily unavailable.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

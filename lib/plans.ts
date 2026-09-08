@@ -32,7 +32,7 @@ export function hasEntitlement(subscription: BusinessSubscription | null | undef
 }
 
 export function remainingTrialDays(subscription: BusinessSubscription | null | undefined): number | null {
-  if (!isTrialActive(subscription)) return null;
+  if (!isTrialActive(subscription) || !subscription) return null;
   const milliseconds = new Date(subscription.trial_ends_at as string).getTime() - Date.now();
   return Math.max(0, Math.ceil(milliseconds / 86_400_000));
 }

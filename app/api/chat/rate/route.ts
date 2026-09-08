@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
+import { isLocked } from "@/lib/plans";
 
 export const runtime = "nodejs";
 
@@ -57,6 +58,25 @@ export async function POST(request: NextRequest) {
   const business = await client.from("businesses").select("id").eq("slug", slug).maybeSingle();
   if (business.error) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
   if (!business.data) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+  // Same lock check and 402 shape as the other customer chat routes, for
+  // consistency -- rating itself doesn't touch Mira's reply capability,
+  // but a locked business's data is meant to stay frozen as-is.
+  const { data: subscription, error: subscriptionError } = await client
+    .from("business_subscriptions")
+    .select("owner_id,plan,status,trial_started_at,trial_ends_at")
+    .eq("business_id", business.data.id)
+    .maybeSingle();
+  if (subscriptionError) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+  if (isLocked(subscription)) {
+    return NextResponse.json(
+      {
+        locked: true,
+        error: "This chat is temporarily unavailable. Please ask the business owner to upgrade.",
+      },
+      { status: 402 },
+    );
+  }
 
   const { data: updated, error: updateError } = await client
     .from("conversations")

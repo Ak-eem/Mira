@@ -4,6 +4,7 @@ import { processMessage, ProcessMessageError } from "@/lib/chat/processMessage";
 import { withConversationLease } from "@/lib/chat/durable";
 import { CHAT_RATE_LIMIT_PER_MINUTE, checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { isLocked } from "@/lib/plans";
 
 export const runtime = "nodejs";
 const MAX_MESSAGE_LENGTH = 4000;
@@ -93,6 +94,27 @@ export async function POST(request: NextRequest) {
   if (business.error) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
   if (!business.data || !business.data.is_active) {
     return NextResponse.json({ error: "Business not found." }, { status: 404 });
+  }
+
+  // Checked before leasing the conversation or touching processMessage --
+  // a locked business shouldn't get a customer message written at all,
+  // let alone a reply attempted. Same subscription shape and 402 shape
+  // as app/api/chat/messages/route.ts, so the widget handles both the
+  // same way.
+  const { data: subscription, error: subscriptionError } = await client
+    .from("business_subscriptions")
+    .select("owner_id,plan,status,trial_started_at,trial_ends_at")
+    .eq("business_id", business.data.id)
+    .maybeSingle();
+  if (subscriptionError) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+  if (isLocked(subscription)) {
+    return NextResponse.json(
+      {
+        locked: true,
+        error: "This chat is temporarily unavailable. Please ask the business owner to upgrade.",
+      },
+      { status: 402 },
+    );
   }
 
   const businessId = business.data.id;
