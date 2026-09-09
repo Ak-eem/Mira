@@ -5,7 +5,7 @@ on them. No new env vars needed for any of this.
 
 ## This session — Nudges + business portal
 Run migrations 0014-0018 in order. One new env var: `CRON_SECRET` (see
-.env.example). If deploying to Vercel, `vercel.json` wires up the hourly
+.env.example). If deploying to Vercel, `vercel.json` wires up the daily 9:00
 schedule automatically and Vercel sets the Authorization header itself —
 just add `CRON_SECRET` in the project's env vars. Any other host: point
 your own scheduler at `/api/cron/nudges` with the same header.
