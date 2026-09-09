@@ -145,6 +145,30 @@ export function ChatWindow({
   const [ratingState, setRatingState] = useState<"pending" | "submitting" | "done" | "skipped">("pending");
   const [locked, setLocked] = useState(false);
   const [expandedImage, setExpandedImage] = useState<{ url: string; name: string } | null>(null);
+  const [notificationEmail, setNotificationEmail] = useState("");
+  const [notificationSaving, setNotificationSaving] = useState(false);
+  const [notificationError, setNotificationError] = useState<string | null>(null);
+  const [notificationJustSaved, setNotificationJustSaved] = useState(false);
+  // Lazily read from localStorage, same pattern as visitorId above --
+  // avoids re-showing the prompt to a returning visitor on this device
+  // who already said yes or no. The backend consent record (keyed on
+  // business_id + web_${visitorId}) stays the actual source of truth for
+  // whether an email gets sent; this only controls whether the widget
+  // nags about it again.
+  const [notificationConsentSaved, setNotificationConsentSaved] = useState(() => {
+    try {
+      return typeof window !== "undefined" && window.localStorage?.getItem(`mira_notif_${businessSlug}`) === "saved";
+    } catch {
+      return false;
+    }
+  });
+  const [notificationDismissed, setNotificationDismissed] = useState(() => {
+    try {
+      return typeof window !== "undefined" && window.localStorage?.getItem(`mira_notif_${businessSlug}`) === "dismissed";
+    } catch {
+      return false;
+    }
+  });
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -457,6 +481,50 @@ export function ChatWindow({
         });
       }, [messages]);
 
+  const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+  async function saveNotificationConsent() {
+    const email = notificationEmail.trim();
+    if (!email || !EMAIL_PATTERN.test(email)) {
+      setNotificationError("Enter a valid email address.");
+      return;
+    }
+    setNotificationSaving(true);
+    setNotificationError(null);
+    try {
+      const res = await fetch("/api/chat/notifications", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessSlug, visitorId, email }),
+      });
+      if (!res.ok) {
+        setNotificationError("Couldn't save that. Try again.");
+        return;
+      }
+      setNotificationConsentSaved(true);
+      setNotificationJustSaved(true);
+      try {
+        window.localStorage?.setItem(`mira_notif_${businessSlug}`, "saved");
+      } catch {
+        // Non-fatal -- the consent itself is already saved server-side;
+        // this just means the prompt might show again on this device.
+      }
+    } catch {
+      setNotificationError("Couldn't reach the server. Try again.");
+    } finally {
+      setNotificationSaving(false);
+    }
+  }
+
+  function dismissNotificationPrompt() {
+    setNotificationDismissed(true);
+    try {
+      window.localStorage?.setItem(`mira_notif_${businessSlug}`, "dismissed");
+    } catch {
+      // Non-fatal -- worst case the prompt reappears next visit.
+    }
+  }
+
   // Once locked (detected via a 402 from either the polling loop or a
   // send attempt -- see the useEffect and handleSend above), nothing else
   // in the widget is reachable: no message history, no input, no rating
@@ -531,6 +599,55 @@ export function ChatWindow({
               End chat
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Shown once a real exchange has happened, so it's contextual
+          rather than the first thing a visitor sees. Consent is opt-in
+          and explicit -- nothing gets saved until they submit an email
+          here, matching the same pattern as ending a chat or leaving
+          feedback: a deliberate action, not an assumption. */}
+      {messages.length > 0 &&
+        !conversationEnded &&
+        !locked &&
+        !notificationConsentSaved &&
+        !notificationDismissed && (
+          <div className="glass-panel-strong space-y-2 px-4 py-3">
+            <p className="text-xs text-slate-600">Want delivery updates by email?</p>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="email"
+                value={notificationEmail}
+                onChange={(e) => setNotificationEmail(e.target.value)}
+                placeholder="you@example.com"
+                aria-label="Email address for delivery updates"
+                className="min-w-0 flex-1 rounded border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              />
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={notificationSaving || !notificationEmail.trim()}
+                  onClick={saveNotificationConsent}
+                  className="glass-hover rounded bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+                >
+                  {notificationSaving ? "Saving..." : "Yes, notify me"}
+                </button>
+                <button
+                  type="button"
+                  onClick={dismissNotificationPrompt}
+                  className="rounded px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700"
+                >
+                  Not now
+                </button>
+              </div>
+            </div>
+            {notificationError && <p className="text-xs text-red-600">{notificationError}</p>}
+          </div>
+        )}
+
+      {notificationJustSaved && (
+        <div className="glass-panel-strong px-4 py-2 text-xs text-emerald-600">
+          You&apos;ll get an email when your order status changes.
         </div>
       )}
 

@@ -16,7 +16,16 @@ type Order = {
 
 const STATUS_OPTIONS: OrderStatus[] = ["cart", "placed", "shipped", "delivered", "cancelled"];
 
-function NewOrderForm({ businessId }: { businessId: string }) {
+type RecentConversation = { identifier: string; label: string };
+
+function NewOrderForm({
+  businessId,
+  recentConversations,
+}: {
+  businessId: string;
+  recentConversations: RecentConversation[];
+}) {
+  const [selectedConversation, setSelectedConversation] = useState("");
   const [customerIdentifier, setCustomerIdentifier] = useState("");
   const [status, setStatus] = useState<OrderStatus>("placed");
   const [items, setItems] = useState([{ name: "", quantity: "1", unitPrice: "" }]);
@@ -32,7 +41,13 @@ function NewOrderForm({ businessId }: { businessId: string }) {
     setSubmitting(true);
     setError(null);
 
-    const result = await createOrder({ businessId, customerIdentifier, status, items });
+    const result = await createOrder({
+      businessId,
+      customerIdentifier,
+      selectedConversationIdentifier: selectedConversation || undefined,
+      status,
+      items,
+    });
 
     setSubmitting(false);
     if (result.error) {
@@ -40,6 +55,7 @@ function NewOrderForm({ businessId }: { businessId: string }) {
       return;
     }
 
+    setSelectedConversation("");
     setCustomerIdentifier("");
     setStatus("placed");
     setItems([{ name: "", quantity: "1", unitPrice: "" }]);
@@ -50,13 +66,33 @@ function NewOrderForm({ businessId }: { businessId: string }) {
       <p className="font-medium text-slate-900">Log an order</p>
 
       <div>
-        <label className="block text-xs font-medium text-slate-600">Customer WhatsApp number</label>
-        <input
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm"
-          placeholder="e.g. 2348012345678"
-          value={customerIdentifier}
-          onChange={(e) => setCustomerIdentifier(e.target.value)}
-        />
+        <label className="block text-xs font-medium text-slate-600">Customer</label>
+        <select
+          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          value={selectedConversation}
+          onChange={(e) => setSelectedConversation(e.target.value)}
+        >
+          <option value="">
+            {recentConversations.length > 0 ? "-- pick a recent chat, or enter a phone number below --" : "No recent chats yet"}
+          </option>
+          {recentConversations.map((c) => (
+            <option key={c.identifier} value={c.identifier}>
+              {c.label}
+            </option>
+          ))}
+        </select>
+        {/* Web-chat customers (no WhatsApp number at all) can only be
+            linked to an order by picking their chat above -- there's
+            nothing to type in for them. The phone field below only
+            matters for a WhatsApp customer without a chat on record yet. */}
+        {!selectedConversation && (
+          <input
+            className="mt-2 w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm"
+            placeholder="or enter a WhatsApp number, e.g. 2348012345678"
+            value={customerIdentifier}
+            onChange={(e) => setCustomerIdentifier(e.target.value)}
+          />
+        )}
       </div>
 
       <div className="space-y-2">
@@ -158,10 +194,18 @@ function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
   );
 }
 
-export function OrdersPanel({ businessId, orders }: { businessId: string; orders: Order[] }) {
+export function OrdersPanel({
+  businessId,
+  orders,
+  recentConversations,
+}: {
+  businessId: string;
+  orders: Order[];
+  recentConversations: RecentConversation[];
+}) {
   return (
     <div className="space-y-6">
-      <NewOrderForm businessId={businessId} />
+      <NewOrderForm businessId={businessId} recentConversations={recentConversations} />
 
       <div>
         <p className="mb-3 font-medium text-slate-900">Recent orders</p>

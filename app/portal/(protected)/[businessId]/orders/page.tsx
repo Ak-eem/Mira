@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { OrdersPanel } from "./OrdersPanel";
+import { listRecentConversations } from "./actions";
 
 export default async function OrdersPage({
   params,
@@ -9,12 +10,15 @@ export default async function OrdersPage({
   const { businessId } = await params;
   const supabase = await createClient();
 
-  const { data: orders } = await supabase
-    .from("orders")
-    .select("id, customer_identifier, status, total, status_changed_at, order_items(name, quantity, unit_price)")
-    .eq("business_id", businessId)
-    .order("status_changed_at", { ascending: false })
-    .limit(50);
+  const [{ data: orders }, recentConversations] = await Promise.all([
+    supabase
+      .from("orders")
+      .select("id, customer_identifier, status, total, status_changed_at, order_items(name, quantity, unit_price)")
+      .eq("business_id", businessId)
+      .order("status_changed_at", { ascending: false })
+      .limit(50),
+    listRecentConversations(businessId),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -22,7 +26,7 @@ export default async function OrdersPage({
         Orders are logged here manually for now — Mira doesn&apos;t take orders directly yet. This is what Nudges
         (order shipped / abandoned cart) reads from.
       </div>
-      <OrdersPanel businessId={businessId} orders={orders ?? []} />
+      <OrdersPanel businessId={businessId} orders={orders ?? []} recentConversations={recentConversations} />
     </div>
   );
 }

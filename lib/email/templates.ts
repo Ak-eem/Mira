@@ -90,6 +90,104 @@ export function renderVerificationOtpEmail({
 const SUPPORT_EMAIL = "mirasupport03@gmail.com";
 const SUPPORT_WHATSAPP_URL = "https://wa.me/2348020821800";
 
+type OrderStatusForEmail = "placed" | "shipped" | "delivered" | "cancelled";
+
+type OrderStatusTemplateInput = {
+  businessName: string;
+  status: OrderStatusForEmail;
+  items: { name: string; quantity: number }[];
+  total: number | null;
+  currency: string;
+  unsubscribeUrl: string;
+};
+
+// 'cart' deliberately has no entry here -- it's an in-progress state, not
+// a customer-visible event worth emailing about. Callers should skip
+// sending for that status rather than pass it in.
+const ORDER_STATUS_COPY: Record<OrderStatusForEmail, { subject: string; heading: string; body: string }> = {
+  placed: {
+    subject: "Order confirmed",
+    heading: "Your order is confirmed",
+    body: "We've received your order and let the business know.",
+  },
+  shipped: {
+    subject: "Your order is on its way",
+    heading: "Your order has shipped",
+    body: "Good news -- your order is on its way to you.",
+  },
+  delivered: {
+    subject: "Your order has arrived",
+    heading: "Delivered",
+    body: "Your order has been marked as delivered. We hope you love it!",
+  },
+  cancelled: {
+    subject: "Your order was cancelled",
+    heading: "Order cancelled",
+    body: "This order has been cancelled. Reach out to the business directly if that's unexpected.",
+  },
+};
+
+function formatOrderTotal(amount: number, currency: string): string {
+  const symbol = currency === "NGN" ? "₦" : `${currency} `;
+  return `${symbol}${amount.toLocaleString()}`;
+}
+
+export function renderOrderStatusEmail({
+  businessName,
+  status,
+  items,
+  total,
+  currency,
+  unsubscribeUrl,
+}: OrderStatusTemplateInput): { subject: string; html: string } {
+  const copy = ORDER_STATUS_COPY[status];
+  const safeBusinessName = escapeHtml(businessName);
+  const safeUnsubscribeUrl = escapeHtml(unsubscribeUrl);
+  const itemsList = items.length
+    ? items
+        .map(
+          (item) =>
+            `<li style="margin:0 0 4px;">${escapeHtml(item.name)}${item.quantity > 1 ? ` &times; ${item.quantity}` : ""}</li>`,
+        )
+        .join("")
+    : "";
+
+  return {
+    subject: `${businessName}: ${copy.subject}`,
+    html: `<!doctype html>
+<html lang="en">
+  <body style="margin:0;background-color:${panel};font-family:${baseFont};color:${ink};">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;background-color:${panel};">
+      <tr><td align="center" style="padding:40px 16px;">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="width:100%;max-width:480px;border-collapse:collapse;">
+
+          <tr><td style="padding:0 4px 20px;text-align:center;">
+            <span style="font-family:${baseFont};font-size:14px;font-weight:600;color:${muted};">${safeBusinessName}</span>
+          </td></tr>
+
+          <tr><td style="background-color:${card};border:1px solid ${cardBorder};border-radius:16px;padding:32px;">
+            <h1 style="margin:0 0 12px;font-size:20px;line-height:28px;font-weight:700;color:${ink};">${copy.heading}</h1>
+            <p style="margin:0 0 20px;font-size:14px;line-height:22px;color:${muted};">${copy.body}</p>
+            ${itemsList ? `<ul style="margin:0 0 16px;padding-left:18px;font-size:14px;line-height:22px;color:${ink};">${itemsList}</ul>` : ""}
+            ${total != null ? `<p style="margin:0;font-size:14px;font-weight:600;color:${ink};">Total: ${escapeHtml(formatOrderTotal(total, currency))}</p>` : ""}
+          </td></tr>
+
+          <tr><td style="padding:20px 4px 0;text-align:center;">
+            ${logoMark(12)}
+            <p style="margin:8px 0 0;font-size:11px;line-height:17px;color:${muted};">
+              You're getting this because you asked for delivery updates.
+              <a href="${safeUnsubscribeUrl}" style="color:${muted};text-decoration:underline;">Unsubscribe</a>
+            </p>
+          </td></tr>
+
+        </table>
+      </td></tr>
+    </table>
+  </body>
+</html>`,
+  };
+}
+
 export function renderWelcomeEmail({
   recipientName,
   loginUrl,
