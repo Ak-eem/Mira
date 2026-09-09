@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
+import { isLocked } from "@/lib/plans";
 
 export const runtime = "nodejs";
 
@@ -37,6 +38,25 @@ export async function POST(request: NextRequest) {
   const business = await client.from("businesses").select("id").eq("slug", slug).maybeSingle();
   if (business.error) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
   if (!business.data) return NextResponse.json({ error: "Not found." }, { status: 404 });
+
+  // Same lock check and 402 shape as app/api/chat/route.ts and
+  // app/api/chat/messages/route.ts -- a locked business's conversations
+  // are frozen as-is, not actionable by the customer either.
+  const { data: subscription, error: subscriptionError } = await client
+    .from("business_subscriptions")
+    .select("owner_id,plan,status,trial_started_at,trial_ends_at")
+    .eq("business_id", business.data.id)
+    .maybeSingle();
+  if (subscriptionError) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+  if (isLocked(subscription)) {
+    return NextResponse.json(
+      {
+        locked: true,
+        error: "This chat is temporarily unavailable. Please ask the business owner to upgrade.",
+      },
+      { status: 402 },
+    );
+  }
 
   // Only an open conversation can be ended this way -- clears the same
   // claim/handoff state an operator's "End conversation" clears, and the
