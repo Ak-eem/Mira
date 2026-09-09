@@ -144,11 +144,21 @@ export function ChatWindow({
   const [conversationEnded, setConversationEnded] = useState(false);
   const [ratingState, setRatingState] = useState<"pending" | "submitting" | "done" | "skipped">("pending");
   const [locked, setLocked] = useState(false);
+  const [expandedImage, setExpandedImage] = useState<{ url: string; name: string } | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!expandedImage) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setExpandedImage(null);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [expandedImage]);
 
   // Picks up operator replies sent from the admin dashboard while this
   // conversation is flagged for a human -- the normal chat flow is pure
@@ -558,13 +568,20 @@ export function ChatWindow({
             {m.role === "assistant" && m.productImages && m.productImages.length > 0 && (
               <div className="mt-2 flex flex-wrap gap-2">
                 {m.productImages.map((p) => (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
+                  <button
                     key={p.imageUrl}
-                    src={p.imageUrl}
-                    alt={p.name}
-                    className="h-20 w-20 rounded-md border border-slate-200 object-cover"
-                  />
+                    type="button"
+                    onClick={() => setExpandedImage({ url: p.imageUrl, name: p.name })}
+                    className="glass-hover rounded-md"
+                    aria-label={`Expand image of ${p.name}`}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={p.imageUrl}
+                      alt={p.name}
+                      className="h-20 w-20 cursor-zoom-in rounded-md border border-slate-200 object-cover"
+                    />
+                  </button>
                 ))}
               </div>
             )}
@@ -682,6 +699,32 @@ export function ChatWindow({
       <div className="glass-panel-strong border-t-0 pb-2 pt-1.5 text-center text-[11px] text-slate-400">
         Powered by <span className="font-medium text-slate-500">Mira AI</span>
       </div>
+
+      {expandedImage && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-6"
+          onClick={() => setExpandedImage(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setExpandedImage(null)}
+            aria-label="Close"
+            className="absolute right-4 top-4 rounded-full bg-white/90 p-2 text-slate-700 shadow-lg hover:bg-white"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18" />
+              <line x1="6" y1="6" x2="18" y2="18" />
+            </svg>
+          </button>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={expandedImage.url}
+            alt={expandedImage.name}
+            onClick={(e) => e.stopPropagation()}
+            className="max-h-full max-w-full rounded-lg object-contain shadow-2xl message-enter"
+          />
+        </div>
+      )}
     </div>
   );
 }
