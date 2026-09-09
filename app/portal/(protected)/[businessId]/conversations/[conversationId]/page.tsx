@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { resolveHandoff } from "../actions";
+import { resolveHandoff, takeOverConversation, handBackToAI, endConversation } from "../actions";
 import { linkifyContent } from "@/lib/linkify";
 import { ReplyForm } from "./ReplyForm";
+import { LiveRefresh } from "./LiveRefresh";
 
 type MessageContextSnapshot = {
   productImages?: { name: string; imageUrl: string }[];
   operatorReply?: boolean;
+  systemNotice?: boolean;
 };
 
 export default async function PortalConversationThreadPage({
@@ -19,7 +21,7 @@ export default async function PortalConversationThreadPage({
 
   const { data: conversation } = await supabase
     .from("conversations")
-    .select("id, business_id, session_token, needs_human, channel")
+    .select("id, business_id, session_token, needs_human, channel, claimed_by")
     .eq("id", conversationId)
     .eq("business_id", businessId)
     .maybeSingle();
@@ -33,9 +35,15 @@ export default async function PortalConversationThreadPage({
     .order("created_at", { ascending: true });
 
   const resolveHandoffForConversation = resolveHandoff.bind(null, businessId, conversationId);
+  const takeOverForConversation = takeOverConversation.bind(null, businessId, conversationId);
+  const handBackForConversation = handBackToAI.bind(null, businessId, conversationId);
+  const endForConversation = endConversation.bind(null, businessId, conversationId);
+
+  const isClaimed = Boolean(conversation.claimed_by);
 
   return (
     <div>
+      <LiveRefresh />
       <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-900">
         Conversation <span className="font-mono text-sm font-normal text-slate-400">{conversation.session_token.slice(0, 8)}…</span>
         <span
@@ -49,27 +57,74 @@ export default async function PortalConversationThreadPage({
         </span>
       </h2>
 
-      {conversation.needs_human && (
-        <form
-          action={resolveHandoffForConversation}
-          className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 shadow-sm"
-        >
+      {conversation.needs_human && !isClaimed && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 shadow-sm">
           <p className="text-sm font-medium text-amber-800">
-            🚩 This customer asked for a person (or Mira got stuck) — jump in when you&apos;re ready.
+            🚩 This customer asked for a person (or Mira got stuck) — take over when you&apos;re ready.
           </p>
-          <button
-            type="submit"
-            className="flex-shrink-0 rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 transition hover:bg-amber-100"
-          >
-            Mark resolved
-          </button>
-        </form>
+          <div className="flex flex-shrink-0 gap-2">
+            <form action={resolveHandoffForConversation}>
+              <button
+                type="submit"
+                className="rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 transition hover:bg-amber-100"
+              >
+                Dismiss
+              </button>
+            </form>
+            <form action={takeOverForConversation}>
+              <button
+                type="submit"
+                className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-amber-700"
+              >
+                Take over
+              </button>
+            </form>
+          </div>
+        </div>
       )}
-      {!conversation.needs_human && <div className="mb-6" />}
+
+      {isClaimed && (
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-xl border border-sky-300 bg-sky-50 px-4 py-3 shadow-sm">
+          <p className="text-sm font-medium text-sky-800">
+            👤 {conversation.claimed_by} is handling this conversation — Mira is silent until it&apos;s handed back or ended.
+          </p>
+          <div className="flex flex-shrink-0 gap-2">
+            <form action={handBackForConversation}>
+              <button
+                type="submit"
+                className="rounded-lg border border-sky-400 bg-white px-3 py-1.5 text-xs font-medium text-sky-800 transition hover:bg-sky-100"
+              >
+                Hand back to Mira
+              </button>
+            </form>
+            <form action={endForConversation}>
+              <button
+                type="submit"
+                className="rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-medium text-white transition hover:bg-slate-800"
+              >
+                End conversation
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {!conversation.needs_human && !isClaimed && <div className="mb-6" />}
 
       <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
         {messages?.map((m) => {
           const snapshot = m.context_snapshot as MessageContextSnapshot | null;
+
+          if (snapshot?.systemNotice) {
+            return (
+              <div key={m.id} className="text-center">
+                <span className="inline-block rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-500">
+                  {m.content}
+                </span>
+              </div>
+            );
+          }
+
           const productImages = m.role === "assistant" ? snapshot?.productImages ?? [] : [];
           const isOperatorReply = m.role === "assistant" && snapshot?.operatorReply === true;
 
@@ -113,7 +168,7 @@ export default async function PortalConversationThreadPage({
         )}
       </div>
 
-      <ReplyForm businessId={businessId} conversationId={conversationId} />
+      {isClaimed && <ReplyForm businessId={businessId} conversationId={conversationId} />}
     </div>
   );
 }
