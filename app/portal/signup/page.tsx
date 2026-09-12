@@ -20,6 +20,7 @@ function getApiErrorMessage(value: unknown, fallback: string): string {
 
 export default function PortalSignupPage() {
   const router = useRouter();
+  const [businessName, setBusinessName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -87,6 +88,10 @@ export default function PortalSignupPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    if (!businessName.trim()) {
+      setError("Enter your business name.");
+      return;
+    }
     if (!emailVerified) {
       setError("Verify your email before creating an account.");
       return;
@@ -126,6 +131,24 @@ export default function PortalSignupPage() {
         return;
       }
 
+      // Businesses are admin-only to insert directly (see migration 0001) --
+      // this RPC is the one sanctioned way a fresh signup creates its own
+      // business and gets a 14-day trial, in a single atomic call, instead
+      // of landing on a "your account isn't linked to a business yet, ask
+      // an admin" dead end.
+      const { error: provisionError } = await supabase.rpc("provision_new_business", {
+        p_name: businessName.trim(),
+        p_owner_id: data.user.id,
+      });
+      if (provisionError) {
+        setError(
+          provisionError.message === "TRIAL_ALREADY_USED"
+            ? "This account has already used its free trial. Contact us to set up billing."
+            : "Account created, but we couldn't set up your business automatically. Contact support.",
+        );
+        return;
+      }
+
       router.push("/portal/signup/complete");
       router.refresh();
     } catch (submitError) {
@@ -146,6 +169,10 @@ export default function PortalSignupPage() {
           Mira <span className="font-normal text-accent">for Business</span>
         </p>
         <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Business name</label>
+            <input type="text" className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent" value={businessName} onChange={(e) => setBusinessName(e.target.value)} required />
+          </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">Email</label>
             <input type="email" className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent" value={email} onChange={(e) => { setEmail(e.target.value); setEmailVerified(false); }} required disabled={emailVerified} />

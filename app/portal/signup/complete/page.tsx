@@ -11,7 +11,7 @@ export default function SignupCompletePage() {
         <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
           <h1 className="text-lg font-semibold text-slate-900">Account created</h1>
           <p className="mt-3 text-sm leading-6 text-slate-600">
-            Your Mira account has been created. Business setup is coming soon with payment integration.
+            Your business is set up and your 14-day free trial has started. Sign in to get going.
           </p>
           <p className="mt-3 text-xs leading-5 text-slate-400">
             If email confirmation is enabled, check your inbox before signing in.
