@@ -3,7 +3,7 @@ import { isLocked, remainingTrialDays, type BusinessSubscription } from "@/lib/p
 
 export async function getBusinessEntitlement(businessId: string) {
   const supabase = await createClient();
-  const { data: subscription } = await supabase
+  const { data: subscription, error } = await supabase
     .from("business_subscriptions")
     .select("owner_id, plan, status, trial_started_at, trial_ends_at")
     .eq("business_id", businessId)
@@ -12,6 +12,7 @@ export async function getBusinessEntitlement(businessId: string) {
   const typedSubscription = (subscription ?? null) as BusinessSubscription | null;
   return {
     subscription: typedSubscription,
+    error,
     entitled: !isLocked(typedSubscription),
     trialDaysRemaining: remainingTrialDays(typedSubscription),
   };

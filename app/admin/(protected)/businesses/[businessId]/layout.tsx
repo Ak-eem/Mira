@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getBusinessEntitlement } from "@/lib/billing";
+import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { subscriptionLabel } from "@/lib/plans";
 import { BusinessSidebar } from "./BusinessSidebar";
 
@@ -12,14 +13,24 @@ export default async function AdminBusinessLayout({
   params: Promise<{ businessId: string }>;
 }) {
   const { businessId } = await params;
+  const admin = await getCurrentAdmin();
+  if (!admin) notFound();
+
   const supabase = await createClient();
 
-  const [access, { data: business }, { data: allBusinesses }] = await Promise.all([
+  const [access, { data: business, error: businessError }, { data: allBusinesses, error: allBusinessesError }] = await Promise.all([
     getBusinessEntitlement(businessId),
     supabase.from("businesses").select("name").eq("id", businessId).maybeSingle(),
     supabase.from("businesses").select("id, name").order("name"),
   ]);
 
+  if (access.error || businessError || allBusinessesError) {
+    return (
+      <p className="text-sm text-red-600">
+        Couldn&apos;t load business data: {[access.error, businessError, allBusinessesError].find(Boolean)?.message}
+      </p>
+    );
+  }
   if (!business) notFound();
 
   return (
