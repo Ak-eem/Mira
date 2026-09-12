@@ -127,7 +127,7 @@ export default async function BusinessDetailPage({
 
   return (
     <div>
-      <Link href="/admin" className="text-sm text-slate-500 hover:underline">
+      <Link href="/admin/businesses" className="text-sm text-slate-500 hover:underline">
         ← All businesses
       </Link>
 

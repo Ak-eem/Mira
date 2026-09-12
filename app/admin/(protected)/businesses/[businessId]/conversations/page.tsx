@@ -19,9 +19,6 @@ export default async function ConversationsPage({
 
   return (
     <div>
-      <Link href={`/admin/businesses/${businessId}`} className="text-sm text-slate-500 hover:underline">
-        ← Back
-      </Link>
       <h1 className="mb-6 mt-2 text-xl font-semibold">Conversations</h1>
 
       {(!conversations || conversations.length === 0) && (

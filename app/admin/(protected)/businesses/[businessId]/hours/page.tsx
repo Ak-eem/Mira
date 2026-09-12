@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { HoursForm } from "./HoursForm";
 
@@ -30,9 +29,6 @@ export default async function HoursPage({
 
   return (
     <div className="max-w-lg">
-      <Link href={`/admin/businesses/${businessId}`} className="text-sm text-slate-500 hover:underline">
-        ← Back
-      </Link>
       <h1 className="mb-6 mt-2 text-xl font-semibold">Hours</h1>
       <HoursForm businessId={businessId} initialDays={byDay} />
     </div>

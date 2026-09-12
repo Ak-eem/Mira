@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { NewProductForm } from "./NewProductForm";
 import { ProductList } from "./ProductList";
@@ -25,9 +24,6 @@ export default async function ProductsPage({
 
   return (
     <div>
-      <Link href={`/admin/businesses/${businessId}`} className="text-sm text-slate-500 hover:underline">
-        ← Back
-      </Link>
       <h1 className="mb-6 mt-2 text-xl font-semibold">Products</h1>
 
       <ProductList products={products ?? []} currency={business?.currency ?? ""} />

@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { NewClosureForm } from "./NewClosureForm";
 import { ClosureList } from "./ClosureList";
@@ -26,9 +25,6 @@ export default async function ClosuresPage({
 
   return (
     <div>
-      <Link href={`/admin/businesses/${businessId}`} className="text-sm text-slate-500 hover:underline">
-        ← Back
-      </Link>
       <h1 className="mb-6 mt-2 text-xl font-semibold">Closures</h1>
 
       <ClosureList closures={closures ?? []} businessTimezone={businessTimezone} />
