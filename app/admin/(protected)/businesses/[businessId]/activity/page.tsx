@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelativeTime } from "@/lib/format";
 
@@ -19,9 +18,6 @@ export default async function ActivityPage({
 
   return (
     <div>
-      <Link href={`/admin/businesses/${businessId}`} className="text-sm text-slate-500 hover:underline">
-        ← Back
-      </Link>
       <h1 className="mb-6 mt-2 text-xl font-semibold">Activity</h1>
 
       {(!activity || activity.length === 0) && (

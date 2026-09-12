@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { NewPolicyForm } from "./NewPolicyForm";
 import { PolicyList } from "./PolicyList";
@@ -19,9 +18,6 @@ export default async function PoliciesPage({
 
   return (
     <div>
-      <Link href={`/admin/businesses/${businessId}`} className="text-sm text-slate-500 hover:underline">
-        ← Back
-      </Link>
       <h1 className="mb-6 mt-2 text-xl font-semibold">Policies</h1>
 
       <PolicyList policies={policies ?? []} />

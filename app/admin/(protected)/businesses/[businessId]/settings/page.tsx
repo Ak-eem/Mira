@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -38,9 +37,6 @@ export default async function SettingsPage({
   return (
     <div className="max-w-lg space-y-6">
       <div>
-        <Link href={`/admin/businesses/${businessId}`} className="text-sm text-slate-500 hover:underline">
-          ← Back
-        </Link>
         <h1 className="mb-6 mt-2 text-xl font-semibold">Settings</h1>
         <SettingsForm business={business} />
       </div>
