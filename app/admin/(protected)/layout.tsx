@@ -18,12 +18,14 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen">
-      <header className="border-b border-slate-200 bg-white px-6 py-4">
-        <span className="font-medium">Mira Admin</span>
-        <span className="ml-4 text-sm text-slate-500">{admin.email}</span>
+    <div className="mira-wash min-h-screen">
+      <header className="glass-panel-strong sticky top-0 z-10 px-6 py-4">
+        <span className="font-semibold text-slate-900">
+          Mira <span className="font-normal text-accent">Admin</span>
+        </span>
+        <span className="ml-4 text-sm text-slate-400">{admin.email}</span>
       </header>
-      <main className="mx-auto max-w-3xl px-6 py-8">{children}</main>
+      <main className="mx-auto max-w-5xl px-6 py-8">{children}</main>
     </div>
   );
 }
