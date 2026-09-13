@@ -25,7 +25,7 @@ export default function NewBusinessPage() {
       return;
     }
 
-    router.push("/admin");
+    router.push("/admin/businesses");
     router.refresh();
   }
 

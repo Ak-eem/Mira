@@ -14,7 +14,7 @@ type ActivityRow = {
 
 export default async function PlatformActivityPage() {
   const supabase = await createClient();
-  const [{ data: activity, error }, { data: businesses }] = await Promise.all([
+  const [{ data: activity, error }, { data: businesses, error: businessesError }] = await Promise.all([
     supabase
       .from("activity_log")
       .select("id, business_id, entity_type, action, summary, source, created_at")
@@ -35,12 +35,13 @@ export default async function PlatformActivityPage() {
       </p>
 
       {error && <p className="text-sm text-red-600">Couldn&apos;t load activity: {error.message}</p>}
+      {businessesError && <p className="text-sm text-red-600">Couldn&apos;t load business names: {businessesError.message}</p>}
 
-      {!error && (!activity || activity.length === 0) && (
+      {!error && !businessesError && (!activity || activity.length === 0) && (
         <p className="text-sm text-slate-500">Nothing has changed yet.</p>
       )}
 
-      {!error && activity && activity.length > 0 && (
+      {!error && !businessesError && activity && activity.length > 0 && (
         <div className="glass-panel divide-y divide-teal-900/10 overflow-hidden rounded-xl">
           {activity.map((a) => (
             <Link

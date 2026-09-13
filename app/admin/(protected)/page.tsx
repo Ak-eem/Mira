@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Business } from "@/lib/types";
-import type { BusinessSubscription } from "@/lib/plans";
+import type { BusinessSubscription, SubscriptionStatus } from "@/lib/plans";
+import { getAnalyticsSnapshot } from "@/lib/analytics/queries";
+import { AnalyticsPanel } from "./AnalyticsPanel";
 
 type FlaggedConversation = {
   id: string;
@@ -12,9 +14,12 @@ type FlaggedConversation = {
 
 // Uses the RLS-respecting client (not service-role) — every query here only
 // returns rows because the current session passes is_platform_admin().
-export default async function AdminDashboardPage() {
+export default async function AdminDashboardPage({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
+  const requestedPage = Number.parseInt((await searchParams).page ?? "1", 10);
+  const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+  const pageSize = 20;
   const supabase = await createClient();
-  const [{ data: businesses }, { data: subscriptions }, { data: flagged }] = await Promise.all([
+  const [{ data: businesses, error: businessesError }, { data: subscriptions, error: subscriptionsError }, { data: flagged, error: flaggedError, count: flaggedCount }] = await Promise.all([
     supabase
       .from("businesses")
       .select("id, name")
@@ -22,36 +27,56 @@ export default async function AdminDashboardPage() {
     supabase
       .from("business_subscriptions")
       .select("business_id, plan, status, trial_started_at, trial_ends_at")
+      .order("updated_at", { ascending: false })
       .returns<(BusinessSubscription & { business_id: string })[]>(),
     supabase
       .from("conversations")
-      .select("id, business_id, started_at, claimed_by")
+      .select("id, business_id, started_at, claimed_by", { count: "exact" })
       .eq("needs_human", true)
+      .is("claimed_by", null)
       .order("started_at", { ascending: true })
+      .range((page - 1) * pageSize, page * pageSize - 1)
       .returns<FlaggedConversation[]>(),
   ]);
+  const analyticsResult = await getAnalyticsSnapshot(null, "7d");
 
   const businessNameById = new Map((businesses ?? []).map((b) => [b.id, b.name]));
-  const unclaimedFlagged = (flagged ?? []).filter((c) => !c.claimed_by);
+  const unclaimedFlagged = flagged ?? [];
 
   const counts = { trialing: 0, active: 0, past_due: 0, cancelled: 0 };
-  for (const s of subscriptions ?? []) counts[s.status] += 1;
+  const latestSubscriptionByBusiness = new Map<string, BusinessSubscription & { business_id: string }>();
+  for (const subscription of subscriptions ?? []) {
+    if (!latestSubscriptionByBusiness.has(subscription.business_id)) {
+      latestSubscriptionByBusiness.set(subscription.business_id, subscription);
+    }
+  }
+  for (const subscription of latestSubscriptionByBusiness.values()) {
+    const status = subscription.status as SubscriptionStatus;
+    counts[status] += 1;
+  }
 
   return (
     <div className="space-y-8">
+      {(businessesError || subscriptionsError || flaggedError) && (
+        <div className="space-y-1 text-sm text-red-600">
+          {businessesError && <p>Couldn&apos;t load businesses: {businessesError.message}</p>}
+          {subscriptionsError && <p>Couldn&apos;t load subscriptions: {subscriptionsError.message}</p>}
+          {flaggedError && <p>Couldn&apos;t load flagged conversations: {flaggedError.message}</p>}
+        </div>
+      )}
       <div>
         <h1 className="mb-4 text-xl font-semibold text-slate-900">Dashboard</h1>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="glass-panel rounded-xl p-5">
-            <p className="text-3xl font-semibold tracking-tight text-slate-900">{businesses?.length ?? 0}</p>
+            <p className="text-3xl font-semibold tracking-tight text-slate-900">{businessesError ? "-" : businesses?.length ?? 0}</p>
             <p className="mt-1 text-sm text-slate-500">Businesses</p>
           </div>
           <div className="glass-panel rounded-xl p-5">
-            <p className="text-3xl font-semibold tracking-tight text-sky-700">{counts.trialing}</p>
+            <p className="text-3xl font-semibold tracking-tight text-sky-700">{subscriptionsError ? "-" : counts.trialing}</p>
             <p className="mt-1 text-sm text-slate-500">On trial</p>
           </div>
           <div className="glass-panel rounded-xl p-5">
-            <p className="text-3xl font-semibold tracking-tight text-emerald-700">{counts.active}</p>
+            <p className="text-3xl font-semibold tracking-tight text-emerald-700">{subscriptionsError ? "-" : counts.active}</p>
             <p className="mt-1 text-sm text-slate-500">Active plan</p>
           </div>
           <div
@@ -62,7 +87,7 @@ export default async function AdminDashboardPage() {
             }`}
           >
             <p className={`text-3xl font-semibold tracking-tight ${unclaimedFlagged.length > 0 ? "text-amber-700" : "text-slate-900"}`}>
-              {unclaimedFlagged.length}
+              {flaggedError ? "-" : unclaimedFlagged.length}
             </p>
             <p className={`mt-1 text-sm ${unclaimedFlagged.length > 0 ? "text-amber-700" : "text-slate-500"}`}>
               Need a human, unclaimed
@@ -71,7 +96,10 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {unclaimedFlagged.length > 0 && (
+      {analyticsResult.data && <AnalyticsPanel snapshot={analyticsResult.data} baseHref="/admin/analytics" />}
+      {analyticsResult.error && <p className="text-sm text-amber-700">Platform analytics are unavailable: {analyticsResult.error.message}</p>}
+
+      {!flaggedError && unclaimedFlagged.length > 0 && (
         <div className="glass-panel rounded-xl p-5">
           <p className="mb-3 font-medium text-slate-900">Needs attention, across every business</p>
           <ul className="divide-y divide-teal-900/10">
@@ -96,8 +124,12 @@ export default async function AdminDashboardPage() {
               </li>
             ))}
           </ul>
-          {unclaimedFlagged.length > 8 && (
-            <p className="mt-2 text-xs text-slate-400">+{unclaimedFlagged.length - 8} more</p>
+          {(flaggedCount ?? 0) > pageSize && (
+            <div className="mt-2 flex items-center justify-between text-xs text-slate-400">
+              {page > 1 ? <Link href={`/admin?page=${page - 1}`} className="hover:text-slate-700">Previous</Link> : <span />}
+              <span>Page {page}</span>
+              {page * pageSize < (flaggedCount ?? 0) ? <Link href={`/admin?page=${page + 1}`} className="hover:text-slate-700">Next</Link> : <span />}
+            </div>
           )}
         </div>
       )}

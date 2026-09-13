@@ -2,7 +2,9 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
 import { buildSystemPrompt, buildMessages, isFallbackReply } from "@/lib/ai/buildPrompt";
 import { classifyIntent } from "@/lib/ai/classifyIntent";
-import { generateReply } from "@/lib/ai/generateReply";
+import { generateReplyWithMetadata } from "@/lib/ai/generateReply";
+import { recordAiResponseTelemetry } from "@/lib/analytics/recordTelemetry";
+import { after } from "next/server";
 import { getOfflineGateReply } from "@/lib/chat/offlineReply";
 import { getHandoffReply, getPausedReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
 import { matchProductImages, type ProductImageRef } from "@/lib/chat/matchProductImages";
@@ -309,10 +311,22 @@ export async function processMessage(
   // lib/ai/generateReply.ts). The real error is already fully logged
   // above, so nothing is lost by keeping it out of the thrown message.
   let replyText: string;
+  let aiMetadata;
+  const aiStartedAt = Date.now();
   try {
-    replyText = await generateReply(systemPrompt, llmMessages);
+    const result = await generateReplyWithMetadata(systemPrompt, llmMessages);
+    replyText = result.text;
+    aiMetadata = result.metadata;
   } catch (err) {
     console.error("generateReply failed:", err);
+    after(() => recordAiResponseTelemetry({
+      businessId,
+      conversationId: conversation.id,
+      channel,
+      success: false,
+      latencyMs: Date.now() - aiStartedAt,
+      errorCode: err instanceof Error ? err.name : "unknown",
+    }));
     throw new ProcessMessageError("The assistant is unavailable right now.", 502);
   }
 
@@ -339,6 +353,16 @@ export async function processMessage(
     console.error("Assistant message insert failed:", assistantInsertError);
     throw new ProcessMessageError("Something went wrong. Please try again.", 500);
   }
+
+ after(() => recordAiResponseTelemetry({
+    businessId,
+    conversationId: conversation.id,
+    messageId: savedAssistantMessage.id,
+    channel,
+    success: true,
+    latencyMs: Date.now() - aiStartedAt,
+    metadata: aiMetadata,
+  }));
 
   const { error: timestampError } = await supabase
     .from("conversations")

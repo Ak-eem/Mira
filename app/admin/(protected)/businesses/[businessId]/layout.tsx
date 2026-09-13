@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getBusinessEntitlement } from "@/lib/billing";
+import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { subscriptionLabel } from "@/lib/plans";
 import { BusinessSidebar } from "./BusinessSidebar";
 
@@ -12,14 +14,24 @@ export default async function AdminBusinessLayout({
   params: Promise<{ businessId: string }>;
 }) {
   const { businessId } = await params;
+  const admin = await getCurrentAdmin();
+  if (!admin) notFound();
+
   const supabase = await createClient();
 
-  const [access, { data: business }, { data: allBusinesses }] = await Promise.all([
+  const [access, { data: business, error: businessError }, { data: allBusinesses, error: allBusinessesError }] = await Promise.all([
     getBusinessEntitlement(businessId),
     supabase.from("businesses").select("name").eq("id", businessId).maybeSingle(),
     supabase.from("businesses").select("id, name").order("name"),
   ]);
 
+  if (access.error || businessError || allBusinessesError) {
+    return (
+      <p className="text-sm text-red-600">
+        Couldn&apos;t load business data: {[access.error, businessError, allBusinessesError].find(Boolean)?.message}
+      </p>
+    );
+  }
   if (!business) notFound();
 
   return (
@@ -30,6 +42,13 @@ export default async function AdminBusinessLayout({
         allBusinesses={allBusinesses ?? [{ id: businessId, name: business.name }]}
       />
       <div className="min-w-0 flex-1">
+        <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1 text-sm text-slate-500">
+          <Link href="/admin" className="hover:text-accent">Mira Admin</Link>
+          <span aria-hidden="true">/</span>
+          <Link href="/admin/businesses" className="hover:text-accent">Businesses</Link>
+          <span aria-hidden="true">/</span>
+          <span className="font-medium text-slate-700">{business.name}</span>
+        </nav>
         <div
           className={`mb-5 flex items-center justify-between rounded-lg border px-4 py-2 text-sm ${
             access.entitled
