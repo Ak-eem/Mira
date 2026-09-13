@@ -4,6 +4,7 @@ import { buildSystemPrompt, buildMessages, isFallbackReply } from "@/lib/ai/buil
 import { classifyIntent } from "@/lib/ai/classifyIntent";
 import { generateReplyWithMetadata } from "@/lib/ai/generateReply";
 import { recordAiResponseTelemetry } from "@/lib/analytics/recordTelemetry";
+import { after } from "next/server";
 import { getOfflineGateReply } from "@/lib/chat/offlineReply";
 import { getHandoffReply, getPausedReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
 import { matchProductImages, type ProductImageRef } from "@/lib/chat/matchProductImages";
@@ -318,7 +319,7 @@ export async function processMessage(
     aiMetadata = result.metadata;
   } catch (err) {
     console.error("generateReply failed:", err);
-    await recordAiResponseTelemetry({
+    after(() => recordAiResponseTelemetry({
       businessId,
       conversationId: conversation.id,
       channel,
@@ -353,7 +354,7 @@ export async function processMessage(
     throw new ProcessMessageError("Something went wrong. Please try again.", 500);
   }
 
-  await recordAiResponseTelemetry({
+ after(() => recordAiResponseTelemetry({
     businessId,
     conversationId: conversation.id,
     messageId: savedAssistantMessage.id,
