@@ -326,7 +326,7 @@ export async function processMessage(
       success: false,
       latencyMs: Date.now() - aiStartedAt,
       errorCode: err instanceof Error ? err.name : "unknown",
-    });
+    }));
     throw new ProcessMessageError("The assistant is unavailable right now.", 502);
   }
 
@@ -362,7 +362,7 @@ export async function processMessage(
     success: true,
     latencyMs: Date.now() - aiStartedAt,
     metadata: aiMetadata,
-  });
+  }));
 
   const { error: timestampError } = await supabase
     .from("conversations")
