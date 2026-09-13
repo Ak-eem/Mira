@@ -19,6 +19,7 @@ export type AnalyticsSnapshot = {
   assistantMessages: number;
   humanHelp: number;
   unresolved: number;
+  activeBusinesses: number | null;
   successfulResponses: number;
   failedResponses: number;
   averageLatencyMs: number | null;
@@ -68,16 +69,19 @@ export async function getAnalyticsSnapshot(
   const toIso = to.toISOString();
   const scope = (query: any) => businessId ? query.eq("business_id", businessId) : query;
 
-  const [conversations, messages, telemetry, ratings] = await Promise.all([
+  const [conversations, messages, telemetry, ratings, activeBusinesses] = await Promise.all([
     scope(supabase.from("conversations").select("id, started_at, needs_human, status").gte("started_at", fromIso).lte("started_at", toIso)),
     scope(supabase.from("messages").select("id, role, created_at").gte("created_at", fromIso).lte("created_at", toIso).limit(10000)),
     scope(supabase.from("ai_response_telemetry").select("id, provider, fallback_from, success, latency_ms, input_tokens, output_tokens, error_code, created_at").gte("created_at", fromIso).lte("created_at", toIso).limit(10000)),
     businessId
       ? supabase.from("conversations").select("customer_rating").eq("business_id", businessId).not("customer_rating", "is", null).gte("customer_rated_at", fromIso).lte("customer_rated_at", toIso)
       : supabase.from("conversations").select("customer_rating").not("customer_rating", "is", null).gte("customer_rated_at", fromIso).lte("customer_rated_at", toIso),
+    businessId
+      ? Promise.resolve({ count: null, error: null })
+      : supabase.from("businesses").select("id", { count: "exact", head: true }).eq("is_active", true),
   ]);
 
-  const firstError = conversations.error ?? messages.error ?? telemetry.error ?? ratings.error;
+  const firstError = conversations.error ?? messages.error ?? telemetry.error ?? ratings.error ?? activeBusinesses.error;
   if (firstError) return { data: null, error: firstError };
 
   const conversationRows = (conversations.data ?? []) as ConversationRow[];
@@ -113,6 +117,7 @@ export async function getAnalyticsSnapshot(
       assistantMessages: messageRows.filter((row) => row.role === "assistant").length,
       humanHelp: conversationRows.filter((row) => row.needs_human).length,
       unresolved: conversationRows.filter((row) => row.status === "open").length,
+      activeBusinesses: activeBusinesses.count,
       successfulResponses,
       failedResponses,
       averageLatencyMs: latencyRows.length ? Math.round(latencyRows.reduce((sum, row) => sum + row.latency_ms, 0) / latencyRows.length) : null,

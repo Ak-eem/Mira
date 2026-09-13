@@ -70,7 +70,7 @@ export function AnalyticsPanel({ snapshot, baseHref, businessName }: { snapshot:
         <Metric label="Messages processed" value={snapshot.messages} />
         <Metric label="AI success rate" value={successRate} />
         <Metric label="Average response" value={snapshot.averageLatencyMs === null ? "-" : `${snapshot.averageLatencyMs}ms`} />
-        <Metric label="Active businesses" value={businessName ? "-" : "See dashboard"} detail={businessName ? undefined : "Cross-business count"} />
+        <Metric label="Active businesses" value={snapshot.activeBusinesses === null ? "-" : snapshot.activeBusinesses} detail={businessName ? undefined : "Currently enabled"} />
         <Metric label="Human escalation" value={escalationRate} />
         <Metric label="Failed responses" value={snapshot.failedResponses} />
         <Metric label="API tokens" value={snapshot.apiTokens === null ? "-" : snapshot.apiTokens.toLocaleString()} detail={snapshot.apiTokens === null ? "Telemetry pending" : "Recorded usage"} />
