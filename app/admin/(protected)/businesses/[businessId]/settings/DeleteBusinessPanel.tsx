@@ -25,7 +25,7 @@ export function DeleteBusinessPanel({ businessId, businessName }: { businessId: 
       return;
     }
 
-    router.push("/admin");
+    router.push("/admin/businesses");
     router.refresh();
   }
 

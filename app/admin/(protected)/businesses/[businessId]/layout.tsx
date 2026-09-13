@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getBusinessEntitlement } from "@/lib/billing";
@@ -41,6 +42,13 @@ export default async function AdminBusinessLayout({
         allBusinesses={allBusinesses ?? [{ id: businessId, name: business.name }]}
       />
       <div className="min-w-0 flex-1">
+        <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1 text-sm text-slate-500">
+          <Link href="/admin" className="hover:text-accent">Mira Admin</Link>
+          <span aria-hidden="true">/</span>
+          <Link href="/admin/businesses" className="hover:text-accent">Businesses</Link>
+          <span aria-hidden="true">/</span>
+          <span className="font-medium text-slate-700">{business.name}</span>
+        </nav>
         <div
           className={`mb-5 flex items-center justify-between rounded-lg border px-4 py-2 text-sm ${
             access.entitled

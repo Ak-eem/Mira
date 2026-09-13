@@ -44,6 +44,7 @@ export async function resolveHandoff(businessId: string, conversationId: string)
   revalidatePath(`/admin/businesses/${businessId}/conversations/${conversationId}`);
   revalidatePath(`/admin/businesses/${businessId}/conversations`);
   revalidatePath(`/admin/businesses/${businessId}`);
+  revalidatePath("/admin/businesses");
   revalidatePath(`/admin`);
 }
 

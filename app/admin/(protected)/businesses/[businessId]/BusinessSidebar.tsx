@@ -12,12 +12,14 @@ const NAV_ITEMS = [
   { segment: "conversations", label: "Chat" },
   { segment: "analytics", label: "Business Analytics" },
   { segment: "services", label: "Services" },
+  { segment: "products", label: "Products" },
   { segment: "faqs", label: "FAQs" },
   { segment: "policies", label: "Policies" },
   { segment: "hours", label: "Opening Hours" },
   { segment: "promotions", label: "Promotions" },
   { segment: "closures", label: "Closures" },
   { segment: "command", label: "Command Center" },
+  { segment: "activity", label: "Activity" },
   { segment: "settings", label: "Settings" },
 ];
 

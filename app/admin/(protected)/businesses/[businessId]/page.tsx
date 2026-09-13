@@ -111,26 +111,8 @@ export default async function BusinessDetailPage({
   const openNow =
     miraStatus !== "offline" ? isOpenNow(hours ?? [], business.timezone) : null;
 
-  const sections = [
-    { href: `/admin/businesses/${businessId}/services`, label: "Services" },
-    { href: `/admin/businesses/${businessId}/products`, label: "Products" },
-    { href: `/admin/businesses/${businessId}/hours`, label: "Hours" },
-    { href: `/admin/businesses/${businessId}/promotions`, label: "Promotions" },
-    { href: `/admin/businesses/${businessId}/closures`, label: "Closures" },
-    { href: `/admin/businesses/${businessId}/faqs`, label: "FAQs" },
-    { href: `/admin/businesses/${businessId}/policies`, label: "Policies" },
-    { href: `/admin/businesses/${businessId}/conversations`, label: "Chat" },
-    { href: `/admin/businesses/${businessId}/activity`, label: "Activity" },
-    { href: `/admin/businesses/${businessId}/command`, label: "Command Center" },
-    { href: `/admin/businesses/${businessId}/settings`, label: "Settings" },
-  ];
-
   return (
     <div>
-      <Link href="/admin/businesses" className="text-sm text-slate-500 hover:underline">
-        ← All businesses
-      </Link>
-
       <div className="mb-2 mt-2 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-xl font-semibold">{business.name}</h1>
@@ -281,17 +263,6 @@ export default async function BusinessDetailPage({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-        {sections.map((s) => (
-          <Link
-            key={s.href}
-            href={s.href}
-            className="rounded-lg border border-slate-200 bg-white px-4 py-4 text-sm font-medium hover:border-accent"
-          >
-            {s.label}
-          </Link>
-        ))}
-      </div>
     </div>
   );
 }
