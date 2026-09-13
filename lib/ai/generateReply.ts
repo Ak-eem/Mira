@@ -1,8 +1,9 @@
 import {
-  geminiFetchJson,
+  geminiFetchJsonWithMetadata,
   geminiFetchStream,
   groqFetchStream,
 } from "./geminiFetch";
+import type { JsonFetchMetadata } from "./geminiFetch";
 
 const MAX_OUTPUT_TOKENS = 2048;
 
@@ -38,6 +39,14 @@ export async function generateReply(
   systemPrompt: string,
   messages: LlmMessage[],
 ): Promise<string> {
+  const result = await generateReplyWithMetadata(systemPrompt, messages);
+  return result.text;
+}
+
+export async function generateReplyWithMetadata(
+  systemPrompt: string,
+  messages: LlmMessage[],
+): Promise<{ text: string; metadata: JsonFetchMetadata }> {
   const provider = getProvider();
   const apiKey = getApiKey(provider);
 
@@ -49,10 +58,11 @@ export async function generateReply(
     );
   }
 
-  const data = (await geminiFetchJson(
+  const result = await geminiFetchJsonWithMetadata(
     apiKey,
     buildRequestBody(systemPrompt, messages),
-  )) as {
+  );
+  const data = result.data as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
   };
 
@@ -61,7 +71,7 @@ export async function generateReply(
     throw new Error("The AI returned an unreadable response. Please try again.");
   }
 
-  return text;
+  return { text, metadata: result.metadata };
 }
 
 export async function* generateReplyStream(

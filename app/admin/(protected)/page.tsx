@@ -2,6 +2,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import type { Business } from "@/lib/types";
 import type { BusinessSubscription, SubscriptionStatus } from "@/lib/plans";
+import { getAnalyticsSnapshot } from "@/lib/analytics/queries";
+import { AnalyticsPanel } from "./AnalyticsPanel";
 
 type FlaggedConversation = {
   id: string;
@@ -36,6 +38,7 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
       .range((page - 1) * pageSize, page * pageSize - 1)
       .returns<FlaggedConversation[]>(),
   ]);
+  const analyticsResult = await getAnalyticsSnapshot(null, "7d");
 
   const businessNameById = new Map((businesses ?? []).map((b) => [b.id, b.name]));
   const unclaimedFlagged = flagged ?? [];
@@ -92,6 +95,9 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
           </div>
         </div>
       </div>
+
+      {analyticsResult.data && <AnalyticsPanel snapshot={analyticsResult.data} baseHref="/admin/analytics" />}
+      {analyticsResult.error && <p className="text-sm text-amber-700">Platform analytics are unavailable: {analyticsResult.error.message}</p>}
 
       {!flaggedError && unclaimedFlagged.length > 0 && (
         <div className="glass-panel rounded-xl p-5">

@@ -1,19 +1,23 @@
+import { AnalyticsPanel } from "../../../AnalyticsPanel";
+import { getAnalyticsSnapshot, parseAnalyticsRange } from "@/lib/analytics/queries";
+import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+
 export default async function BusinessAnalyticsPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ businessId: string }>;
+  searchParams: Promise<{ range?: string }>;
 }) {
-  await params;
-  return (
-    <div>
-      <h1 className="mb-4 text-xl font-semibold text-slate-900">Business Analytics</h1>
-      <div className="glass-panel rounded-xl p-6">
-        <p className="text-sm text-slate-600">
-          This business&apos;s own conversation and AI performance numbers will live here.
-          Same as the platform-level Mira Analytics page — waiting on AI-response logging
-          to exist before showing real numbers instead of placeholders.
-        </p>
-      </div>
-    </div>
-  );
+  const { businessId } = await params;
+  const range = parseAnalyticsRange((await searchParams).range);
+  const [result, businessResult] = await Promise.all([
+    getAnalyticsSnapshot(businessId, range),
+    (await createClient()).from("businesses").select("name").eq("id", businessId).maybeSingle(),
+  ]);
+  if (result.error || !result.data) return <p className="text-sm text-red-600">Couldn&apos;t load Business Analytics: {result.error?.message ?? "Unknown error"}</p>;
+  if (businessResult.error) return <p className="text-sm text-red-600">Couldn&apos;t load business context: {businessResult.error.message}</p>;
+  if (!businessResult.data) notFound();
+  return <AnalyticsPanel snapshot={result.data} baseHref={`/admin/businesses/${businessId}/analytics`} businessName={businessResult.data.name} />;
 }

@@ -119,7 +119,7 @@ export default async function BusinessDetailPage({
     { href: `/admin/businesses/${businessId}/closures`, label: "Closures" },
     { href: `/admin/businesses/${businessId}/faqs`, label: "FAQs" },
     { href: `/admin/businesses/${businessId}/policies`, label: "Policies" },
-    { href: `/admin/businesses/${businessId}/conversations`, label: "Conversations" },
+    { href: `/admin/businesses/${businessId}/conversations`, label: "Chat" },
     { href: `/admin/businesses/${businessId}/activity`, label: "Activity" },
     { href: `/admin/businesses/${businessId}/command`, label: "Command Center" },
     { href: `/admin/businesses/${businessId}/settings`, label: "Settings" },
@@ -251,7 +251,7 @@ export default async function BusinessDetailPage({
         </div>
 
         {(!recentConversations || recentConversations.length === 0) && (
-          <p className="text-sm text-slate-500">No conversations yet — they'll show up here once someone chats.</p>
+          <p className="text-sm text-slate-500">No conversations yet — they&apos;ll show up here once someone chats.</p>
         )}
 
         {recentConversations && recentConversations.length > 0 && (
