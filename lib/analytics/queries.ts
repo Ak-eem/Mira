@@ -5,8 +5,6 @@ export type AnalyticsRange = "today" | "7d" | "30d" | "month";
 export type AnalyticsPoint = { label: string; value: number; secondary?: number };
 
 type ConversationRow = { id: string; started_at: string; needs_human: boolean; status: string };
-type MessageRow = { id: string; role: string; created_at: string };
-type TelemetryRow = { id: string; provider: string; fallback_from: string | null; success: boolean; latency_ms: number; input_tokens: number | null; output_tokens: number | null; error_code: string | null; created_at: string };
 type RatingRow = { customer_rating: number | null };
 
 export type AnalyticsSnapshot = {
@@ -67,12 +65,21 @@ export async function getAnalyticsSnapshot(
   const { from, to } = getRange(range);
   const fromIso = from.toISOString();
   const toIso = to.toISOString();
-  const scope = (query: any) => businessId ? query.eq("business_id", businessId) : query;
-
-  const [conversations, messages, telemetry, ratings, activeBusinesses] = await Promise.all([
-    scope(supabase.from("conversations").select("id, started_at, needs_human, status").gte("started_at", fromIso).lte("started_at", toIso)),
-    scope(supabase.from("messages").select("id, role, created_at").gte("created_at", fromIso).lte("created_at", toIso).limit(10000)),
-    scope(supabase.from("ai_response_telemetry").select("id, provider, fallback_from, success, latency_ms, input_tokens, output_tokens, error_code, created_at").gte("created_at", fromIso).lte("created_at", toIso).limit(10000)),
+  const scoped = (query: any) => businessId ? query.eq("business_id", businessId) : query;
+  const conversationScope = (query: any) => {
+    const result = query.gte("started_at", fromIso).lte("started_at", toIso);
+    return businessId ? result.eq("business_id", businessId) : result;
+  };
+  const [conversationCount, messageCount, customerMessageCount, assistantMessageCount, humanHelpCount, unresolvedCount, conversations, aggregateResult, recentErrors, ratings, activeBusinesses] = await Promise.all([
+    conversationScope(supabase.from("conversations").select("id", { count: "exact", head: true })),
+    scoped(supabase.from("messages").select("id", { count: "exact", head: true }).gte("created_at", fromIso).lte("created_at", toIso)),
+    scoped(supabase.from("messages").select("id", { count: "exact", head: true }).eq("role", "customer").gte("created_at", fromIso).lte("created_at", toIso)),
+    scoped(supabase.from("messages").select("id", { count: "exact", head: true }).eq("role", "assistant").gte("created_at", fromIso).lte("created_at", toIso)),
+    conversationScope(supabase.from("conversations").select("id", { count: "exact", head: true }).eq("needs_human", true)),
+    conversationScope(supabase.from("conversations").select("id", { count: "exact", head: true }).eq("status", "open")),
+    conversationScope(supabase.from("conversations").select("id, started_at, needs_human").order("started_at", { ascending: true }).order("id", { ascending: true })),
+    supabase.rpc("get_ai_response_aggregate", { p_business_id: businessId, p_from: fromIso, p_to: toIso }),
+    scoped(supabase.from("ai_response_telemetry").select("id, provider, error_code, created_at").eq("success", false).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(8)),
     businessId
       ? supabase.from("conversations").select("customer_rating").eq("business_id", businessId).not("customer_rating", "is", null).gte("customer_rated_at", fromIso).lte("customer_rated_at", toIso)
       : supabase.from("conversations").select("customer_rating").not("customer_rating", "is", null).gte("customer_rated_at", fromIso).lte("customer_rated_at", toIso),
@@ -81,16 +88,24 @@ export async function getAnalyticsSnapshot(
       : supabase.from("businesses").select("id", { count: "exact", head: true }).eq("is_active", true),
   ]);
 
-  const firstError = conversations.error ?? messages.error ?? telemetry.error ?? ratings.error ?? activeBusinesses.error;
+  const firstError = conversationCount.error ?? messageCount.error ?? customerMessageCount.error ?? assistantMessageCount.error ?? humanHelpCount.error ?? unresolvedCount.error ?? conversations.error ?? aggregateResult.error ?? recentErrors.error ?? ratings.error ?? activeBusinesses.error;
   if (firstError) return { data: null, error: firstError };
 
   const conversationRows = (conversations.data ?? []) as ConversationRow[];
-  const messageRows = (messages.data ?? []) as MessageRow[];
-  const telemetryRows = (telemetry.data ?? []) as TelemetryRow[];
-  const successfulResponses = telemetryRows.filter((row) => row.success).length;
-  const failedResponses = telemetryRows.filter((row) => !row.success).length;
-  const latencyRows = telemetryRows.filter((row) => row.success && typeof row.latency_ms === "number");
-  const tokenRows = telemetryRows.filter((row) => typeof row.input_tokens === "number" || typeof row.output_tokens === "number");
+  const aggregate = (Array.isArray(aggregateResult.data) ? aggregateResult.data[0] : aggregateResult.data) as {
+    total_count: number;
+    successful_count: number;
+    failed_count: number;
+    fallback_count: number;
+    groq_count: number;
+    gemini_count: number;
+    latency_sum: number;
+    latency_count: number;
+    input_tokens_sum: number | null;
+    output_tokens_sum: number | null;
+    token_count: number;
+  } | null;
+  if (!aggregate) return { data: null, error: new Error("Analytics aggregate was unavailable.") };
   const dayMap = new Map<string, { value: number; secondary: number }>();
   for (const row of conversationRows) {
     const label = dayLabel(row.started_at);
@@ -99,10 +114,10 @@ export async function getAnalyticsSnapshot(
     if (row.needs_human) current.secondary += 1;
     dayMap.set(label, current);
   }
-  const providerBreakdown = ["groq", "gemini"].map((provider) => ({
-    label: provider === "groq" ? "Groq" : "Gemini",
-    value: telemetryRows.filter((row) => row.provider === provider && row.success).length,
-  }));
+  const providerBreakdown = [
+    { label: "Groq", value: aggregate.groq_count },
+    { label: "Gemini", value: aggregate.gemini_count },
+  ];
   const ratingRows = (ratings.data ?? []) as RatingRow[];
   const ratedRows = ratingRows.filter((row): row is { customer_rating: number } => typeof row.customer_rating === "number");
 
@@ -111,24 +126,24 @@ export async function getAnalyticsSnapshot(
       range,
       from: fromIso,
       to: toIso,
-      conversations: conversationRows.length,
-      messages: messageRows.length,
-      customerMessages: messageRows.filter((row) => row.role === "customer").length,
-      assistantMessages: messageRows.filter((row) => row.role === "assistant").length,
-      humanHelp: conversationRows.filter((row) => row.needs_human).length,
-      unresolved: conversationRows.filter((row) => row.status === "open").length,
+      conversations: conversationCount.count ?? 0,
+      messages: messageCount.count ?? 0,
+      customerMessages: customerMessageCount.count ?? 0,
+      assistantMessages: assistantMessageCount.count ?? 0,
+      humanHelp: humanHelpCount.count ?? 0,
+      unresolved: unresolvedCount.count ?? 0,
       activeBusinesses: activeBusinesses.count,
-      successfulResponses,
-      failedResponses,
-      averageLatencyMs: latencyRows.length ? Math.round(latencyRows.reduce((sum, row) => sum + row.latency_ms, 0) / latencyRows.length) : null,
-      fallbackResponses: telemetryRows.filter((row) => row.fallback_from !== null).length,
-      groqResponses: providerBreakdown[0].value,
-      geminiResponses: providerBreakdown[1].value,
-      apiTokens: tokenRows.length ? tokenRows.reduce((sum, row) => sum + (row.input_tokens ?? 0) + (row.output_tokens ?? 0), 0) : null,
+      successfulResponses: aggregate.successful_count,
+      failedResponses: aggregate.failed_count,
+      averageLatencyMs: aggregate.latency_count ? Math.round(aggregate.latency_sum / aggregate.latency_count) : null,
+      fallbackResponses: aggregate.fallback_count,
+      groqResponses: aggregate.groq_count,
+      geminiResponses: aggregate.gemini_count,
+      apiTokens: aggregate.token_count > 0 ? (aggregate.input_tokens_sum ?? 0) + (aggregate.output_tokens_sum ?? 0) : null,
       satisfaction: ratedRows.length ? Math.round((ratedRows.reduce((sum, row) => sum + row.customer_rating, 0) / ratedRows.length) * 10) / 10 : null,
       conversationsOverTime: Array.from(dayMap, ([label, point]) => ({ label, ...point })),
       providerBreakdown,
-      recentErrors: telemetryRows.filter((row) => !row.success).slice(-8).reverse(),
+      recentErrors: recentErrors.data ?? [],
     },
     error: null,
   };

@@ -21,6 +21,8 @@ export type JsonFetchMetadata = {
   provider: ProviderName;
   fallbackFrom: ProviderName | null;
   latencyMs: number;
+  inputTokens: number | null;
+  outputTokens: number | null;
 };
 
 type AttemptResult =
@@ -129,6 +131,14 @@ function parseGroqResponse(data: unknown): unknown {
   const message = isRecord(choice?.message) ? choice.message : undefined;
   const toolCalls = Array.isArray(message?.tool_calls) ? message.tool_calls : [];
 
+  const usage = isRecord(data.usage) ? data.usage : undefined;
+  const usageMetadata = usage
+    ? {
+        promptTokenCount: typeof usage.prompt_tokens === "number" ? usage.prompt_tokens : null,
+        candidatesTokenCount: typeof usage.completion_tokens === "number" ? usage.completion_tokens : null,
+      }
+    : undefined;
+
   if (toolCalls.length > 0) {
     const firstToolCall = isRecord(toolCalls[0]) ? toolCalls[0] : undefined;
     const functionInfo = isRecord(firstToolCall?.function) ? firstToolCall.function : undefined;
@@ -160,11 +170,25 @@ function parseGroqResponse(data: unknown): unknown {
           },
         },
       ],
+      ...(usageMetadata ? { usageMetadata } : {}),
     };
   }
 
   const text = typeof message?.content === "string" ? message.content : "";
-  return { candidates: [{ content: { parts: [{ text }] } }] };
+  return {
+    candidates: [{ content: { parts: [{ text }] } }],
+    ...(usageMetadata ? { usageMetadata } : {}),
+  };
+}
+
+function getTokenUsage(data: unknown): { inputTokens: number | null; outputTokens: number | null } {
+  if (!isRecord(data) || !isRecord(data.usageMetadata)) {
+    return { inputTokens: null, outputTokens: null };
+  }
+  return {
+    inputTokens: typeof data.usageMetadata.promptTokenCount === "number" ? data.usageMetadata.promptTokenCount : null,
+    outputTokens: typeof data.usageMetadata.candidatesTokenCount === "number" ? data.usageMetadata.candidatesTokenCount : null,
+  };
 }
 
 async function attemptGemini(
@@ -480,12 +504,12 @@ export async function geminiFetchJsonWithMetadata(
   }
 
   const first = await attemptProvider(primary, primaryKey, body);
-  if (first.ok) return { data: first.data, metadata: { provider: first.provider, fallbackFrom: null, latencyMs: Date.now() - startedAt } };
+  if (first.ok) return { data: first.data, metadata: { provider: first.provider, fallbackFrom: null, latencyMs: Date.now() - startedAt, ...getTokenUsage(first.data) } };
   if (!first.retryable) throw new Error(first.message);
 
   await waitForRetry();
   const second = await attemptProvider(primary, primaryKey, body);
-  if (second.ok) return { data: second.data, metadata: { provider: second.provider, fallbackFrom: null, latencyMs: Date.now() - startedAt } };
+  if (second.ok) return { data: second.data, metadata: { provider: second.provider, fallbackFrom: null, latencyMs: Date.now() - startedAt, ...getTokenUsage(second.data) } };
   if (!second.retryable) throw new Error(second.message);
 
   const fallback: ProviderName = primary === "groq" ? "gemini" : "groq";
@@ -497,7 +521,7 @@ export async function geminiFetchJsonWithMetadata(
   if (fallbackKey) {
     console.warn(`${primary} request failed; trying ${fallback} fallback.`);
     const fallbackResult = await attemptProvider(fallback, fallbackKey, body);
-    if (fallbackResult.ok) return { data: fallbackResult.data, metadata: { provider: fallbackResult.provider, fallbackFrom: primary, latencyMs: Date.now() - startedAt } };
+    if (fallbackResult.ok) return { data: fallbackResult.data, metadata: { provider: fallbackResult.provider, fallbackFrom: primary, latencyMs: Date.now() - startedAt, ...getTokenUsage(fallbackResult.data) } };
     throw new Error(fallbackResult.message);
   }
 

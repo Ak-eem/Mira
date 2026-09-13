@@ -73,7 +73,7 @@ export function AnalyticsPanel({ snapshot, baseHref, businessName }: { snapshot:
         <Metric label="Active businesses" value={snapshot.activeBusinesses === null ? "-" : snapshot.activeBusinesses} detail={businessName ? undefined : "Currently enabled"} />
         <Metric label="Human escalation" value={escalationRate} />
         <Metric label="Failed responses" value={snapshot.failedResponses} />
-        <Metric label="API tokens" value={snapshot.apiTokens === null ? "-" : snapshot.apiTokens.toLocaleString()} detail={snapshot.apiTokens === null ? "Telemetry pending" : "Recorded usage"} />
+        <Metric label="API tokens" value={snapshot.apiTokens === null ? "unavailable" : snapshot.apiTokens.toLocaleString()} detail={snapshot.apiTokens === null ? "Provider usage not reported" : "Recorded usage"} />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

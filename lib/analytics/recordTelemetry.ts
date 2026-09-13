@@ -21,6 +21,8 @@ export async function recordAiResponseTelemetry(input: {
     fallback_from: input.metadata?.fallbackFrom ?? null,
     success: input.success,
     latency_ms: Math.max(0, Math.round(input.latencyMs)),
+    input_tokens: input.metadata?.inputTokens ?? null,
+    output_tokens: input.metadata?.outputTokens ?? null,
     error_code: input.errorCode ?? null,
   });
   if (error) console.error("AI telemetry insert failed:", error);
