@@ -26,13 +26,22 @@ export default async function ConversationThreadPage({
   const { data: conversation } = await supabase
     .from("conversations")
     .select(
-      "id, business_id, session_token, needs_human, channel, claimed_by, ended_by, customer_rating, customer_rating_emoji",
+      "id, business_id, session_token, needs_human, channel, claimed_by, ended_by, customer_rating, customer_rating_emoji, owner_read_at",
     )
     .eq("id", conversationId)
     .eq("business_id", businessId)
     .maybeSingle();
 
   if (!conversation) notFound();
+
+  if (!conversation.owner_read_at) {
+    await supabase
+      .from("conversations")
+      .update({ owner_read_at: new Date().toISOString() })
+      .eq("id", conversationId)
+      .eq("business_id", businessId)
+      .is("owner_read_at", null);
+  }
 
   const { data: messages } = await supabase
     .from("messages")

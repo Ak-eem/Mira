@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { AnalyticsRange, AnalyticsSnapshot } from "@/lib/analytics/queries";
+import { getSystemHealth } from "@/lib/systemHealth";
 
 const RANGE_OPTIONS: Array<{ value: AnalyticsRange; label: string }> = [
   { value: "today", label: "Today" },
@@ -43,11 +44,12 @@ function BarChart({ title, points, suffix = "" }: { title: string; points: Array
   );
 }
 
-export function AnalyticsPanel({ snapshot, baseHref, businessName }: { snapshot: AnalyticsSnapshot; baseHref: string; businessName?: string }) {
+export async function AnalyticsPanel({ snapshot, baseHref, businessName }: { snapshot: AnalyticsSnapshot; baseHref: string; businessName?: string }) {
   const successRate = snapshot.successfulResponses + snapshot.failedResponses > 0
     ? `${Math.round((snapshot.successfulResponses / (snapshot.successfulResponses + snapshot.failedResponses)) * 100)}%`
     : "-";
   const escalationRate = snapshot.conversations > 0 ? `${Math.round((snapshot.humanHelp / snapshot.conversations) * 100)}%` : "-";
+  const systemHealth = await getSystemHealth();
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -92,8 +94,8 @@ export function AnalyticsPanel({ snapshot, baseHref, businessName }: { snapshot:
       </div>
 
       <section className="glass-panel rounded-xl p-5">
-        <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold text-slate-800">System health</h2><span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">Operational</span></div>
-        <div className="grid gap-3 text-sm sm:grid-cols-3"><p><span className="text-slate-500">Database</span><br /><span className="font-medium text-emerald-700">Operational</span></p><p><span className="text-slate-500">AI providers</span><br /><span className="font-medium text-emerald-700">Monitored</span></p><p><span className="text-slate-500">Background jobs</span><br /><span className="font-medium text-slate-700">No health check recorded</span></p></div>
+        <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold text-slate-800">System health</h2><span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">{systemHealth.database.status}</span></div>
+        <div className="grid gap-3 text-sm sm:grid-cols-3"><p><span className="text-slate-500">Database</span><br /><span className="font-medium text-slate-700">{systemHealth.database.status}</span><br /><time className="text-xs text-slate-400">Checked {new Date(systemHealth.database.checkedAt).toLocaleString()}</time></p><p><span className="text-slate-500">AI providers</span><br /><span className="font-medium text-slate-700">{systemHealth.aiProvider.status}</span><br /><time className="text-xs text-slate-400">Checked {new Date(systemHealth.aiProvider.checkedAt).toLocaleString()}</time></p><p><span className="text-slate-500">Background jobs</span><br /><span className="font-medium text-slate-700">{systemHealth.backgroundJobs.status}</span><br /><time className="text-xs text-slate-400">Checked {new Date(systemHealth.backgroundJobs.checkedAt).toLocaleString()}</time></p></div>
       </section>
 
       {snapshot.recentErrors.length > 0 && <section className="rounded-xl border border-red-200 bg-red-50/70 p-5"><h2 className="mb-3 text-sm font-semibold text-red-900">Recent AI errors</h2><ul className="space-y-2 text-sm text-red-800">{snapshot.recentErrors.map((error) => <li key={error.id} className="flex justify-between gap-3"><span>{error.provider}: {error.error_code ?? "Provider error"}</span><time className="text-xs text-red-600">{new Date(error.created_at).toLocaleString()}</time></li>)}</ul></section>}
