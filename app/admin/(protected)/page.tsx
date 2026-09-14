@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Business } from "@/lib/types";
 import type { BusinessSubscription, SubscriptionStatus } from "@/lib/plans";
 import { getAnalyticsSnapshot } from "@/lib/analytics/queries";
-import { AnalyticsPanel } from "./AnalyticsPanel";
+import { AnalyticsStrip } from "./AnalyticsStrip";
 
 type FlaggedConversation = {
   id: string;
@@ -96,7 +96,7 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
         </div>
       </div>
 
-      {analyticsResult.data && <AnalyticsPanel snapshot={analyticsResult.data} baseHref="/admin/analytics" />}
+      {analyticsResult.data && <AnalyticsStrip snapshot={analyticsResult.data} />}
       {analyticsResult.error && <p className="text-sm text-amber-700">Platform analytics are unavailable: {analyticsResult.error.message}</p>}
 
       {!flaggedError && unclaimedFlagged.length > 0 && (
