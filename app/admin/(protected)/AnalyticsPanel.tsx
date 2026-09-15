@@ -76,6 +76,11 @@ export async function AnalyticsPanel({ snapshot, baseHref, businessName }: { sna
         <Metric label="Human escalation" value={escalationRate} />
         <Metric label="Failed responses" value={snapshot.failedResponses} />
         <Metric label="API tokens" value={snapshot.apiTokens === null ? "unavailable" : snapshot.apiTokens.toLocaleString()} detail={snapshot.apiTokens === null ? "Provider usage not reported" : "Recorded usage"} />
+        <Metric
+          label="Closed conversations"
+          value={snapshot.conversations > 0 ? `${Math.round((snapshot.closedConversations / snapshot.conversations) * 100)}%` : "-"}
+          detail={`${snapshot.closedConversations} of ${snapshot.conversations} -- closed via any route, not necessarily resolved`}
+        />
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -92,6 +97,42 @@ export async function AnalyticsPanel({ snapshot, baseHref, businessName }: { sna
           </dl>
         </section>
       </div>
+
+      {businessName && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <section className="glass-panel rounded-xl p-5">
+            <h2 className="mb-4 text-sm font-semibold text-slate-800">Popular products</h2>
+            {snapshot.popularProducts.length === 0 ? (
+              <p className="text-sm text-slate-500">No product mentions in this period.</p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {snapshot.popularProducts.map((p) => (
+                  <li key={p.productName} className="flex items-center justify-between gap-3">
+                    <span className="truncate text-slate-700">{p.productName}</span>
+                    <span className="flex-shrink-0 font-semibold text-slate-900">{p.mentionCount}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+          <section className="glass-panel rounded-xl p-5">
+            <h2 className="mb-1 text-sm font-semibold text-slate-800">Recent unanswered questions</h2>
+            <p className="mb-3 text-xs text-slate-500">Customers whose question got the default &quot;I don&apos;t have that information&quot; reply -- worth adding to FAQs or products.</p>
+            {snapshot.recentUnansweredQuestions.length === 0 ? (
+              <p className="text-sm text-slate-500">No unanswered questions in this period.</p>
+            ) : (
+              <ul className="space-y-2 text-sm">
+                {snapshot.recentUnansweredQuestions.map((q, i) => (
+                  <li key={i} className="border-b border-slate-100 pb-2 last:border-0 last:pb-0">
+                    <p className="text-slate-700">&quot;{q.question}&quot;</p>
+                    <time className="text-xs text-slate-400">{new Date(q.askedAt).toLocaleString()}</time>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+        </div>
+      )}
 
       <section className="glass-panel rounded-xl p-5">
         <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold text-slate-800">System health</h2><span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">{systemHealth.database.status}</span></div>

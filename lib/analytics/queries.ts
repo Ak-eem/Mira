@@ -21,6 +21,7 @@ export type AnalyticsSnapshot = {
   assistantMessages: number;
   humanHelp: number;
   unresolved: number;
+  closedConversations: number;
   activeBusinesses: number | null;
   successfulResponses: number;
   failedResponses: number;
@@ -33,6 +34,11 @@ export type AnalyticsSnapshot = {
   conversationsOverTime: AnalyticsPoint[];
   providerBreakdown: AnalyticsPoint[];
   recentErrors: Array<{ id: string; provider: string; error_code: string | null; created_at: string }>;
+  // Business-scoped only -- empty for the platform-wide (businessId=null)
+  // snapshot, since "popular products" and "unanswered questions" don't
+  // mean anything aggregated across unrelated businesses' catalogs.
+  popularProducts: Array<{ productName: string; mentionCount: number }>;
+  recentUnansweredQuestions: Array<{ question: string; askedAt: string }>;
   popularQuestions: CountInsight[] | null;
   topProducts: CountInsight[] | null;
   unansweredQuestions: UnansweredInsight | null;
@@ -79,14 +85,15 @@ export async function getAnalyticsSnapshot(
     const result = query.gte("started_at", fromIso).lte("started_at", toIso);
     return businessId ? result.eq("business_id", businessId) : result;
   };
-  const [conversationCount, messageCount, customerMessageCount, assistantMessageCount, humanHelpCount, unresolvedCount, conversations, aggregateResult, recentErrors, ratings, activeBusinesses] = await Promise.all([
+  const [conversationCount, messageCount, customerMessageCount, assistantMessageCount, humanHelpCount, unresolvedCount, closedCount, conversations, aggregateResult, recentErrors, ratings, activeBusinesses, popularProductsResult, unansweredQuestionsResult] = await Promise.all([
     conversationScope(supabase.from("conversations").select("id", { count: "exact", head: true })),
     scoped(supabase.from("messages").select("id", { count: "exact", head: true }).gte("created_at", fromIso).lte("created_at", toIso)),
     scoped(supabase.from("messages").select("id", { count: "exact", head: true }).eq("role", "customer").gte("created_at", fromIso).lte("created_at", toIso)),
     scoped(supabase.from("messages").select("id", { count: "exact", head: true }).eq("role", "assistant").gte("created_at", fromIso).lte("created_at", toIso)),
     conversationScope(supabase.from("conversations").select("id", { count: "exact", head: true }).eq("needs_human", true)),
     conversationScope(supabase.from("conversations").select("id", { count: "exact", head: true }).eq("status", "open")),
-    conversationScope(supabase.from("conversations").select("id, started_at, needs_human").order("started_at", { ascending: true }).order("id", { ascending: true })),
+    conversationScope(supabase.from("conversations").select("id", { count: "exact", head: true }).eq("status", "closed")),
+    conversationScope(supabase.from("conversations").select("id, started_at, needs_human")).order("started_at", { ascending: true }).order("id", { ascending: true }),
     supabase.rpc("get_ai_response_aggregate", { p_business_id: businessId, p_from: fromIso, p_to: toIso }),
     scoped(supabase.from("ai_response_telemetry").select("id, provider, error_code, created_at").eq("success", false).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(8)),
     businessId
@@ -95,9 +102,16 @@ export async function getAnalyticsSnapshot(
     businessId
       ? Promise.resolve({ count: null, error: null })
       : supabase.from("businesses").select("id", { count: "exact", head: true }).eq("is_active", true),
+    // Business-scoped only -- see the AnalyticsSnapshot comment above.
+    businessId
+      ? supabase.rpc("get_popular_products", { p_business_id: businessId, p_from: fromIso, p_to: toIso, p_limit: 5 })
+      : Promise.resolve({ data: [] as { product_name: string; mention_count: number }[], error: null }),
+    businessId
+      ? supabase.rpc("get_unanswered_questions", { p_business_id: businessId, p_from: fromIso, p_to: toIso, p_limit: 5 })
+      : Promise.resolve({ data: [] as { question: string; asked_at: string }[], error: null }),
   ]);
 
-  const firstError = conversationCount.error ?? messageCount.error ?? customerMessageCount.error ?? assistantMessageCount.error ?? humanHelpCount.error ?? unresolvedCount.error ?? conversations.error ?? aggregateResult.error ?? recentErrors.error ?? ratings.error ?? activeBusinesses.error;
+  const firstError = conversationCount.error ?? messageCount.error ?? customerMessageCount.error ?? assistantMessageCount.error ?? humanHelpCount.error ?? unresolvedCount.error ?? closedCount.error ?? conversations.error ?? aggregateResult.error ?? recentErrors.error ?? ratings.error ?? activeBusinesses.error ?? popularProductsResult.error ?? unansweredQuestionsResult.error;
   if (firstError) return { data: null, error: firstError };
 
   const conversationRows = (conversations.data ?? []) as ConversationRow[];
@@ -155,6 +169,7 @@ export async function getAnalyticsSnapshot(
       assistantMessages: assistantMessageCount.count ?? 0,
       humanHelp: humanHelpCount.count ?? 0,
       unresolved: unresolvedCount.count ?? 0,
+      closedConversations: closedCount.count ?? 0,
       activeBusinesses: activeBusinesses.count,
       successfulResponses: aggregate.successful_count,
       failedResponses: aggregate.failed_count,
@@ -167,6 +182,14 @@ export async function getAnalyticsSnapshot(
       conversationsOverTime: Array.from(dayMap, ([label, point]) => ({ label, ...point })),
       providerBreakdown,
       recentErrors: recentErrors.data ?? [],
+      popularProducts: ((popularProductsResult.data ?? []) as { product_name: string; mention_count: number }[]).map((row) => ({
+        productName: row.product_name,
+        mentionCount: row.mention_count,
+      })),
+      recentUnansweredQuestions: ((unansweredQuestionsResult.data ?? []) as { question: string; asked_at: string }[]).map((row) => ({
+        question: row.question,
+        askedAt: row.asked_at,
+      })),
       popularQuestions: businessInsights?.[0] ?? null,
       topProducts: businessInsights?.[1] ?? null,
       unansweredQuestions: businessInsights?.[2] ?? null,
