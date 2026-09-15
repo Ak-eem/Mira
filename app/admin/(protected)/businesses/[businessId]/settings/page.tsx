@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { SettingsForm } from "./SettingsForm";
+import { EmbedSnippet } from "./EmbedSnippet";
 import { OwnersPanel } from "./OwnersPanel";
 import { SubscriptionPanel } from "./SubscriptionPanel";
 import { DeleteBusinessPanel } from "./DeleteBusinessPanel";
@@ -42,6 +43,7 @@ export default async function SettingsPage({
       </div>
 
       <OwnersPanel businessId={businessId} owners={owners} />
+      <EmbedSnippet slug={business.slug} businessName={business.name} />
       <SubscriptionPanel businessId={businessId} subscription={subscription} />
       <DeleteBusinessPanel businessId={businessId} businessName={business.name} />
     </div>
