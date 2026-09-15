@@ -1,10 +1,11 @@
 import dns from "node:dns/promises";
 
 const MAX_REDIRECTS = 5;
+export const MAX_BODY_BYTES = 2 * 1024 * 1024;
 const OVERALL_TIMEOUT_MS = 15_000;
 const PER_HOP_TIMEOUT_MS = 5_000;
 
-function isPublicIpv4(address: string): boolean {
+export function isPublicIpv4(address: string): boolean {
   const octets = address.split(".").map(Number);
   if (octets.length !== 4 || octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)) return false;
   const [first, second] = octets;
@@ -30,7 +31,7 @@ export function isPublicIpv6(address: string): boolean {
     firstGroup !== 0x2002 && !(firstGroup === 0x2001 && secondGroup === 0);
 }
 
-async function assertPublicHost(hostname: string): Promise<void> {
+export async function assertPublicHost(hostname: string): Promise<void> {
   const addresses = await dns.lookup(hostname, { all: true, verbatim: true });
   if (addresses.length === 0 || addresses.some(({ address }) => address.includes(":") ? !isPublicIpv6(address) : !isPublicIpv4(address))) {
     throw new Error("URL resolves to a private or reserved address.");
@@ -39,6 +40,37 @@ async function assertPublicHost(hostname: string): Promise<void> {
 
 function combineSignals(overallSignal: AbortSignal, hopSignal: AbortSignal): AbortSignal {
   return AbortSignal.any([overallSignal, hopSignal]);
+}
+
+export async function readBoundedBody(response: Response): Promise<Uint8Array> {
+  const declaredLength = response.headers.get("content-length");
+  if (declaredLength !== null && Number(declaredLength) > MAX_BODY_BYTES) {
+    throw new Error("Response is too large.");
+  }
+  if (!response.body) return new Uint8Array();
+
+  const reader = response.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_BODY_BYTES) throw new Error("Response is too large.");
+      chunks.push(value);
+    }
+  } finally {
+    reader.releaseLock();
+  }
+
+  const body = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  return body;
 }
 
 export async function fetchUrl(input: string): Promise<Response> {
@@ -51,6 +83,7 @@ export async function fetchUrl(input: string): Promise<Response> {
       const url = new URL(currentUrl);
       if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Only HTTP and HTTPS URLs are supported.");
       if (url.username || url.password) throw new Error("URLs with credentials are not supported.");
+      if (url.port && url.port !== "80" && url.port !== "443") throw new Error("Only standard HTTP ports are supported.");
       await assertPublicHost(url.hostname);
 
       const hopController = new AbortController();
@@ -62,7 +95,12 @@ export async function fetchUrl(input: string): Promise<Response> {
         clearTimeout(hopTimeout);
       }
 
-      if (response.status < 300 || response.status >= 400) return response;
+      if (response.status < 300 || response.status >= 400) {
+        const body = await readBoundedBody(response);
+        const responseBody = new ArrayBuffer(body.byteLength);
+        new Uint8Array(responseBody).set(body);
+        return new Response(responseBody, { headers: response.headers, status: response.status, statusText: response.statusText });
+      }
       const location = response.headers.get("location");
       if (!location || redirectCount === MAX_REDIRECTS) throw new Error("Too many redirects or missing redirect location.");
       currentUrl = new URL(location, url).toString();

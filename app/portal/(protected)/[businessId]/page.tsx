@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { WebsiteImport } from "./WebsiteImport";
 
 export default async function PortalDashboardPage({
   params,
@@ -126,6 +127,7 @@ export default async function PortalDashboardPage({
           </p>
         )}
       </div>
+      <WebsiteImport businessId={businessId} />
     </div>
   );
 }
