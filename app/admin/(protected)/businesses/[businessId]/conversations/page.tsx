@@ -17,13 +17,13 @@ export default async function ConversationsPage({
 
   let conversationsQuery = supabase
     .from("conversations")
-    .select("id, session_token, channel, needs_human, claimed_by, is_unread, started_at, last_message_at")
+    .select("id, session_token, channel, needs_human, claimed_by, is_unread, started_at, last_message_at, owner_read_at")
     .eq("business_id", businessId);
   if (search) conversationsQuery = conversationsQuery.ilike("session_token", `%${search}%`);
   if (filter === "human") conversationsQuery = conversationsQuery.eq("needs_human", true);
   if (filter === "active") conversationsQuery = conversationsQuery.eq("status", "open");
   if (filter === "resolved") conversationsQuery = conversationsQuery.eq("status", "closed");
-  if (filter === "unread") conversationsQuery = conversationsQuery.eq("is_unread", true);
+  if (filter === "unread") conversationsQuery = conversationsQuery.or("is_unread.eq.true,owner_read_at.is.null");
   const { data: conversations, error } = await conversationsQuery.order("needs_human", { ascending: false }).order("last_message_at", { ascending: sort === "oldest" }).limit(50);
 
   return (
@@ -43,14 +43,16 @@ export default async function ConversationsPage({
       )}
 
       {!error && <ul className="space-y-2">
-        {conversations?.map((c) => (
-          <li key={c.id}>
+        {conversations?.map((c) => {
+          const isUnread = c.is_unread || !c.owner_read_at;
+          return (
+            <li key={c.id}>
             <Link
               href={`/admin/businesses/${businessId}/conversations/${c.id}`}
               className="flex items-center justify-between rounded border border-slate-200 bg-white p-3 hover:border-accent"
             >
               <span className="flex items-center gap-2">
-                {c.is_unread && (
+                {isUnread && (
                   <span className="h-2 w-2 flex-shrink-0 rounded-full bg-accent" title="Unread" aria-label="Unread" />
                 )}
                 {c.claimed_by ? (
@@ -64,6 +66,7 @@ export default async function ConversationsPage({
                     </span>
                   )
                 )}
+                {isUnread && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Unread</span>}
                 <span className="font-mono text-xs text-slate-500">{c.session_token.slice(0, 8)}…</span>
                 <span className={`text-xs font-medium ${c.channel === "whatsapp" ? "text-emerald-600" : "text-slate-400"}`}>
                   {c.channel === "whatsapp" ? "WhatsApp" : "Web"}
@@ -71,8 +74,9 @@ export default async function ConversationsPage({
               </span>
               <span className="text-sm text-slate-500">{new Date(c.last_message_at).toLocaleString()}</span>
             </Link>
-          </li>
-        ))}
+            </li>
+          );
+        })}
       </ul>}
     </div>
   );

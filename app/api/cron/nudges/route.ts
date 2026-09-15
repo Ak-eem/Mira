@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { runNudgeCheck } from "@/lib/nudges/checkRules";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 // Vercel Cron sends the configured Authorization header automatically
 // (see vercel.json) -- this just has to match. If this project doesn't
@@ -15,5 +16,6 @@ export async function GET(request: NextRequest) {
   }
 
   const summary = await runNudgeCheck();
+  await createServiceRoleClient().from("system_health_checks").upsert({ check_name: "nudges-cron", checked_at: new Date().toISOString() });
   return NextResponse.json(summary);
 }

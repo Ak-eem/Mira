@@ -26,7 +26,7 @@ export default async function ConversationThreadPage({
   const { data: conversation } = await supabase
     .from("conversations")
     .select(
-      "id, business_id, session_token, needs_human, channel, claimed_by, ended_by, customer_rating, customer_rating_emoji",
+      "id, business_id, session_token, needs_human, channel, claimed_by, ended_by, customer_rating, customer_rating_emoji, owner_read_at",
     )
     .eq("id", conversationId)
     .eq("business_id", businessId)
@@ -38,6 +38,14 @@ export default async function ConversationThreadPage({
   // in the list clear -- fire-and-forget, doesn't need to block the
   // page render on a write that has no bearing on what's shown here.
   void supabase.from("conversations").update({ last_viewed_at: new Date().toISOString() }).eq("id", conversationId);
+  if (!conversation.owner_read_at) {
+    await supabase
+      .from("conversations")
+      .update({ owner_read_at: new Date().toISOString() })
+      .eq("id", conversationId)
+      .eq("business_id", businessId)
+      .is("owner_read_at", null);
+  }
 
   const { data: messages } = await supabase
     .from("messages")

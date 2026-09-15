@@ -7,6 +7,10 @@ export type AnalyticsPoint = { label: string; value: number; secondary?: number 
 type ConversationRow = { id: string; started_at: string; needs_human: boolean; status: string };
 type RatingRow = { customer_rating: number | null };
 
+export type CountInsight = { label: string; count: number };
+export type UnansweredInsight = { total: number; top: CountInsight[] };
+export type RateInsight = { resolved: number; total: number; percentage: number };
+
 export type AnalyticsSnapshot = {
   range: AnalyticsRange;
   from: string;
@@ -34,7 +38,12 @@ export type AnalyticsSnapshot = {
   // snapshot, since "popular products" and "unanswered questions" don't
   // mean anything aggregated across unrelated businesses' catalogs.
   popularProducts: Array<{ productName: string; mentionCount: number }>;
-  unansweredQuestions: Array<{ question: string; askedAt: string }>;
+  recentUnansweredQuestions: Array<{ question: string; askedAt: string }>;
+  popularQuestions: CountInsight[] | null;
+  topProducts: CountInsight[] | null;
+  unansweredQuestions: UnansweredInsight | null;
+  resolutionRate: RateInsight | null;
+  reopenRate: RateInsight | null;
 };
 
 function getRange(range: AnalyticsRange): { from: Date; to: Date } {
@@ -120,6 +129,20 @@ export async function getAnalyticsSnapshot(
     token_count: number;
   } | null;
   if (!aggregate) return { data: null, error: new Error("Analytics aggregate was unavailable.") };
+  let businessInsights: [CountInsight[], CountInsight[], UnansweredInsight, RateInsight, RateInsight] | null = null;
+  if (businessId) {
+    try {
+      businessInsights = await Promise.all([
+        getPopularQuestions(businessId, range),
+        getTopProducts(businessId, range),
+        getUnansweredQuestions(businessId, range),
+        getResolutionRate(businessId, range),
+        getReopenRate(businessId, range),
+      ]);
+    } catch (error) {
+      return { data: null, error: error instanceof Error ? error : new Error("Business insights were unavailable.") };
+    }
+  }
   const dayMap = new Map<string, { value: number; secondary: number }>();
   for (const row of conversationRows) {
     const label = dayLabel(row.started_at);
@@ -163,11 +186,152 @@ export async function getAnalyticsSnapshot(
         productName: row.product_name,
         mentionCount: row.mention_count,
       })),
-      unansweredQuestions: ((unansweredQuestionsResult.data ?? []) as { question: string; asked_at: string }[]).map((row) => ({
+      recentUnansweredQuestions: ((unansweredQuestionsResult.data ?? []) as { question: string; asked_at: string }[]).map((row) => ({
         question: row.question,
         askedAt: row.asked_at,
       })),
+      popularQuestions: businessInsights?.[0] ?? null,
+      topProducts: businessInsights?.[1] ?? null,
+      unansweredQuestions: businessInsights?.[2] ?? null,
+      resolutionRate: businessInsights?.[3] ?? null,
+      reopenRate: businessInsights?.[4] ?? null,
     },
     error: null,
   };
+}
+
+function normalizeQuestion(value: string): string {
+  return value.trim().replace(/\s+/g, " ").replace(/[.!?]+$/g, "").toLowerCase();
+}
+
+function topCounts(counts: Map<string, number>): CountInsight[] {
+  return Array.from(counts, ([label, count]) => ({ label, count }))
+    .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label))
+    .slice(0, 10);
+}
+
+async function getBusinessRange(businessId: string, requestedRange?: string) {
+  const range = safeRange(requestedRange);
+  const { from, to } = getRange(range);
+  return { fromIso: from.toISOString(), toIso: to.toISOString() };
+}
+
+export async function getPopularQuestions(businessId: string, requestedRange?: string): Promise<CountInsight[]> {
+  const supabase = await createClient();
+  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange);
+  const { data, error } = await supabase
+    .from("messages")
+    .select("content")
+    .eq("business_id", businessId)
+    .eq("role", "customer")
+    .gte("created_at", fromIso)
+    .lte("created_at", toIso);
+  if (error) throw error;
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    const question = normalizeQuestion(row.content);
+    if (question) counts.set(question, (counts.get(question) ?? 0) + 1);
+  }
+  return topCounts(counts);
+}
+
+export async function getTopProducts(businessId: string, requestedRange?: string): Promise<CountInsight[]> {
+  const supabase = await createClient();
+  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange);
+  const [{ data: products, error: productsError }, { data: interests, error: interestsError }, { data: messages, error: messagesError }] = await Promise.all([
+    supabase.from("products").select("id, name").eq("business_id", businessId),
+    supabase.from("product_interest").select("product_id").eq("business_id", businessId).gte("created_at", fromIso).lte("created_at", toIso),
+    supabase.from("messages").select("content").eq("business_id", businessId).eq("role", "customer").gte("created_at", fromIso).lte("created_at", toIso),
+  ]);
+  if (productsError || interestsError || messagesError) throw productsError ?? interestsError ?? messagesError;
+
+  const countByProductId = new Map<string, number>();
+  for (const interest of interests ?? []) countByProductId.set(interest.product_id, (countByProductId.get(interest.product_id) ?? 0) + 1);
+  for (const product of products ?? []) {
+    const name = product.name.trim().toLowerCase();
+    if (!name) continue;
+    const mentions = (messages ?? []).filter((message) => message.content.toLowerCase().includes(name)).length;
+    if (mentions) countByProductId.set(product.id, (countByProductId.get(product.id) ?? 0) + mentions);
+  }
+  const productCounts: Array<[string, number]> = (products ?? [])
+    .map((product): [string, number] => [product.name, countByProductId.get(product.id) ?? 0])
+    .filter(([, count]) => count > 0);
+  return topCounts(new Map(productCounts));
+}
+
+export async function getUnansweredQuestions(businessId: string, requestedRange?: string): Promise<UnansweredInsight> {
+  const supabase = await createClient();
+  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange);
+  const { data: business, error: businessError } = await supabase.from("businesses").select("name").eq("id", businessId).single();
+  if (businessError) throw businessError;
+  const { data: messages, error } = await supabase
+    .from("messages")
+    .select("conversation_id, role, content, created_at")
+    .eq("business_id", businessId)
+    .gte("created_at", fromIso)
+    .lte("created_at", toIso)
+    .order("created_at", { ascending: true });
+  if (error) throw error;
+
+  const byConversation = new Map<string, { role: string; content: string }[]>();
+  for (const message of messages ?? []) {
+    const list = byConversation.get(message.conversation_id) ?? [];
+    list.push(message);
+    byConversation.set(message.conversation_id, list);
+  }
+  const counts = new Map<string, number>();
+  let total = 0;
+  for (const conversationMessages of byConversation.values()) {
+    for (let index = 0; index < conversationMessages.length; index += 1) {
+      const message = conversationMessages[index];
+      if (message.role !== "assistant" || !/i don't have that information|recommend contacting them directly/i.test(message.content)) continue;
+      const question = [...conversationMessages.slice(0, index)].reverse().find((candidate) => candidate.role === "customer");
+      if (!question) continue;
+      const normalized = normalizeQuestion(question.content);
+      if (normalized) {
+        total += 1;
+        counts.set(normalized, (counts.get(normalized) ?? 0) + 1);
+      }
+    }
+  }
+  return { total, top: topCounts(counts) };
+}
+
+export async function getResolutionRate(businessId: string, requestedRange?: string): Promise<RateInsight> {
+  const supabase = await createClient();
+  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange);
+  const [{ count: total, error: totalError }, { count: resolved, error: resolvedError }] = await Promise.all([
+    supabase.from("conversations").select("id", { count: "exact", head: true }).eq("business_id", businessId).gte("started_at", fromIso).lte("started_at", toIso),
+    supabase.from("conversations").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("status", "closed").gte("started_at", fromIso).lte("started_at", toIso),
+  ]);
+  if (totalError || resolvedError) throw totalError ?? resolvedError;
+  const totalCount = total ?? 0;
+  const resolvedCount = resolved ?? 0;
+  return { resolved: resolvedCount, total: totalCount, percentage: totalCount ? Math.round((resolvedCount / totalCount) * 100) : 0 };
+}
+
+export async function getReopenRate(businessId: string, requestedRange?: string): Promise<RateInsight> {
+  const supabase = await createClient();
+  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange);
+  const { data, error } = await supabase
+    .from("conversations")
+    .select("id, session_token, started_at, status")
+    .eq("business_id", businessId)
+    .lte("started_at", toIso)
+    .order("started_at", { ascending: true });
+  if (error) throw error;
+  const inRange = (data ?? []).filter((conversation) => conversation.started_at >= fromIso);
+  const sessions = new Set<string>();
+  for (const conversation of data ?? []) {
+    if (conversation.started_at < fromIso && conversation.status === "closed") sessions.add(conversation.session_token);
+  }
+  const reopened = inRange.filter((conversation) => {
+    if (conversation.status === "closed") {
+      sessions.add(conversation.session_token);
+      return false;
+    }
+    return sessions.has(conversation.session_token);
+  }).length;
+  const total = inRange.length;
+  return { resolved: reopened, total, percentage: total ? Math.round((reopened / total) * 100) : 0 };
 }
