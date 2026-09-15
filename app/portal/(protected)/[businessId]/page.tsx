@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { EmbedSnippet } from "./EmbedSnippet";
 
 export default async function PortalDashboardPage({
   params,
@@ -19,6 +20,7 @@ export default async function PortalDashboardPage({
     { count: nudgesDelivered },
     { count: nudgesReplied },
     { count: nudgesOptedOut },
+    { data: business },
   ] = await Promise.all([
     supabase
       .from("conversations")
@@ -53,6 +55,7 @@ export default async function PortalDashboardPage({
       .gte("sent_at", thirtyDaysAgo)
       .eq("status", "replied"),
     supabase.from("nudge_opt_outs").select("business_id", { count: "exact", head: true }).eq("business_id", businessId),
+    supabase.from("businesses").select("slug, name").eq("id", businessId).maybeSingle(),
   ]);
 
   const nudgesActive = subscription?.nudges_addon === true;
@@ -126,6 +129,8 @@ export default async function PortalDashboardPage({
           </p>
         )}
       </div>
+
+      {business && <EmbedSnippet slug={business.slug} businessName={business.name} />}
     </div>
   );
 }

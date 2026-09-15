@@ -97,7 +97,7 @@ export default async function ConversationThreadPage({
       </h1>
 
       {conversation.needs_human && !isClaimed && (
-        <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3">
+        <div className="mb-6 flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-medium text-amber-800">
             🚩 This customer asked for a person (or Mira got stuck) — take over when you&apos;re ready.
           </p>
@@ -123,7 +123,7 @@ export default async function ConversationThreadPage({
       )}
 
       {isClaimed && (
-        <div className="mb-6 flex items-center justify-between gap-3 rounded-lg border border-sky-300 bg-sky-50 px-4 py-3">
+        <div className="mb-6 flex flex-col gap-3 rounded-lg border border-sky-300 bg-sky-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-medium text-sky-800">
             👤 {conversation.claimed_by} is handling this conversation — Mira is silent until it&apos;s handed back or ended.
           </p>
