@@ -1,18 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 export function EmbedSnippet({ slug, businessName }: { slug: string; businessName: string }) {
   const [copied, setCopied] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
-  // window.location.origin, not a hardcoded domain or env var -- this
-  // way the snippet is always correct for wherever this page is
-  // actually running (production domain, a preview deployment, etc.)
-  // without needing to keep a constant in sync.
-  const origin = typeof window !== "undefined" ? window.location.origin : "";
-  const snippet = `<script src="${origin}/embed.js"
-        data-business="${slug}"
-        data-title="Chat with ${businessName}"
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Keep the server and initial client render identical, then use the browser's origin after mount.
+  const origin = mounted && typeof window !== "undefined" ? window.location.origin : "";
+  const snippet = `<script src="${escapeHtml(origin)}/embed.js"
+        data-business="${escapeHtml(slug)}"
+        data-title="Chat with ${escapeHtml(businessName)}"
         data-primary-color="#0f766e"
         defer></script>`;
 
