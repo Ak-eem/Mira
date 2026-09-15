@@ -30,6 +30,10 @@ export default async function PortalConversationThreadPage({
 
   if (!conversation) notFound();
 
+  // Marks this conversation viewed so the "Unread" indicator clears --
+  // fire-and-forget, doesn't need to block the page render.
+  void supabase.from("conversations").update({ last_viewed_at: new Date().toISOString() }).eq("id", conversationId);
+
   const { data: messages } = await supabase
     .from("messages")
     .select("id, role, content, context_snapshot, created_at")

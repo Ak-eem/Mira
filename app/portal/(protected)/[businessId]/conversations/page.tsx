@@ -11,7 +11,7 @@ export default async function PortalConversationsPage({
 
   const { data: conversations } = await supabase
     .from("conversations")
-    .select("id, session_token, channel, needs_human, claimed_by, last_message_at")
+    .select("id, session_token, channel, needs_human, claimed_by, is_unread, last_message_at")
     .eq("business_id", businessId)
     .order("needs_human", { ascending: false })
     .order("last_message_at", { ascending: false })
@@ -32,6 +32,9 @@ export default async function PortalConversationsPage({
               className="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-accent"
             >
               <span className="flex items-center gap-2">
+                {c.is_unread && (
+                  <span className="h-2 w-2 flex-shrink-0 rounded-full bg-accent" title="Unread" aria-label="Unread" />
+                )}
                 {c.claimed_by ? (
                   <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
                     {c.claimed_by}
