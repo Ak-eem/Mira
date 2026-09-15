@@ -27,7 +27,7 @@ async function mirrorProductImage(businessId: string, draftId: string, imageUrl:
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ businessId: string }> }) {
   const { businessId } = await params;
-  if (!await authorize(businessId)) return NextResponse.json({ error: "Not authorized." }, { status: 403 });
+  if (!(await authorize(businessId))) return NextResponse.json({ error: "Not authorized." }, { status: 403 });
   const supabase = await createClient();
   const { data, error } = await supabase.from("scrape_drafts").select("*").eq("business_id", businessId).order("created_at", { ascending: false });
   if (error) return NextResponse.json({ error: "Could not load scrape drafts." }, { status: 500 });
@@ -36,7 +36,7 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ businessId: string }> }) {
   const { businessId } = await params;
-  if (!await authorize(businessId)) return NextResponse.json({ error: "Not authorized." }, { status: 403 });
+  if (!(await authorize(businessId))) return NextResponse.json({ error: "Not authorized." }, { status: 403 });
   const body = await request.json().catch(() => null);
   if (typeof body?.websiteUrl !== "string" || body.websiteUrl.trim().length > 2_000) {
     return NextResponse.json({ error: "Enter a valid website URL." }, { status: 400 });
@@ -46,7 +46,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const sourceUrl = new URL(body.websiteUrl.trim()).toString();
     const scrape = await scrapeBusinessWebsite(sourceUrl);
     const extracted = await extractBusinessInfo(scrape);
-    const rows = extracted.map((item) => ({ business_id: businessId, kind: item.kind, source_url: scrape.pages.find((page) => page.text.toLowerCase().includes(String(item.payload.name ?? item.payload.title ?? item.payload.question ?? "").toLowerCase()))?.url ?? scrape.pages[0]?.url ?? sourceUrl, payload: item.payload, status: "pending" }));
+    const rows = extracted.map((item) => ({
+      business_id: businessId,
+      kind: item.kind,
+      source_url: scrape.pages.find((page) => page.text.toLowerCase().includes(String(item.payload.name ?? item.payload.title ?? item.payload.question ?? "").toLowerCase()))?.url ?? scrape.pages[0]?.url ?? sourceUrl,
+      payload: item.payload,
+      status: "pending",
+    }));
     if (rows.length === 0) return NextResponse.json({ drafts: [] });
 
     const supabase = await createClient();
@@ -60,7 +66,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ businessId: string }> }) {
   const { businessId } = await params;
-  if (!await authorize(businessId)) return NextResponse.json({ error: "Not authorized." }, { status: 403 });
+  if (!(await authorize(businessId))) return NextResponse.json({ error: "Not authorized." }, { status: 403 });
   const body = await request.json().catch(() => null);
   if (typeof body?.draftId !== "string") return NextResponse.json({ error: "Draft id is required." }, { status: 400 });
   const supabase = await createClient();
@@ -70,24 +76,25 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     let imageImportFailed = false;
     if (body.status === "approved") {
       const { data: draft } = await supabase.from("scrape_drafts").select("kind, payload").eq("id", body.draftId).eq("business_id", businessId).eq("status", "pending").maybeSingle();
-      const candidateImageUrl = draft?.kind === "product" && draft.payload && typeof draft.payload === "object" && typeof (draft.payload as Record<string, unknown>).candidate_image_url === "string"
-        ? (draft.payload as Record<string, unknown>).candidate_image_url
-        : null;
+      const payload = draft?.kind === "product" && typeof draft?.payload === "object" && draft.payload ? (draft.payload as Record<string, unknown>) : null;
+      const candidateRaw = payload?.candidate_image_url;
+      const candidateImageUrl = typeof candidateRaw === "string" ? candidateRaw : null;
       if (candidateImageUrl) {
         try { imageUrl = await mirrorProductImage(businessId, body.draftId, candidateImageUrl); }
         catch (error) { imageImportFailed = true; console.warn("Could not mirror scraped product image.", error); }
       }
     }
-      let reviewError;
-      if (body.status === "approved") {
-        reviewError = (await supabase.rpc("approve_scrape_draft", { p_draft_id: body.draftId, p_image_url: imageUrl })).error;
-      } else {
-        reviewError = (await supabase.rpc("reject_scrape_draft", { p_draft_id: body.draftId })).error;
-      }
-      if (reviewError) return NextResponse.json({ error: "Could not review that draft." }, { status: 400 });
+    let reviewError;
+    if (body.status === "approved") {
+      reviewError = (await supabase.rpc("approve_scrape_draft", { p_draft_id: body.draftId, p_image_url: imageUrl })).error;
+    } else {
+      reviewError = (await supabase.rpc("reject_scrape_draft", { p_draft_id: body.draftId })).error;
+    }
+    if (reviewError) return NextResponse.json({ error: "Could not review that draft." }, { status: 400 });
     if (imageImportFailed) return NextResponse.json({ message: "Product added, but its image could not be imported. You can upload one manually.", imageImported: false });
     if (body.status === "approved" && imageUrl) return NextResponse.json({ message: "Product and image added.", imageImported: true });
-  } else {
+  }
+  else {
     if (!body.payload || typeof body.payload !== "object" || Array.isArray(body.payload)) return NextResponse.json({ error: "A draft payload is required." }, { status: 400 });
     const { error } = await supabase.from("scrape_drafts").update({ payload: body.payload }).eq("id", body.draftId).eq("business_id", businessId).eq("status", "pending");
     if (error) return NextResponse.json({ error: "Could not update that draft." }, { status: 400 });
