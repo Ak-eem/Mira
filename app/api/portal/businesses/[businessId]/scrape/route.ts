@@ -49,7 +49,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const rows = extracted.map((item) => ({
       business_id: businessId,
       kind: item.kind,
-      source_url: scrape.pages.find((page) => page.text.toLowerCase().includes(String(item.payload.name ?? item.payload.title ?? item.payload.question ?? "").toLowerCase()))?.url ?? scrape.pages[0]?.url ?? sourceUrl,
+      source_url: item.source_url ?? scrape.pages[0]?.url ?? sourceUrl,
       payload: item.payload,
       status: "pending",
     }));
