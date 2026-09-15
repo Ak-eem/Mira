@@ -227,7 +227,9 @@ async function fetchUrlInternal(input: string): Promise<Response> {
         }
 
         const body = await readBoundedBody(response);
-        return new Response(body, {
+        const responseBody = new ArrayBuffer(body.byteLength);
+        new Uint8Array(responseBody).set(body);
+        return new Response(responseBody, {
           headers: response.headers,
           status: response.status,
           statusText: response.statusText,
