@@ -78,10 +78,13 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         catch (error) { imageImportFailed = true; console.warn("Could not mirror scraped product image.", error); }
       }
     }
-    const { error } = body.status === "approved"
-      ? await supabase.rpc("approve_scrape_draft", { p_draft_id: body.draftId, p_image_url: imageUrl })
-      : await supabase.rpc("reject_scrape_draft", { p_draft_id: body.draftId });
-    if (error) return NextResponse.json({ error: "Could not review that draft." }, { status: 400 });
+      let reviewError;
+      if (body.status === "approved") {
+        reviewError = (await supabase.rpc("approve_scrape_draft", { p_draft_id: body.draftId, p_image_url: imageUrl })).error;
+      } else {
+        reviewError = (await supabase.rpc("reject_scrape_draft", { p_draft_id: body.draftId })).error;
+      }
+      if (reviewError) return NextResponse.json({ error: "Could not review that draft." }, { status: 400 });
     if (imageImportFailed) return NextResponse.json({ message: "Product added, but its image could not be imported. You can upload one manually.", imageImported: false });
     if (body.status === "approved" && imageUrl) return NextResponse.json({ message: "Product and image added.", imageImported: true });
   } else {
