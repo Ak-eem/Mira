@@ -1,4 +1,4 @@
-import { assertPublicHost, htmlToText, readBoundedBody } from "./urlFetch";
+import { htmlToText, readBoundedBody, requestPinned, resolvePinnedAddress } from "./urlFetch";
 
 const MAX_PAGES = 8;
 const MAX_IMAGES = 20;
@@ -70,11 +70,11 @@ export async function fetchCrawlResource(input: string, overallSignal?: AbortSig
   try {
   for (let redirectCount = 0; redirectCount <= MAX_REDIRECTS; redirectCount += 1) {
     const url = validateUrl(currentUrl);
-    await assertPublicHost(url.hostname);
+    const pinned = await resolvePinnedAddress(url.hostname);
     const requestController = new AbortController();
     const timeout = setTimeout(() => requestController.abort(), PER_REQUEST_TIMEOUT_MS);
     try {
-      const response = await fetch(url, { redirect: "manual", signal: AbortSignal.any([signal, requestController.signal]) });
+      const response = await requestPinned(url, pinned, AbortSignal.any([signal, requestController.signal]));
       if (response.status >= 300 && response.status < 400) {
         const location = response.headers.get("location");
         if (!location) throw new Error("Missing redirect location.");
