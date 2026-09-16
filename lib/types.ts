@@ -43,6 +43,8 @@ export type Business = {
   ai_instructions: string | null;
   hours_note: string | null;
   whatsapp_phone_number_id: string | null;
+  email_inbound_address: string | null;
+  email_responses_enabled: boolean;
   social_links: BusinessSocialLinks;
   is_active: boolean;
   created_at: string;

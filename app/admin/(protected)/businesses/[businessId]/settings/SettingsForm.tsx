@@ -16,6 +16,7 @@ export function SettingsForm({ business }: { business: Business }) {
   const [aiInstructions, setAiInstructions] = useState(business.ai_instructions ?? "");
   const [hoursNote, setHoursNote] = useState(business.hours_note ?? "");
   const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState(business.whatsapp_phone_number_id ?? "");
+  const [emailResponsesEnabled, setEmailResponsesEnabled] = useState(business.email_responses_enabled);
   const [socialLinks, setSocialLinks] = useState<BusinessSocialLinks>(business.social_links ?? {});
   const [isActive, setIsActive] = useState(business.is_active);
   const [error, setError] = useState<string | null>(null);
@@ -30,7 +31,7 @@ export function SettingsForm({ business }: { business: Business }) {
 
     const result = await updateBusiness({
       businessId: business.id, name, slug, description, currency, timezone,
-      aiTone, aiInstructions, hoursNote, whatsappPhoneNumberId, socialLinks, isActive,
+      aiTone, aiInstructions, hoursNote, whatsappPhoneNumberId, emailResponsesEnabled, socialLinks, isActive,
     });
 
     if (result?.error) {
@@ -49,6 +50,23 @@ export function SettingsForm({ business }: { business: Business }) {
       <div>
         <label className="block text-sm font-medium text-slate-700">Name</label>
         <input className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm" value={name} onChange={(e) => setName(e.target.value)} required />
+      </div>
+
+      <div className="rounded-lg border border-slate-200 p-3">
+        <label className="flex items-center gap-2 text-sm font-medium text-slate-700">
+          <input
+            type="checkbox"
+            checked={emailResponsesEnabled}
+            disabled={!business.email_inbound_address}
+            onChange={(e) => setEmailResponsesEnabled(e.target.checked)}
+          />
+          Email responses
+        </label>
+        {business.email_inbound_address ? (
+          <p className="mt-1 font-mono text-xs text-slate-500">Inbound address: {business.email_inbound_address}</p>
+        ) : (
+          <p className="mt-1 text-xs text-slate-500">Configure an inbound email address before enabling email responses.</p>
+        )}
       </div>
 
       <div>

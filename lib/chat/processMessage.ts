@@ -31,7 +31,7 @@ export async function processMessage(
   businessId: string,
   sessionToken: string,
   message: string,
-  channel: "web" | "whatsapp" = "web"
+  channel: "web" | "whatsapp" | "email" = "web"
 ): Promise<ProcessMessageResult> {
   const supabase = createServiceRoleClient();
   const trimmedMessage = message.trim();
