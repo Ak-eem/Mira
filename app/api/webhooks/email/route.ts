@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
     const business = await client
       .from("businesses")
       .select("id,email_responses_enabled")
-      .eq("email_inbound_address", toAddress)
+      .ilike("email_inbound_address", toAddress)
       .maybeSingle();
     if (business.error) throw business.error;
     if (!business.data) {
