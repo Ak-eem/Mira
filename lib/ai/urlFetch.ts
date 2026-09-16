@@ -1,4 +1,7 @@
 import dns from "node:dns/promises";
+import http from "node:http";
+import https from "node:https";
+import { Readable } from "node:stream";
 
 const MAX_REDIRECTS = 5;
 export const MAX_BODY_BYTES = 2 * 1024 * 1024;
@@ -31,15 +34,79 @@ export function isPublicIpv6(address: string): boolean {
     firstGroup !== 0x2002 && !(firstGroup === 0x2001 && secondGroup === 0);
 }
 
-export async function assertPublicHost(hostname: string): Promise<void> {
+// Resolves the hostname ONCE and validates every returned address is
+// public. The validated address is returned so the caller can pin the
+// actual connection to it. Previously, assertPublicHost validated the
+// hostname's resolved IPs and then discarded that result -- the real
+// request went through global fetch(), which does its own, independent
+// DNS resolution. That's a DNS-rebinding gap: an attacker-controlled
+// domain can return a public IP for this check, then a different one
+// (loopback, link-local, cloud metadata) moments later once its DNS TTL
+// expires and the real request re-resolves the name.
+export async function resolvePinnedAddress(hostname: string): Promise<{ address: string; family: 4 | 6 }> {
   const addresses = await dns.lookup(hostname, { all: true, verbatim: true });
-  if (addresses.length === 0 || addresses.some(({ address }) => address.includes(":") ? !isPublicIpv6(address) : !isPublicIpv4(address))) {
-    throw new Error("URL resolves to a private or reserved address.");
+  if (addresses.length === 0) throw new Error("URL resolves to a private or reserved address.");
+  for (const { address } of addresses) {
+    const ok = address.includes(":") ? isPublicIpv6(address) : isPublicIpv4(address);
+    if (!ok) throw new Error("URL resolves to a private or reserved address.");
   }
+  const { address } = addresses[0];
+  return { address, family: address.includes(":") ? 6 : 4 };
 }
 
 function combineSignals(overallSignal: AbortSignal, hopSignal: AbortSignal): AbortSignal {
   return AbortSignal.any([overallSignal, hopSignal]);
+}
+
+// Makes the request to the pre-validated, pinned IP -- never to the
+// hostname -- while preserving the original hostname for the Host header
+// and (for https) the TLS SNI/certificate check, via a custom `lookup`
+// that always returns the pinned address regardless of what's passed in.
+// This is Node core's http/https equivalent of undici's
+// `Agent({ connect: { lookup } })` dispatcher pattern: same effect (DNS
+// resolution forced to one pre-checked address for this call only), no
+// extra dependency -- neither the `undici` package nor the `node:undici`
+// builtin specifier resolves in this project (checked directly).
+//
+// Returns a real, spec-compliant Response (via Readable.toWeb on the
+// raw Node response stream) so every existing caller -- readBoundedBody,
+// fetchText, response.ok/.status/.headers -- keeps working unchanged.
+export function requestPinned(
+  url: URL,
+  pinned: { address: string; family: 4 | 6 },
+  signal: AbortSignal,
+): Promise<Response> {
+  return new Promise((resolve, reject) => {
+    const isHttps = url.protocol === "https:";
+    const mod = isHttps ? https : http;
+    const req = mod.request(
+      {
+        host: url.hostname,
+        port: url.port ? Number(url.port) : isHttps ? 443 : 80,
+        path: url.pathname + url.search,
+        method: "GET",
+        headers: { Host: url.host },
+        servername: isHttps ? url.hostname : undefined,
+        signal,
+        lookup: (
+          _hostname: string,
+          _options: unknown,
+          callback: (err: NodeJS.ErrnoException | null, address: string, family: number) => void,
+        ) => callback(null, pinned.address, pinned.family),
+      },
+      (res) => {
+        const headers = new Headers();
+        for (const [key, value] of Object.entries(res.headers)) {
+          if (value === undefined) continue;
+          for (const v of Array.isArray(value) ? value : [value]) headers.append(key, v);
+        }
+        const body = Readable.toWeb(res) as ReadableStream<Uint8Array>;
+        resolve(new Response(body, { status: res.statusCode ?? 0, headers }));
+      },
+    );
+    req.on("error", reject);
+    req.end();
+  });
 }
 
 export async function readBoundedBody(response: Response): Promise<Uint8Array> {
@@ -84,13 +151,19 @@ export async function fetchUrl(input: string): Promise<Response> {
       if (url.protocol !== "http:" && url.protocol !== "https:") throw new Error("Only HTTP and HTTPS URLs are supported.");
       if (url.username || url.password) throw new Error("URLs with credentials are not supported.");
       if (url.port && url.port !== "80" && url.port !== "443") throw new Error("Only standard HTTP ports are supported.");
-      await assertPublicHost(url.hostname);
+
+      // Resolve and validate THIS hop's hostname, then pin the request
+      // for THIS hop to that exact address. Each redirect target is a
+      // new hostname and needs its own fresh lookup + pin -- reusing an
+      // earlier hop's pinned address here would be wrong (different
+      // host entirely).
+      const pinned = await resolvePinnedAddress(url.hostname);
 
       const hopController = new AbortController();
       const hopTimeout = setTimeout(() => hopController.abort(), PER_HOP_TIMEOUT_MS);
       let response: Response;
       try {
-        response = await fetch(url, { redirect: "manual", signal: combineSignals(overallController.signal, hopController.signal) });
+        response = await requestPinned(url, pinned, combineSignals(overallController.signal, hopController.signal));
       } finally {
         clearTimeout(hopTimeout);
       }
