@@ -6,32 +6,6 @@ export type BusinessSocialLinks = {
   website?: string;
 };
 
-export type BusinessTheme = {
-  primary: string;
-  secondary: string;
-  surface: string;
-  text: string;
-};
-
-export const defaultTheme: BusinessTheme = {
-  primary: "#0f766e",
-  secondary: "#14b8a6",
-  surface: "#f0fdfa",
-  text: "#134e4a",
-};
-
-const THEME_COLOR_PATTERN = /^#[0-9a-f]{6}$/i;
-
-export function normalizeTheme(value: unknown): BusinessTheme {
-  const input = value && typeof value === "object" ? value as Record<string, unknown> : {};
-  return {
-    primary: typeof input.primary === "string" && THEME_COLOR_PATTERN.test(input.primary) ? input.primary : defaultTheme.primary,
-    secondary: typeof input.secondary === "string" && THEME_COLOR_PATTERN.test(input.secondary) ? input.secondary : defaultTheme.secondary,
-    surface: typeof input.surface === "string" && THEME_COLOR_PATTERN.test(input.surface) ? input.surface : defaultTheme.surface,
-    text: typeof input.text === "string" && THEME_COLOR_PATTERN.test(input.text) ? input.text : defaultTheme.text,
-  };
-}
-
 export type Business = {
   id: string;
   name: string;
