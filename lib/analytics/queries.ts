@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { unstable_cache } from "next/cache";
 
 export type AnalyticsRange = "today" | "7d" | "30d" | "month";
 
@@ -76,6 +77,23 @@ export async function getAnalyticsSnapshot(
   requestedRange?: string,
 ): Promise<{ data: AnalyticsSnapshot | null; error: Error | null }> {
   const supabase = await createClient();
+  const range = safeRange(requestedRange);
+  if (businessId === null) {
+    const getCachedSnapshot = unstable_cache(
+      () => getAnalyticsSnapshotWithClient(supabase, null, range),
+      ["analytics-snapshot-global", range],
+      { revalidate: 60 },
+    );
+    return getCachedSnapshot();
+  }
+  return getAnalyticsSnapshotWithClient(supabase, businessId, range);
+}
+
+async function getAnalyticsSnapshotWithClient(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  businessId: string | null,
+  requestedRange?: string,
+): Promise<{ data: AnalyticsSnapshot | null; error: Error | null }> {
   const range = safeRange(requestedRange);
   const { from, to } = getRange(range);
   const fromIso = from.toISOString();
