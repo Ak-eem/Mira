@@ -112,7 +112,10 @@ export async function getAnalyticsSnapshot(
   ]);
 
   const firstError = conversationCount.error ?? messageCount.error ?? customerMessageCount.error ?? assistantMessageCount.error ?? humanHelpCount.error ?? unresolvedCount.error ?? closedCount.error ?? conversations.error ?? aggregateResult.error ?? recentErrors.error ?? ratings.error ?? activeBusinesses.error ?? popularProductsResult.error ?? unansweredQuestionsResult.error;
-  if (firstError) return { data: null, error: firstError };
+  if (firstError) {
+    console.error("getAnalyticsSnapshot query failed:", firstError);
+    return { data: null, error: new Error("Unable to load analytics right now.") };
+  }
 
   const conversationRows = (conversations.data ?? []) as ConversationRow[];
   const aggregate = (Array.isArray(aggregateResult.data) ? aggregateResult.data[0] : aggregateResult.data) as {
@@ -140,7 +143,8 @@ export async function getAnalyticsSnapshot(
         getReopenRate(businessId, range),
       ]);
     } catch (error) {
-      return { data: null, error: error instanceof Error ? error : new Error("Business insights were unavailable.") };
+      console.error("Business insights query failed:", error);
+      return { data: null, error: new Error("Unable to load business insights right now.") };
     }
   }
   const dayMap = new Map<string, { value: number; secondary: number }>();
@@ -226,7 +230,10 @@ export async function getPopularQuestions(businessId: string, requestedRange?: s
     .eq("role", "customer")
     .gte("created_at", fromIso)
     .lte("created_at", toIso);
-  if (error) throw error;
+  if (error) {
+    console.error("getPopularQuestions query failed:", error);
+    throw new Error("Unable to load popular questions right now.");
+  }
   const counts = new Map<string, number>();
   for (const row of data ?? []) {
     const question = normalizeQuestion(row.content);
@@ -243,7 +250,10 @@ export async function getTopProducts(businessId: string, requestedRange?: string
     supabase.from("product_interest").select("product_id").eq("business_id", businessId).gte("created_at", fromIso).lte("created_at", toIso),
     supabase.from("messages").select("content").eq("business_id", businessId).eq("role", "customer").gte("created_at", fromIso).lte("created_at", toIso),
   ]);
-  if (productsError || interestsError || messagesError) throw productsError ?? interestsError ?? messagesError;
+  if (productsError || interestsError || messagesError) {
+    console.error("getTopProducts query failed:", productsError ?? interestsError ?? messagesError);
+    throw new Error("Unable to load top products right now.");
+  }
 
   const countByProductId = new Map<string, number>();
   for (const interest of interests ?? []) countByProductId.set(interest.product_id, (countByProductId.get(interest.product_id) ?? 0) + 1);
@@ -263,7 +273,10 @@ export async function getUnansweredQuestions(businessId: string, requestedRange?
   const supabase = await createClient();
   const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange);
   const { data: business, error: businessError } = await supabase.from("businesses").select("name").eq("id", businessId).single();
-  if (businessError) throw businessError;
+  if (businessError) {
+    console.error("getUnansweredQuestions business lookup failed:", businessError);
+    throw new Error("Unable to load unanswered questions right now.");
+  }
   const { data: messages, error } = await supabase
     .from("messages")
     .select("conversation_id, role, content, created_at")
@@ -271,8 +284,10 @@ export async function getUnansweredQuestions(businessId: string, requestedRange?
     .gte("created_at", fromIso)
     .lte("created_at", toIso)
     .order("created_at", { ascending: true });
-  if (error) throw error;
-
+  if (error) {
+    console.error("getUnansweredQuestions messages query failed:", error);
+    throw new Error("Unable to load unanswered questions right now.");
+  }
   const byConversation = new Map<string, { role: string; content: string }[]>();
   for (const message of messages ?? []) {
     const list = byConversation.get(message.conversation_id) ?? [];
@@ -304,7 +319,10 @@ export async function getResolutionRate(businessId: string, requestedRange?: str
     supabase.from("conversations").select("id", { count: "exact", head: true }).eq("business_id", businessId).gte("started_at", fromIso).lte("started_at", toIso),
     supabase.from("conversations").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("status", "closed").gte("started_at", fromIso).lte("started_at", toIso),
   ]);
-  if (totalError || resolvedError) throw totalError ?? resolvedError;
+  if (totalError || resolvedError) {
+    console.error("getResolutionRate query failed:", totalError ?? resolvedError);
+    throw new Error("Unable to load resolution rate right now.");
+  }
   const totalCount = total ?? 0;
   const resolvedCount = resolved ?? 0;
   return { resolved: resolvedCount, total: totalCount, percentage: totalCount ? Math.round((resolvedCount / totalCount) * 100) : 0 };
@@ -319,7 +337,10 @@ export async function getReopenRate(businessId: string, requestedRange?: string)
     .eq("business_id", businessId)
     .lte("started_at", toIso)
     .order("started_at", { ascending: true });
-  if (error) throw error;
+  if (error) {
+    console.error("getReopenRate query failed:", error);
+    throw new Error("Unable to load reopen rate right now.");
+  }
   const inRange = (data ?? []).filter((conversation) => conversation.started_at >= fromIso);
   const sessions = new Set<string>();
   for (const conversation of data ?? []) {
