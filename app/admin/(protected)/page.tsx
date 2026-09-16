@@ -1,9 +1,9 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
 import type { Business } from "@/lib/types";
 import type { BusinessSubscription, SubscriptionStatus } from "@/lib/plans";
-import { getAnalyticsSnapshot } from "@/lib/analytics/queries";
-import { AnalyticsStrip } from "./AnalyticsStrip";
+import { AnalyticsStripAsync } from "./AnalyticsStripAsync";
 
 type FlaggedConversation = {
   id: string;
@@ -38,8 +38,6 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
       .range((page - 1) * pageSize, page * pageSize - 1)
       .returns<FlaggedConversation[]>(),
   ]);
-  const analyticsResult = await getAnalyticsSnapshot(null, "7d");
-
   const businessNameById = new Map((businesses ?? []).map((b) => [b.id, b.name]));
   const unclaimedFlagged = flagged ?? [];
 
@@ -96,8 +94,9 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
         </div>
       </div>
 
-      {analyticsResult.data && <AnalyticsStrip snapshot={analyticsResult.data} />}
-      {analyticsResult.error && <p className="text-sm text-amber-700">Platform analytics are unavailable: {analyticsResult.error.message}</p>}
+      <Suspense fallback={<AnalyticsStripSkeleton />}>
+        <AnalyticsStripAsync />
+      </Suspense>
 
       {!flaggedError && unclaimedFlagged.length > 0 && (
         <div className="glass-panel rounded-xl p-5">
@@ -150,6 +149,21 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
             Review activity
           </Link>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function AnalyticsStripSkeleton() {
+  return (
+    <div className="glass-panel rounded-xl p-5" aria-hidden="true">
+      <div className="grid animate-pulse gap-5 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-center">
+        {Array.from({ length: 5 }, (_, index) => (
+          <div key={index} className={index === 4 ? "lg:justify-self-end" : undefined}>
+            <div className="h-3 w-24 rounded bg-slate-200" />
+            <div className="mt-2 h-7 w-20 rounded bg-slate-200" />
+          </div>
+        ))}
       </div>
     </div>
   );
