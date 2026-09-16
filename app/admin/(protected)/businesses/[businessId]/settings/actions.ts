@@ -31,6 +31,7 @@ export async function updateBusiness(input: {
   aiInstructions: string;
   hoursNote: string;
   whatsappPhoneNumberId: string;
+  emailResponsesEnabled: boolean;
   socialLinks: BusinessSocialLinks;
   isActive: boolean;
 }) {
@@ -56,7 +57,7 @@ export async function updateBusiness(input: {
 
   const { data: existing } = await supabase
     .from("businesses")
-    .select("is_active")
+    .select("is_active,email_inbound_address")
     .eq("id", input.businessId)
     .maybeSingle();
 
@@ -72,6 +73,7 @@ export async function updateBusiness(input: {
       ai_instructions: input.aiInstructions.trim() || null,
       hours_note: input.hoursNote.trim() || null,
       whatsapp_phone_number_id: input.whatsappPhoneNumberId.trim() || null,
+      email_responses_enabled: input.emailResponsesEnabled && Boolean(existing?.email_inbound_address?.trim()),
       social_links: sanitizeSocialLinks(input.socialLinks),
       is_active: input.isActive,
     })

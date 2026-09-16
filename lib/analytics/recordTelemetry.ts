@@ -5,7 +5,7 @@ export async function recordAiResponseTelemetry(input: {
   businessId: string;
   conversationId: string;
   messageId?: string | null;
-  channel: "web" | "whatsapp";
+  channel: "web" | "whatsapp" | "email";
   success: boolean;
   latencyMs: number;
   metadata?: JsonFetchMetadata;
