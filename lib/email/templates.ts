@@ -1,4 +1,5 @@
 import "server-only";
+import { escapeHtml } from "@/lib/escapeHtml";
 
 type VerificationTemplateInput = {
   otp: string;
@@ -10,15 +11,6 @@ type WelcomeTemplateInput = {
   recipientName?: string;
   loginUrl?: string;
 };
-
-function escapeHtml(value: string): string {
-  return value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#039;");
-}
 
 const baseFont = "-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif";
 const accent = "#0f766e";
