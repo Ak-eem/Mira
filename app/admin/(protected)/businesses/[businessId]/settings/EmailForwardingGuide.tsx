@@ -66,14 +66,12 @@ export function EmailForwardingGuide({ inboundAddress }: { inboundAddress: strin
               <span className="font-mono">{inboundAddress}</span>.
             </li>
             <li>Gmail sends a confirmation to that address -- once it&apos;s approved, come back and choose &quot;Forward a copy&quot; for incoming mail.</li>
-            <li>Gmail sends a confirmation to that address -- once it&apos;s approved, come back and choose &quot;Forward a copy&quot; for incoming mail.</li>
-<li>
-  Make sure <strong>Email responses</strong> is turned off until you&apos;ve confirmed forwarding. Gmail&apos;s
-  confirmation email goes to the Mira address, not your own inbox -- with responses off, it&apos;ll show up as a
-  flagged conversation in Mira&apos;s dashboard, and that&apos;s where you&apos;ll find the confirmation link to
-  click.
-</li>
-<li>Save changes.</li>
+            <li>
+              Make sure <strong>Email responses</strong> is turned off until you&apos;ve confirmed forwarding. Gmail&apos;s
+              confirmation email goes to the Mira address, not your own inbox -- with responses off, it&apos;ll show up as a
+              flagged conversation in Mira&apos;s dashboard, and that&apos;s where you&apos;ll find the confirmation link to
+              click.
+            </li>
             <li>Save changes.</li>
           </ol>
         </details>
