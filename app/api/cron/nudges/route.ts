@@ -15,7 +15,32 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 
-  const summary = await runNudgeCheck();
-  await createServiceRoleClient().from("system_health_checks").upsert({ check_name: "nudges-cron", checked_at: new Date().toISOString() });
-  return NextResponse.json(summary);
+  const serviceRoleClient = createServiceRoleClient();
+  const lock = await serviceRoleClient
+    .from("system_health_checks")
+    .insert({
+      check_name: "nudges-cron-lock",
+      checked_at: new Date().toISOString(),
+    });
+
+  if (lock.error) {
+    if (lock.error.code === "23505") {
+      return NextResponse.json({ skipped: true });
+    }
+    throw lock.error;
+  }
+
+  try {
+    const summary = await runNudgeCheck();
+    await serviceRoleClient.from("system_health_checks").upsert({
+      check_name: "nudges-cron",
+      checked_at: new Date().toISOString(),
+    });
+    return NextResponse.json(summary);
+  } finally {
+    await serviceRoleClient
+      .from("system_health_checks")
+      .delete()
+      .eq("check_name", "nudges-cron-lock");
+  }
 }
