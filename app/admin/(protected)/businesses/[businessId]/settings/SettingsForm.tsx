@@ -63,6 +63,7 @@ export function SettingsForm({ business }: { business: Business }) {
           Email responses
         </label>
         {business.email_inbound_address ? (
+          // Inbound addresses are constrained to lowercase by the database.
           <p className="mt-1 font-mono text-xs text-slate-500">Inbound address: {business.email_inbound_address}</p>
         ) : (
           <p className="mt-1 text-xs text-slate-500">Configure an inbound email address before enabling email responses.</p>
