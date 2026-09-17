@@ -55,20 +55,14 @@ function parseIpv6Groups(value: string): number[] | null {
   const parsed: number[] = [];
   for (const [index, group] of groups.entries()) {
     if (group.includes(".")) {
-      if (index !== groups.length - 1 || !isPublicIpv4(group)) {
-        const octets = group.split(".").map(Number);
-        if (
-          index !== groups.length - 1 ||
-          octets.length !== 4 ||
-          octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)
-        ) {
-          return null;
-        }
-        parsed.push((octets[0] << 8) | octets[1], (octets[2] << 8) | octets[3]);
-        continue;
-      }
-
       const octets = group.split(".").map(Number);
+      if (
+        index !== groups.length - 1 ||
+        octets.length !== 4 ||
+        octets.some((octet) => !Number.isInteger(octet) || octet < 0 || octet > 255)
+      ) {
+        return null;
+      }
       parsed.push((octets[0] << 8) | octets[1], (octets[2] << 8) | octets[3]);
       continue;
     }
@@ -114,6 +108,20 @@ export function isPublicIpv6(address: string): boolean {
   const groups = parseIpv6(address);
   if (!groups) return false;
 
+  const blockedRanges: readonly [number[], number][] = [
+    [[0x0000, 0x0000, 0x0000, 0x0000], 128], // unspecified
+    [[0x0000, 0x0000, 0x0000, 0x0001], 128], // loopback
+    [[0xfc00, 0x0000, 0x0000, 0x0000], 7], // unique-local (fc00::/7)
+    [[0xfe80, 0x0000, 0x0000, 0x0000], 10], // link-local (fe80::/10)
+    [[0xfec0, 0x0000, 0x0000, 0x0000], 10], // deprecated site-local
+    [[0xff00, 0x0000, 0x0000, 0x0000], 8], // multicast
+    [[0x2001, 0x0db8, 0x0000, 0x0000], 32], // documentation
+    [[0x2001, 0x0002, 0x0000, 0x0000], 48], // benchmarking
+    [[0x2001, 0x0010, 0x0000, 0x0000], 28], // ORCHID
+    [[0x0100, 0x0000, 0x0000, 0x0000], 64], // discard-only (100::/64)
+  ];
+  if (blockedRanges.some(([prefix, bits]) => ipv6InRange(groups, prefix, bits))) return false;
+
   const isIpv4Mapped = groups.slice(0, 5).every((group) => group === 0) && groups[5] === 0xffff;
   const isIpv4Compatible = groups.slice(0, 6).every((group) => group === 0);
   if (isIpv4Mapped || isIpv4Compatible) {
@@ -121,21 +129,7 @@ export function isPublicIpv6(address: string): boolean {
     return isPublicIpv4(mappedIpv4.join("."));
   }
 
-  return ![
-    [0x0000, 0x0000, 0x0000, 0x0000], // unspecified
-    [0x0000, 0x0000, 0x0000, 0x0001], // loopback
-    [0xfc00, 0x0000, 0x0000, 0x0000], // unique-local (fc00::/7)
-    [0xfe80, 0x0000, 0x0000, 0x0000], // link-local (fe80::/10)
-    [0xfec0, 0x0000, 0x0000, 0x0000], // deprecated site-local
-    [0xff00, 0x0000, 0x0000, 0x0000], // multicast
-    [0x2001, 0x0db8, 0x0000, 0x0000], // documentation
-    [0x2001, 0x0002, 0x0000, 0x0000], // benchmarking
-    [0x2001, 0x0010, 0x0000, 0x0000], // ORCHID
-    [0x0100, 0x0000, 0x0000, 0x0000], // discard-only (100::/64)
-  ].some((prefix, index) => {
-    const bits = index === 2 ? 7 : index === 3 ? 10 : index === 4 ? 10 : index === 5 ? 8 : index === 6 ? 32 : index === 7 ? 48 : index === 8 ? 28 : index === 9 ? 64 : 128;
-    return ipv6InRange(groups, prefix, bits);
-  });
+  return true;
 }
 
 // Resolve the hostname ONCE and validate every returned address. The validated
