@@ -12,6 +12,9 @@ export async function middleware(request: NextRequest) {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
 
   if (!supabaseUrl || !supabaseKey) {
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json({ error: "Service Unavailable" }, { status: 503 });
+    }
     return response;
   }
 
