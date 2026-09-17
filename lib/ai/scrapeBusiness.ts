@@ -49,9 +49,9 @@ function extractLinks(html: string, pageUrl: URL, originHostname: string): strin
   return links;
 }
 
-function extractImages(html: string, pageUrl: URL, images: Set<string>): void {
+function extractImages(html: string, pageUrl: URL, images: Set<string>, maxImages: number): void {
   const add = (value: string) => {
-    if (images.size >= MAX_IMAGES) return;
+    if (images.size >= maxImages) return;
     try {
       const url = validateUrl(new URL(value.trim(), pageUrl).toString());
       if (url.protocol === "http:" || url.protocol === "https:") images.add(url.toString());
@@ -168,8 +168,12 @@ export async function scrapeBusinessWebsite(startUrl: string): Promise<ScrapeRes
         const page = await fetchPage(next, overallController.signal, effectiveOriginHostname);
         const pageUrl = new URL(page.url);
         if (!effectiveOriginHostname) effectiveOriginHostname = pageUrl.hostname;
-        for (const image of await fetchImages(extractImageUrls(page.html, pageUrl), overallController.signal)) {
-          images.add(image);
+        const remainingImageBudget = MAX_IMAGES - images.size;
+        if (remainingImageBudget > 0) {
+          const candidates = extractImageUrls(page.html, pageUrl, remainingImageBudget);
+          for (const image of await fetchImages(candidates, overallController.signal)) {
+            images.add(image);
+          }
         }
         pages.push({ url: page.url, text: htmlToText(page.html) });
         for (const link of extractLinks(page.html, pageUrl, effectiveOriginHostname)) {
@@ -186,8 +190,8 @@ export async function scrapeBusinessWebsite(startUrl: string): Promise<ScrapeRes
   return { pages, images: [...images] };
 }
 
-function extractImageUrls(html: string, pageUrl: URL): Set<string> {
+function extractImageUrls(html: string, pageUrl: URL, maxImages: number): Set<string> {
   const images = new Set<string>();
-  extractImages(html, pageUrl, images);
+  extractImages(html, pageUrl, images, maxImages);
   return images;
 }
