@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateBusiness } from "./actions";
+import { EmailForwardingGuide } from "./EmailForwardingGuide";
 import type { Business, BusinessSocialLinks } from "@/lib/types";
 
 export function SettingsForm({ business }: { business: Business }) {
@@ -68,6 +69,7 @@ export function SettingsForm({ business }: { business: Business }) {
         ) : (
           <p className="mt-1 text-xs text-slate-500">Configure an inbound email address before enabling email responses.</p>
         )}
+        <EmailForwardingGuide inboundAddress={business.email_inbound_address} />
       </div>
 
       <div>
