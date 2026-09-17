@@ -148,7 +148,7 @@ export async function resolvePinnedAddress(hostname: string): Promise<PinnedAddr
     family === 4 ? isPublicIpv4(address) : family === 6 && isPublicIpv6(address),
   );
   if (!validAddress) throw new Error("URL resolves to a private or reserved address.");
-  return { address: validAddress.address, family: validAddress.family };
+  return { address: validAddress.address, family: validAddress.family === 6 ? 6 : 4 };
 }
 
 function combineSignals(overallSignal: AbortSignal, hopSignal: AbortSignal): AbortSignal {
@@ -265,7 +265,9 @@ export async function fetchUrl(input: string): Promise<Response> {
 
       if (response.status < 300 || response.status >= 400) {
         const body = await readBoundedBody(response);
-        return new Response(body, {
+        const arrayBuffer = new ArrayBuffer(body.byteLength);
+        new Uint8Array(arrayBuffer).set(body);
+        return new Response(arrayBuffer, {
           headers: response.headers,
           status: response.status,
           statusText: response.statusText,
