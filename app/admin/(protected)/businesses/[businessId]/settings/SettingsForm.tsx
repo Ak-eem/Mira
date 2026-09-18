@@ -128,7 +128,7 @@ export function SettingsForm({ business }: { business: Business }) {
 
       <div>
         <label className="block text-sm font-medium text-slate-700">
-          Hours note <span className="font-normal text-slate-400">— exceptions that don't fit the weekly pattern</span>
+          Hours note <span className="font-normal text-slate-400">— exceptions that don&apos;t fit the weekly pattern</span>
         </label>
         <input
           className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
@@ -140,7 +140,7 @@ export function SettingsForm({ business }: { business: Business }) {
 
       <div>
         <label className="block text-sm font-medium text-slate-700">
-          WhatsApp phone number ID <span className="font-normal text-slate-400">— optional, from Meta's WhatsApp Business API setup</span>
+          WhatsApp phone number ID <span className="font-normal text-slate-400">— optional, from Meta&apos;s WhatsApp Business API setup</span>
         </label>
         <input
           className="mt-1 w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm"

@@ -18,6 +18,9 @@ export function WebsiteImport({ businessId }: { businessId: string }) {
     if (response.ok) setDrafts((await response.json()).drafts ?? []);
   }
 
+  // Genuine fetch-on-mount/fetch-on-businessId-change; there's no way to lazy-init an
+  // async network request.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void loadDrafts(); }, [businessId]);
 
   async function importWebsite(event: React.FormEvent) {

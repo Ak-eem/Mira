@@ -15,6 +15,10 @@ export function EmbedSnippet({ slug, businessName }: { slug: string; businessNam
   // the real value swaps in a moment later instead.
   const [origin, setOrigin] = useState("");
   useEffect(() => {
+    // window.location.origin only exists client-side; a lazy useState initializer would
+    // run during SSR too and throw (window is not defined). This effect + empty-string
+    // start is what keeps the server and first client render identical (see above).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOrigin(window.location.origin);
   }, []);
 

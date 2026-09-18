@@ -11,6 +11,10 @@ export default async function PortalDashboardPage({
   const { businessId } = await params;
   const supabase = await createClient();
 
+  // This is a Server Component (no "use client", no hooks); it already renders fresh
+  // per request. Hoisting this to module level, as the purity rule's fix suggests,
+  // would bake the timestamp in at build/startup time, freezing the 30-day window.
+  // eslint-disable-next-line react-hooks/purity
   const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
   const [

@@ -34,7 +34,7 @@ export function DeleteBusinessPanel({ businessId, businessName }: { businessId: 
       <p className="mb-1 text-sm font-medium text-red-800">Delete this business</p>
       <p className="mb-3 text-sm text-red-700">
         Permanent. Deletes every conversation, message, order, product, nudge rule, and portal login tied to{" "}
-        <span className="font-medium">{businessName}</span> — there's no undo.
+        <span className="font-medium">{businessName}</span> — there&apos;s no undo.
       </p>
 
       <label className="block text-xs font-medium text-red-800">
