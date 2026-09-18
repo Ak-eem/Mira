@@ -138,16 +138,19 @@ export async function resolvePinnedAddress(hostname: string): Promise<PinnedAddr
   const normalizedHostname = hostname.replace(/^\[|\]$/g, "");
   const literalFamily = isIP(normalizedHostname);
   if (literalFamily === 4 || literalFamily === 6) {
-    const isAllowed = literalFamily === 4 ? isPublicIpv4(normalizedHostname) : isPublicIpv6(normalizedHostname);
+    const family: 4 | 6 = literalFamily;
+    const isAllowed = family === 4 ? isPublicIpv4(normalizedHostname) : isPublicIpv6(normalizedHostname);
     if (!isAllowed) throw new Error("URL resolves to a private or reserved address.");
-    return { address: normalizedHostname, family: literalFamily };
+    return { address: normalizedHostname, family };
   }
 
   const addresses = await dns.lookup(normalizedHostname, { all: true, verbatim: true });
   const validAddress = addresses.find(({ address, family }) =>
     family === 4 ? isPublicIpv4(address) : family === 6 && isPublicIpv6(address),
   );
-  if (!validAddress) throw new Error("URL resolves to a private or reserved address.");
+  if (!validAddress || (validAddress.family !== 4 && validAddress.family !== 6)) {
+    throw new Error("URL resolves to a private or reserved address.");
+  }
   return { address: validAddress.address, family: validAddress.family };
 }
 
@@ -265,7 +268,9 @@ export async function fetchUrl(input: string): Promise<Response> {
 
       if (response.status < 300 || response.status >= 400) {
         const body = await readBoundedBody(response);
-        return new Response(body, {
+        const responseBody = new ArrayBuffer(body.byteLength);
+        new Uint8Array(responseBody).set(body);
+        return new Response(responseBody, {
           headers: response.headers,
           status: response.status,
           statusText: response.statusText,
