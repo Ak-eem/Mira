@@ -1,16 +1,26 @@
 # Changes in this update
 
 ## Inbound reliability: idempotent processing + reply outbox
-**Run migration `0042_inbound_idempotency_outbox.sql` before deploying** (adds
-`messages.inbound_key`, reply outbox columns on both inbound queues, and the
-`record_assistant_reply()` function; safe to re-run). No new env vars.
+**Run migrations `0042` then `0043` before deploying** (adds
+`messages.inbound_key`, reply outbox + send-tracking columns on the inbound
+queues, and the `record_assistant_reply()` function; both safe to re-run).
+No new env vars.
 
 - **Send-before-ack (WhatsApp + email):** the reply text is now saved on the
   queue row *before* it is sent, and the send + completion are one update. A
   retry re-sends the stored text instead of re-running the AI pipeline. Email
-  sends also carry a Resend `Idempotency-Key`. WhatsApp Cloud API has no
-  send idempotency key, so a crash in the small window between a successful
-  send and the DB update can still re-send the same text once.
+  sends also carry a Resend `Idempotency-Key`.
+- **WhatsApp has no send idempotency key**, so a duplicate can't be ruled out
+  when a send's result is never recorded. It is now explicit and bounded:
+  a 4xx is "definitely not sent" and retries cleanly; a timeout, network
+  error or 5xx is "unknown"; a marker is written before every send; the ack
+  after a confirmed send is retried 3x; an ambiguous send is re-sent at most
+  ONCE (one possible duplicate is preferred over silence), then the row is
+  closed and logged ("Delivery unconfirmed") instead of looping. Sends time
+  out after 15s so a hung request can't hold the conversation lease.
+- **Product interest** is recorded inside the same transaction as the reply,
+  so a retry can't record it twice; a bad product id can't fail the reply.
+  `lib/chat/recordProductInterest.ts` is removed (it had no other callers).
 - **Duplicate rows on retry:** customer and assistant messages are keyed on
   the provider message id, so a retry reuses them instead of inserting again
   or generating a second answer.
