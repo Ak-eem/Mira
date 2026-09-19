@@ -13,7 +13,7 @@ export default function SubscribeButton({ plan, businessName, email }: Props) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const paymentReference = reference;
+    const paymentReference = reference ?? '';
     if (!paymentReference) return;
     let cancelled = false;
     async function poll() {
@@ -44,5 +44,5 @@ export default function SubscribeButton({ plan, businessName, email }: Props) {
     } catch (cause) { setStatus(cause instanceof Error ? cause.message : 'Unable to start checkout'); setLoading(false); }
   }
 
-  return <div><button type='button' onClick={startCheckout} disabled={loading}>{loading ? 'Opening Paystack…' : `Subscribe to ${plan}`}</button>{status ? <p role='status'>{status}</p> : null}</div>;
+  return <div><button type="button" onClick={startCheckout} disabled={loading}>{loading ? 'Opening Paystack…' : `Subscribe to ${plan}`}</button>{status ? <p role="status">{status}</p> : null}</div>;
 }
