@@ -118,6 +118,8 @@ export function isPublicIpv6(address: string): boolean {
     [[0x2001, 0x0db8, 0x0000, 0x0000], 32], // documentation
     [[0x2001, 0x0002, 0x0000, 0x0000], 48], // benchmarking
     [[0x2001, 0x0010, 0x0000, 0x0000], 28], // ORCHID
+    [[0x2001, 0x0000, 0x0000, 0x0000], 32], // Teredo tunneling (2001::/32)
+    [[0x2002, 0x0000, 0x0000, 0x0000], 16], // 6to4 tunneling (2002::/16)
     [[0x0100, 0x0000, 0x0000, 0x0000], 64], // discard-only (100::/64)
   ];
   if (blockedRanges.some(([prefix, bits]) => ipv6InRange(groups, prefix, bits))) return false;

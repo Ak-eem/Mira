@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend, type WebhookEventPayload } from "resend";
 import { processMessage } from "@/lib/chat/processMessage";
+import { processIncomingMessage } from "@/lib/chat/processIncomingMessage";
 import { withConversationLease } from "@/lib/chat/durable";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -16,7 +17,6 @@ import { sendEmailReply } from "@/lib/email/sendReply";
 export const runtime = "nodejs";
 const MAX_MESSAGE_LENGTH = 4000;
 type Client = ReturnType<typeof createServiceRoleClient>;
-type ChatResult = Awaited<ReturnType<typeof processMessage>> & { silent?: boolean };
 
 function isReceivedEvent(payload: WebhookEventPayload): payload is Extract<WebhookEventPayload, { type: "email.received" }> {
   return payload.type === "email.received";
@@ -63,40 +63,6 @@ async function captureForHuman(client: Client, businessId: string, sender: strin
     .update({ needs_human: true, last_message_at: new Date().toISOString() })
     .eq("id", conversationId);
   if (updated.error) throw updated.error;
-}
-
-async function processIncomingMessage(
-  client: Client,
-  businessId: string,
-  sender: string,
-  message: string,
-): Promise<ChatResult> {
-  const sessionToken = `email_${sender}`;
-  const conversation = await client
-    .from("conversations")
-    .select("id,claimed_by")
-    .eq("business_id", businessId)
-    .eq("session_token", sessionToken)
-    .eq("status", "open")
-    .maybeSingle();
-  if (conversation.error) throw conversation.error;
-
-  if (conversation.data?.claimed_by) {
-    const saved = await client
-      .from("messages")
-      .insert({ conversation_id: conversation.data.id, business_id: businessId, role: "customer", content: message })
-      .select("id")
-      .single();
-    if (saved.error || !saved.data) throw saved.error ?? new Error("Could not save customer message.");
-    const timestamp = await client
-      .from("conversations")
-      .update({ last_message_at: new Date().toISOString() })
-      .eq("id", conversation.data.id);
-    if (timestamp.error) throw timestamp.error;
-    return { reply: "", messageId: saved.data.id, productImages: [], silent: true };
-  }
-
-  return processMessage(businessId, sessionToken, message, "email");
 }
 
 export async function POST(request: NextRequest) {
@@ -178,7 +144,7 @@ export async function POST(request: NextRequest) {
         await captureForHuman(client, routedBusiness.id, sender, body);
         return { reply: "", silent: true };
       }
-      return processIncomingMessage(client, routedBusiness.id, sender, body);
+      return processIncomingMessage(client, routedBusiness.id, `email_${sender}`, body, "email");
     };
     const result = await withConversationLease(client, `email:${routedBusiness.id}:${sender}`, processIncoming);
     if (!result.silent) {

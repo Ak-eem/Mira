@@ -28,11 +28,8 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Test intent classification
-        run: npx tsx lib/ai/classifyIntent.test.ts
-
-      - name: Test product image matching
-        run: npx tsx lib/chat/matchProductImages.test.ts
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npx next build
