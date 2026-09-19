@@ -10,6 +10,8 @@ import {
   claimInboundMessage,
   markInboundDone,
   markInboundFailed,
+  markInboundSent,
+  saveInboundReply,
 } from "@/lib/whatsapp/inboundQueue";
 import { sendWhatsappReply } from "@/lib/whatsapp/sendMessage";
 
@@ -88,6 +90,12 @@ export async function POST(request: NextRequest) {
   const ip = getRequestIp(request);
   try {
     for (const item of messages) {
+      // Dedup BEFORE the rate limit. A replayed copy of an already-processed
+      // message must be a free no-op: if the limit ran first, replaying a
+      // captured request would burn the real customer's per-number budget.
+      const queued = await enqueueInboundMessage(client, item.id, item.phoneId, item.raw);
+      if (queued.status === "done") continue;
+
       const limits = await Promise.all([
         checkRateLimit(client, `wa:${item.from}`, 20),
         checkRateLimit(client, `wa-ip:${ip}`, 120),
@@ -104,8 +112,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const queued = await enqueueInboundMessage(client, item.id, item.phoneId, item.raw);
-      if (queued.status === "done" || !(await claimInboundMessage(client, queued.id))) continue;
+      if (!(await claimInboundMessage(client, queued))) continue;
 
       const business = await client
         .from("businesses")
@@ -121,13 +128,32 @@ export async function POST(request: NextRequest) {
 
       const businessId = business.data.id;
       try {
-        const result = await withConversationLease(client, `wa:${businessId}:${item.from}`, () =>
-          processIncomingMessage(client, businessId, `wa_${item.from}`, item.text, "whatsapp"),
-        );
-        if (!result.silent) {
-          await sendWhatsappReply(item.phoneId, item.from, result.reply);
+        if (queued.reply_sent_at) {
+          // Sent on an earlier attempt; only the final ack was lost.
+          await markInboundDone(client, queued.id);
+          continue;
         }
-        await markInboundDone(client, queued.id);
+
+        // Outbox: a reply persisted by an earlier attempt is re-sent as-is.
+        // Otherwise process (idempotent on the inbound key), persist the
+        // reply, THEN send, so a crash after the send can never regenerate
+        // the answer or duplicate the stored rows.
+        let replyText = queued.reply_text;
+        if (replyText === null) {
+          const result = await withConversationLease(client, `wa:${businessId}:${item.from}`, () =>
+            processIncomingMessage(client, businessId, `wa_${item.from}`, item.text, "whatsapp", `wa:${item.id}`),
+          );
+          if (result.silent) {
+            await markInboundDone(client, queued.id);
+            continue;
+          }
+          replyText = result.reply;
+          await saveInboundReply(client, queued.id, replyText);
+        }
+
+        const sent = await sendWhatsappReply(item.phoneId, item.from, replyText);
+        if (!sent) throw new Error("WhatsApp reply could not be sent.");
+        await markInboundSent(client, queued.id);
       } catch (error) {
         await markInboundFailed(
           client,

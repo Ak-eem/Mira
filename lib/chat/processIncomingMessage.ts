@@ -18,6 +18,7 @@ export async function processIncomingMessage(
   sessionToken: string,
   message: string,
   channel: "web" | "whatsapp" | "email",
+  inboundKey?: string,
 ): Promise<ChatResult> {
   const conversation = await client
     .from("conversations")
@@ -36,9 +37,21 @@ export async function processIncomingMessage(
         business_id: businessId,
         role: "customer",
         content: message,
+        inbound_key: inboundKey ?? null,
       })
       .select("id")
       .single();
+    // 23505 on inbound_key: a previous attempt already saved this message.
+    if (saved.error?.code === "23505" && inboundKey) {
+      const existing = await client
+        .from("messages")
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("inbound_key", inboundKey)
+        .single();
+      if (existing.error || !existing.data) throw existing.error ?? new Error("Could not read saved customer message.");
+      return { reply: "", messageId: existing.data.id, productImages: [], silent: true };
+    }
     if (saved.error || !saved.data) throw saved.error ?? new Error("Could not save customer message.");
 
     const timestamp = await client
@@ -50,5 +63,5 @@ export async function processIncomingMessage(
     return { reply: "", messageId: saved.data.id, productImages: [], silent: true };
   }
 
-  return processMessage(businessId, sessionToken, message, channel);
+  return processMessage(businessId, sessionToken, message, channel, inboundKey);
 }

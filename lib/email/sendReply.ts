@@ -7,6 +7,9 @@ export async function sendEmailReply(
   subject: string,
   body: string,
   inReplyTo?: string,
+  // Sent as Resend's Idempotency-Key: if a retry re-sends after a send that
+  // actually succeeded, Resend returns the original instead of a second email.
+  idempotencyKey?: string,
 ): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey || !from) {
@@ -19,13 +22,16 @@ export async function sendEmailReply(
       ? { "In-Reply-To": inReplyTo, References: inReplyTo }
       : undefined;
     const resend = new Resend(apiKey);
-    const { error } = await resend.emails.send({
-      from,
-      to: [to],
-      subject: subject.startsWith("Re:") ? subject : `Re: ${subject}`,
-      text: body,
-      headers,
-    });
+    const { error } = await resend.emails.send(
+      {
+        from,
+        to: [to],
+        subject: subject.startsWith("Re:") ? subject : `Re: ${subject}`,
+        text: body,
+        headers,
+      },
+      idempotencyKey ? { idempotencyKey } : undefined,
+    );
     if (error) {
       console.error("Email send failed:", error);
       return false;

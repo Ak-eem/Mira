@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint app lib",
-    "test": "npx tsx lib/ai/classifyIntent.test.ts && npx tsx lib/chat/matchProductImages.test.ts && npx tsx lib/email/parseInbound.test.ts"
+    "test": "npx tsx lib/ai/classifyIntent.test.ts && npx tsx lib/chat/matchProductImages.test.ts && npx tsx lib/email/parseInbound.test.ts && npx tsx lib/chat/inboundQueue.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
