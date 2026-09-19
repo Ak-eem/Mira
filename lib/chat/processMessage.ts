@@ -8,7 +8,6 @@ import { after } from "next/server";
 import { getOfflineGateReply } from "@/lib/chat/offlineReply";
 import { getHandoffReply, getPausedReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
 import { matchProductImages, type ProductImageRef } from "@/lib/chat/matchProductImages";
-import { recordProductInterest } from "@/lib/chat/recordProductInterest";
 import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
 import { replyKeyFor } from "@/lib/chat/inboundKey";
 
@@ -46,6 +45,8 @@ async function recordAssistantReply(
     snapshot: Record<string, unknown>;
     inboundKey: string | null;
     flagHandoff?: boolean;
+    interestProductIds?: string[];
+    customerIdentifier?: string;
   },
 ): Promise<{ data: RecordedReply | null; error: unknown }> {
   const { data, error } = await supabase.rpc("record_assistant_reply", {
@@ -55,6 +56,8 @@ async function recordAssistantReply(
     p_snapshot: args.snapshot,
     p_inbound_key: args.inboundKey,
     p_flag_handoff: args.flagHandoff ?? false,
+    p_interest_product_ids: args.interestProductIds?.length ? args.interestProductIds : null,
+    p_customer_identifier: args.customerIdentifier ?? null,
   });
   if (error) return { data: null, error };
   const row = (Array.isArray(data) ? data[0] : data) as { message_id?: string; newly_flagged?: boolean } | null | undefined;
@@ -367,7 +370,6 @@ export async function processMessage(
   }
 
   const productImages = matchProductImages(replyText, context.products);
-  await recordProductInterest(supabase, businessId, sessionToken, productImages);
 
   // Recorded atomically with the last_message_at bump. The insert still
   // selects the row back (feedback thumbs need a real message id), so a
@@ -378,6 +380,10 @@ export async function processMessage(
     content: replyText,
     snapshot: { systemPrompt, productImages },
     inboundKey: replyKey,
+    // Written in the same transaction as the reply, so a retry can never
+    // record the same interest twice.
+    interestProductIds: productImages.map((p) => p.productId),
+    customerIdentifier: sessionToken,
   });
 
   if (assistantInsertError || !savedAssistantMessage) {

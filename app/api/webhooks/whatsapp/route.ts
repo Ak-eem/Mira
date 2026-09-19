@@ -12,8 +12,12 @@ import {
   markInboundFailed,
   markInboundSent,
   saveInboundReply,
+  decideSend,
+  markSendStarted,
+  markSendRejected,
+  markSendAbandoned,
 } from "@/lib/whatsapp/inboundQueue";
-import { sendWhatsappReply } from "@/lib/whatsapp/sendMessage";
+import { sendWhatsappReplyDetailed } from "@/lib/whatsapp/sendMessage";
 
 export const runtime = "nodejs";
 const MAX_MESSAGE_LENGTH = 4000;
@@ -151,9 +155,23 @@ export async function POST(request: NextRequest) {
           await saveInboundReply(client, queued.id, replyText);
         }
 
-        const sent = await sendWhatsappReply(item.phoneId, item.from, replyText);
-        if (!sent) throw new Error("WhatsApp reply could not be sent.");
-        await markInboundSent(client, queued.id);
+        const gate = decideSend(queued);
+        if (gate.action === "abandon") {
+          console.error(`WhatsApp reply for queue row ${queued.id} has an unconfirmed delivery after its one re-send; closing without another send.`);
+          await markSendAbandoned(client, queued.id);
+          continue;
+        }
+        await markSendStarted(client, queued.id, gate.resend);
+        const sent = await sendWhatsappReplyDetailed(item.phoneId, item.from, replyText);
+        if (sent.outcome === "rejected") {
+          // Definitely not delivered, so the retry starts clean.
+          await markSendRejected(client, queued.id);
+          throw new Error("WhatsApp rejected the reply.");
+        }
+        // "unknown" leaves send_started_at set: the next attempt treats it as
+        // ambiguous and re-sends at most once.
+        if (sent.outcome === "unknown") throw new Error("WhatsApp send outcome unknown.");
+        await markInboundSent(client, queued.id, sent.messageId);
       } catch (error) {
         await markInboundFailed(
           client,
