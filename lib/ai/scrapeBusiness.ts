@@ -49,14 +49,16 @@ function extractLinks(html: string, pageUrl: URL, originHostname: string): strin
   return links;
 }
 
-function extractImages(html: string, pageUrl: URL, images: Set<string>, maxImages: number): void {
+function extractImages(html: string, pageUrl: URL, images: Set<string>, maxImages: number, originHostname: string): void {
   const add = (value: string) => {
     if (images.size >= maxImages) return;
     try {
       const url = validateUrl(new URL(value.trim(), pageUrl).toString());
-      if (url.protocol === "http:" || url.protocol === "https:") images.add(url.toString());
+      if ((url.protocol === "http:" || url.protocol === "https:") && sameOriginHostname(url, originHostname)) {
+        images.add(url.toString());
+      }
     } catch {
-      // Ignore malformed or unsafe image URLs.
+      // Ignore malformed, unsafe, or cross-origin image URLs.
     }
   };
 
@@ -170,7 +172,7 @@ export async function scrapeBusinessWebsite(startUrl: string): Promise<ScrapeRes
         if (!effectiveOriginHostname) effectiveOriginHostname = pageUrl.hostname;
         const remainingImageBudget = MAX_IMAGES - images.size;
         if (remainingImageBudget > 0) {
-          const candidates = extractImageUrls(page.html, pageUrl, remainingImageBudget);
+          const candidates = extractImageUrls(page.html, pageUrl, remainingImageBudget, effectiveOriginHostname);
           for (const image of await fetchImages(candidates, overallController.signal)) {
             images.add(image);
           }
@@ -190,8 +192,8 @@ export async function scrapeBusinessWebsite(startUrl: string): Promise<ScrapeRes
   return { pages, images: [...images] };
 }
 
-function extractImageUrls(html: string, pageUrl: URL, maxImages: number): Set<string> {
+function extractImageUrls(html: string, pageUrl: URL, maxImages: number, originHostname: string): Set<string> {
   const images = new Set<string>();
-  extractImages(html, pageUrl, images, maxImages);
+  extractImages(html, pageUrl, images, maxImages, originHostname);
   return images;
 }
