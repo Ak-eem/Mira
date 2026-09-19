@@ -1,38 +1,17 @@
--- Paystack subscription storage and idempotent, service-role-only activation.
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-
--- If your project already has public.businesses, keep its existing table and
--- ensure it has a unique user_id and a business_name column before using the RPC.
-CREATE TABLE IF NOT EXISTS public.businesses (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
-  business_name text NOT NULL,
-  created_at timestamptz NOT NULL DEFAULT now(),
-  updated_at timestamptz NOT NULL DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS public.subscriptions (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  plan text NOT NULL CHECK (plan IN ('starter', 'pro')),
-  status text NOT NULL CHECK (status IN ('active', 'expired', 'cancelled')),
-  reference text NOT NULL UNIQUE,
-  amount integer NOT NULL CHECK (amount > 0),
-  created_at timestamptz NOT NULL DEFAULT now(),
-  expires_at timestamptz NOT NULL
-);
-
-ALTER TABLE public.subscriptions ENABLE ROW LEVEL SECURITY;
-REVOKE ALL ON TABLE public.subscriptions FROM anon, authenticated;
-GRANT SELECT ON TABLE public.subscriptions TO authenticated;
-DROP POLICY IF EXISTS admin_can_select_subscriptions ON public.subscriptions;
-CREATE POLICY admin_can_select_subscriptions ON public.subscriptions
-  FOR SELECT TO authenticated
-  USING ((auth.jwt() -> 'app_metadata' ->> 'role') = 'admin');
+-- Paystack fields and service-role-only activation for the existing business subscription model.
+ALTER TABLE public.business_subscriptions
+  ADD COLUMN IF NOT EXISTS reference text UNIQUE,
+  ADD COLUMN IF NOT EXISTS amount integer,
+  ADD COLUMN IF NOT EXISTS paid_at timestamptz,
+  ADD COLUMN IF NOT EXISTS expires_at timestamptz;
 
 CREATE OR REPLACE FUNCTION public.activate_paystack_subscription(
-  p_user_id uuid, p_plan text, p_reference text, p_amount integer,
-  p_business_name text, p_duration_days integer
+  p_business_id uuid,
+  p_reference text,
+  p_amount integer,
+  p_expires_at timestamptz,
+  p_expected_amount_kobo integer,
+  p_plan text DEFAULT 'base'
 )
 RETURNS void
 LANGUAGE plpgsql
@@ -40,27 +19,72 @@ SECURITY DEFINER
 SET search_path = public, pg_temp
 AS $$
 DECLARE
-  inserted_id uuid;
+  normalized_reference text := btrim(p_reference);
 BEGIN
-  IF p_user_id IS NULL OR p_plan NOT IN ('starter', 'pro') OR p_reference IS NULL OR btrim(p_reference) = ''
-     OR p_amount IS NULL OR p_amount <= 0 OR p_duration_days IS NULL OR p_duration_days <= 0
-     OR p_business_name IS NULL OR btrim(p_business_name) = '' THEN
+  IF p_business_id IS NULL
+     OR p_reference IS NULL
+     OR normalized_reference = ''
+     OR p_amount IS NULL
+     OR p_expected_amount_kobo IS NULL
+     OR p_amount <> p_expected_amount_kobo
+     OR p_expires_at IS NULL
+     OR p_plan IS DISTINCT FROM 'base' THEN
     RAISE EXCEPTION 'invalid Paystack activation input';
   END IF;
 
-  INSERT INTO public.subscriptions (user_id, plan, status, reference, amount, expires_at)
-  VALUES (p_user_id, p_plan, 'active', p_reference, p_amount, now() + make_interval(days => p_duration_days))
-  ON CONFLICT (reference) DO NOTHING
-  RETURNING id INTO inserted_id;
-
-  IF inserted_id IS NOT NULL THEN
-    INSERT INTO public.businesses (user_id, business_name)
-    VALUES (p_user_id, btrim(p_business_name))
-    ON CONFLICT (user_id) DO UPDATE
-      SET business_name = EXCLUDED.business_name, updated_at = now();
+  -- A successful retry for the same business/reference is a no-op.
+  IF EXISTS (
+    SELECT 1
+    FROM public.business_subscriptions
+    WHERE business_id = p_business_id
+      AND reference = normalized_reference
+      AND status = 'active'
+  ) THEN
+    RETURN;
   END IF;
+
+  -- A Paystack reference must never activate another business.
+  IF EXISTS (
+    SELECT 1
+    FROM public.business_subscriptions
+    WHERE reference = normalized_reference
+      AND business_id IS DISTINCT FROM p_business_id
+  ) THEN
+    RAISE EXCEPTION 'Paystack reference has already been used';
+  END IF;
+
+  INSERT INTO public.business_subscriptions (
+    business_id,
+    plan,
+    status,
+    reference,
+    amount,
+    paid_at,
+    expires_at,
+    updated_at
+  )
+  VALUES (
+    p_business_id,
+    p_plan,
+    'active',
+    normalized_reference,
+    p_amount,
+    now(),
+    p_expires_at,
+    now()
+  )
+  ON CONFLICT (business_id) DO UPDATE
+  SET plan = EXCLUDED.plan,
+      status = EXCLUDED.status,
+      reference = EXCLUDED.reference,
+      amount = EXCLUDED.amount,
+      paid_at = EXCLUDED.paid_at,
+      expires_at = EXCLUDED.expires_at,
+      updated_at = now()
+  WHERE business_subscriptions.status <> 'active'
+     OR business_subscriptions.reference IS DISTINCT FROM EXCLUDED.reference;
 END;
 $$;
 
-REVOKE ALL ON FUNCTION public.activate_paystack_subscription(uuid, text, text, integer, text, integer) FROM PUBLIC, anon, authenticated;
-GRANT EXECUTE ON FUNCTION public.activate_paystack_subscription(uuid, text, text, integer, text, integer) TO service_role;
+REVOKE ALL ON FUNCTION public.activate_paystack_subscription(uuid, text, integer, timestamptz, integer, text) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.activate_paystack_subscription(uuid, text, integer, timestamptz, integer, text) TO service_role;

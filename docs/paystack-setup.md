@@ -9,17 +9,16 @@ NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 PAYSTACK_SECRET_KEY=sk_test_your-test-secret-key
-PAYSTACK_STARTER_AMOUNT_NGN=2500
-PAYSTACK_STARTER_DURATION_DAYS=30
-PAYSTACK_PRO_AMOUNT_NGN=10000
-PAYSTACK_PRO_DURATION_DAYS=30
+PAYSTACK_BASE_AMOUNT_NGN=50000
+PAYSTACK_BASE_PROMO_AMOUNT_NGN=25000
+PAYSTACK_BASE_DURATION_DAYS=30
 ```
 
-`PAYSTACK_*_AMOUNT_NGN` values are in naira; the server converts them to kobo before calling Paystack. Keep the service-role key server-only.
+The single `base` plan costs NGN 50,000 per month. The server automatically applies the NGN 25,000 promo price to the first 10 businesses that have ever subscribed. `PAYSTACK_*_AMOUNT_NGN` values are in naira; the server converts them to kobo before calling Paystack. Keep the service-role key server-only.
 
 ## Database and routes
 
-1. Run `8-migration-paystack-subscriptions.sql` in the Supabase SQL editor.
+1. Run `20260919144928_paystack_subscriptions.sql` in the Supabase SQL editor.
 2. Put the route files in the matching Next.js App Router locations, and adjust the `@/lib/...` aliases if your project uses different paths.
 3. In the Paystack Dashboard, open **Settings → API Keys & Webhooks → Webhook URL** and set it to `https://YOUR_DOMAIN.example.com/api/paystack/webhook`. Deploy the webhook route over HTTPS and do not put authentication middleware in front of it; its HMAC signature is the authentication.
 4. Paystack redirects customers to `/subscribe` with a `reference`; `SubscribeButton` polls the authenticated verify route while the webhook remains the source of asynchronous activation.

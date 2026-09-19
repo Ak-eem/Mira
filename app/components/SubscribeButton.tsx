@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-type Props = { plan: 'starter' | 'pro'; businessName: string; email: string };
+type Props = { plan: 'base'; businessName: string; email: string };
 
 export default function SubscribeButton({ plan, businessName, email }: Props) {
   const router = useRouter();
@@ -44,5 +44,5 @@ export default function SubscribeButton({ plan, businessName, email }: Props) {
     } catch (cause) { setStatus(cause instanceof Error ? cause.message : 'Unable to start checkout'); setLoading(false); }
   }
 
-  return <div><button type="button" onClick={startCheckout} disabled={loading}>{loading ? 'Opening Paystack…' : `Subscribe to ${plan}`}</button>{status ? <p role="status">{status}</p> : null}</div>;
+  return <div><button type="button" onClick={startCheckout} disabled={loading}>{loading ? 'Opening Paystack…' : 'Subscribe to base'}</button>{status ? <p role="status">{status}</p> : null}</div>;
 }
