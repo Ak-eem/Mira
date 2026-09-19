@@ -1,5 +1,29 @@
 # Changes in this update
 
+## Inbound reliability: idempotent processing + reply outbox
+**Run migration `0042_inbound_idempotency_outbox.sql` before deploying** (adds
+`messages.inbound_key`, reply outbox columns on both inbound queues, and the
+`record_assistant_reply()` function; safe to re-run). No new env vars.
+
+- **Send-before-ack (WhatsApp + email):** the reply text is now saved on the
+  queue row *before* it is sent, and the send + completion are one update. A
+  retry re-sends the stored text instead of re-running the AI pipeline. Email
+  sends also carry a Resend `Idempotency-Key`. WhatsApp Cloud API has no
+  send idempotency key, so a crash in the small window between a successful
+  send and the DB update can still re-send the same text once.
+- **Duplicate rows on retry:** customer and assistant messages are keyed on
+  the provider message id, so a retry reuses them instead of inserting again
+  or generating a second answer.
+- **`processMessage` atomicity:** the assistant message, the `needs_human`
+  flip (handoff) and the `last_message_at` bump now commit together in
+  `record_assistant_reply()`. The AI call stays outside the transaction.
+- **Failed sends are no longer swallowed:** the WhatsApp route previously
+  ignored `sendWhatsappReply`'s return value and marked the row done.
+- **Retry cap:** `attempts` is now incremented on every claim; rows at 5
+  attempts are acked with a 200 and logged, not redelivered forever.
+- **Replay:** the WhatsApp route now dedups on the queue row *before* the rate
+  limit, so replaying a captured request can't drain a customer's limit.
+
 Run the 3 new migrations first (0009, 0010, 0011) — everything else depends
 on them. No new env vars needed for any of this.
 

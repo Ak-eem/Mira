@@ -10,6 +10,8 @@ import {
   claimInboundMessage,
   markInboundDone,
   markInboundFailed,
+  markInboundSent,
+  saveInboundReply,
 } from "@/lib/email/inboundQueue";
 import { extractReplyText } from "@/lib/email/parseInbound";
 import { sendEmailReply } from "@/lib/email/sendReply";
@@ -22,7 +24,7 @@ function isReceivedEvent(payload: WebhookEventPayload): payload is Extract<Webho
   return payload.type === "email.received";
 }
 
-async function captureForHuman(client: Client, businessId: string, sender: string, message: string) {
+async function captureForHuman(client: Client, businessId: string, sender: string, message: string, inboundKey: string) {
   const sessionToken = `email_${sender}`;
   const conversation = await client
     .from("conversations")
@@ -55,8 +57,10 @@ async function captureForHuman(client: Client, businessId: string, sender: strin
     business_id: businessId,
     role: "customer",
     content: message,
+    inbound_key: inboundKey,
   });
-  if (saved.error) throw saved.error;
+  // 23505 on inbound_key: an earlier attempt already saved this email.
+  if (saved.error && saved.error.code !== "23505") throw saved.error;
 
   const updated = await client
     .from("conversations")
@@ -113,7 +117,13 @@ export async function POST(request: NextRequest) {
   try {
     const queued = await enqueueInboundMessage(client, item.email_id, toAddress, event);
     queueId = queued.id;
-    if (queued.status === "done" || !(await claimInboundMessage(client, queued.id))) {
+    if (queued.status === "done" || !(await claimInboundMessage(client, queued))) {
+      return NextResponse.json({ status: "received" }, { status: 200 });
+    }
+
+    if (queued.reply_sent_at) {
+      // Sent on an earlier attempt; only the final ack was lost.
+      await markInboundDone(client, queued.id);
       return NextResponse.json({ status: "received" }, { status: 200 });
     }
 
@@ -129,35 +139,47 @@ export async function POST(request: NextRequest) {
     }
     const routedBusiness = business.data;
 
-    const resend = new Resend(apiKey);
-    const received = await resend.emails.receiving.get(item.email_id);
-    if (received.error || !received.data) throw received.error ?? new Error("Could not retrieve received email.");
-    const body = extractReplyText(received.data.text ?? "", received.data.html ?? undefined);
-    if (!body) {
-      await markInboundDone(client, queued.id);
-      return NextResponse.json({ status: "received" }, { status: 200 });
-    }
-    if (body.length > MAX_MESSAGE_LENGTH) throw new Error(`Email messages must be ${MAX_MESSAGE_LENGTH} characters or fewer.`);
-
-    const processIncoming = async () => {
-      if (!routedBusiness.email_responses_enabled) {
-        await captureForHuman(client, routedBusiness.id, sender, body);
-        return { reply: "", silent: true };
+    // Outbox: a reply persisted by an earlier attempt is re-sent as-is, with
+    // no re-fetch of the email and no second trip through the AI pipeline.
+    let replyText = queued.reply_text;
+    if (replyText === null) {
+      const resend = new Resend(apiKey);
+      const received = await resend.emails.receiving.get(item.email_id);
+      if (received.error || !received.data) throw received.error ?? new Error("Could not retrieve received email.");
+      const body = extractReplyText(received.data.text ?? "", received.data.html ?? undefined);
+      if (!body) {
+        await markInboundDone(client, queued.id);
+        return NextResponse.json({ status: "received" }, { status: 200 });
       }
-      return processIncomingMessage(client, routedBusiness.id, `email_${sender}`, body, "email");
-    };
-    const result = await withConversationLease(client, `email:${routedBusiness.id}:${sender}`, processIncoming);
-    if (!result.silent) {
-      const sent = await sendEmailReply(
-        sender,
-        process.env.RESEND_FROM_EMAIL ?? "",
-        item.subject,
-        result.reply,
-        item.message_id,
-      );
-      if (!sent) throw new Error("Could not send email reply.");
+      if (body.length > MAX_MESSAGE_LENGTH) throw new Error(`Email messages must be ${MAX_MESSAGE_LENGTH} characters or fewer.`);
+
+      const inboundKey = `email:${item.email_id}`;
+      const processIncoming = async () => {
+        if (!routedBusiness.email_responses_enabled) {
+          await captureForHuman(client, routedBusiness.id, sender, body, inboundKey);
+          return { reply: "", silent: true };
+        }
+        return processIncomingMessage(client, routedBusiness.id, `email_${sender}`, body, "email", inboundKey);
+      };
+      const result = await withConversationLease(client, `email:${routedBusiness.id}:${sender}`, processIncoming);
+      if (result.silent) {
+        await markInboundDone(client, queued.id);
+        return NextResponse.json({ status: "received" }, { status: 200 });
+      }
+      replyText = result.reply;
+      await saveInboundReply(client, queued.id, replyText);
     }
-    await markInboundDone(client, queued.id);
+
+    const sent = await sendEmailReply(
+      sender,
+      process.env.RESEND_FROM_EMAIL ?? "",
+      item.subject,
+      replyText,
+      item.message_id,
+      `mira-reply-${queued.id}`,
+    );
+    if (!sent) throw new Error("Could not send email reply.");
+    await markInboundSent(client, queued.id);
     return NextResponse.json({ status: "received" }, { status: 200 });
   } catch (error) {
     if (queueId) {

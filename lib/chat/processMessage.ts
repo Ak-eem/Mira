@@ -10,6 +10,7 @@ import { getHandoffReply, getPausedReply, isFrustrationSignal, type HandoffReaso
 import { matchProductImages, type ProductImageRef } from "@/lib/chat/matchProductImages";
 import { recordProductInterest } from "@/lib/chat/recordProductInterest";
 import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
+import { replyKeyFor } from "@/lib/chat/inboundKey";
 
 export class ProcessMessageError extends Error {
   status: number;
@@ -27,14 +28,80 @@ export type ProcessMessageResult = {
   silent?: boolean;
 };
 
+type SupabaseClient = ReturnType<typeof createServiceRoleClient>;
+
+type RecordedReply = { messageId: string; newlyFlagged: boolean };
+
+/**
+ * Inserts an assistant message (optionally flipping needs_human) and bumps
+ * conversations.last_message_at in a single database transaction. Idempotent
+ * on inboundKey: a second call with the same key returns the existing row.
+ */
+async function recordAssistantReply(
+  supabase: SupabaseClient,
+  args: {
+    conversationId: string;
+    businessId: string;
+    content: string;
+    snapshot: Record<string, unknown>;
+    inboundKey: string | null;
+    flagHandoff?: boolean;
+  },
+): Promise<{ data: RecordedReply | null; error: unknown }> {
+  const { data, error } = await supabase.rpc("record_assistant_reply", {
+    p_conversation_id: args.conversationId,
+    p_business_id: args.businessId,
+    p_content: args.content,
+    p_snapshot: args.snapshot,
+    p_inbound_key: args.inboundKey,
+    p_flag_handoff: args.flagHandoff ?? false,
+  });
+  if (error) return { data: null, error };
+  const row = (Array.isArray(data) ? data[0] : data) as { message_id?: string; newly_flagged?: boolean } | null | undefined;
+  if (!row?.message_id) return { data: null, error: new Error("record_assistant_reply returned no row") };
+  return { data: { messageId: row.message_id, newlyFlagged: Boolean(row.newly_flagged) }, error: null };
+}
+
+/** The reply already recorded for a previous attempt at this inbound message, if any. */
+async function findRecordedReply(
+  supabase: SupabaseClient,
+  businessId: string,
+  replyKey: string,
+): Promise<ProcessMessageResult | null> {
+  const { data, error } = await supabase
+    .from("messages")
+    .select("id, content, context_snapshot")
+    .eq("business_id", businessId)
+    .eq("inbound_key", replyKey)
+    .maybeSingle();
+  if (error) {
+    console.error("Recorded reply lookup failed:", error);
+    throw new ProcessMessageError("Something went wrong. Please try again.", 500);
+  }
+  if (!data) return null;
+  const snapshot = data.context_snapshot as { productImages?: ProductImageRef[] } | null;
+  return { reply: data.content, messageId: data.id, productImages: snapshot?.productImages ?? [] };
+}
+
 export async function processMessage(
   businessId: string,
   sessionToken: string,
   message: string,
-  channel: "web" | "whatsapp" | "email" = "web"
+  channel: "web" | "whatsapp" | "email" = "web",
+  // Stable id of the inbound provider message (WhatsApp message id, email id).
+  // When set, every write is idempotent on it: a retry of the same inbound
+  // message reuses the already-saved customer row and the already-recorded
+  // reply instead of duplicating them or generating a second AI answer.
+  inboundKey?: string,
 ): Promise<ProcessMessageResult> {
   const supabase = createServiceRoleClient();
   const trimmedMessage = message.trim();
+  const replyKey = inboundKey ? replyKeyFor(inboundKey) : null;
+
+  if (inboundKey && replyKey) {
+    const existing = await findRecordedReply(supabase, businessId, replyKey);
+    if (existing) return existing;
+  }
 
   let { data: conversation, error: conversationLookupError } = await supabase
     .from("conversations")
@@ -113,9 +180,9 @@ export async function processMessage(
     throw new ProcessMessageError("Conversation does not belong to this business.", 403);
   }
 
-  const { data: priorMessages, error: priorMessagesError } = await supabase
+  const { data: allPriorMessages, error: priorMessagesError } = await supabase
     .from("messages")
-    .select("role, content")
+    .select("role, content, inbound_key")
     .eq("conversation_id", conversation.id)
     .order("created_at", { ascending: true })
     .limit(20);
@@ -124,14 +191,22 @@ export async function processMessage(
     console.error("Prior messages fetch failed:", priorMessagesError);
   }
 
+  // A previous attempt at this same inbound message may already have saved
+  // the customer row; it must not appear twice in the LLM history either.
+  const priorMessages = (allPriorMessages ?? []).filter(
+    (m) => !inboundKey || m.inbound_key !== inboundKey,
+  );
+
   const { error: customerInsertError } = await supabase.from("messages").insert({
     conversation_id: conversation.id,
     business_id: businessId,
     role: "customer",
     content: trimmedMessage,
+    inbound_key: inboundKey ?? null,
   });
 
-  if (customerInsertError) {
+  // 23505 on inbound_key = an earlier attempt already saved this exact message.
+  if (customerInsertError && !(inboundKey && customerInsertError.code === "23505")) {
     console.error("Customer message insert failed:", customerInsertError);
     throw new ProcessMessageError("Something went wrong. Please try again.", 500);
   }
@@ -142,29 +217,20 @@ export async function processMessage(
   if (isNewConversation) {
     const offlineReply = await getOfflineGateReply(supabase, businessId);
     if (offlineReply) {
-      const { data: saved, error: offlineInsertError } = await supabase
-        .from("messages")
-        .insert({
-          conversation_id: conversation.id,
-          business_id: businessId,
-          role: "assistant",
-          content: offlineReply,
-          context_snapshot: { offlineGate: true },
-        })
-        .select("id")
-        .single();
+      const { data: saved, error: offlineInsertError } = await recordAssistantReply(supabase, {
+        conversationId: conversation.id,
+        businessId,
+        content: offlineReply,
+        snapshot: { offlineGate: true },
+        inboundKey: replyKey,
+      });
 
       if (offlineInsertError || !saved) {
         console.error("Offline reply insert failed:", offlineInsertError);
         throw new ProcessMessageError("Something went wrong. Please try again.", 500);
       }
 
-      await supabase
-        .from("conversations")
-        .update({ last_message_at: new Date().toISOString() })
-        .eq("id", conversation.id);
-
-      return { reply: offlineReply, messageId: saved.id, productImages: [] };
+      return { reply: offlineReply, messageId: saved.messageId, productImages: [] };
     }
   }
 
@@ -198,29 +264,20 @@ export async function processMessage(
   // operator marks it resolved) lifts this pause.
   if (conversation.needs_human) {
     const waitingReply = getPausedReply(businessName);
-    const { data: saved, error: pausedInsertError } = await supabase
-      .from("messages")
-      .insert({
-        conversation_id: conversation.id,
-        business_id: businessId,
-        role: "assistant",
-        content: waitingReply,
-        context_snapshot: { handoff: true, paused: true },
-      })
-      .select("id")
-      .single();
+    const { data: saved, error: pausedInsertError } = await recordAssistantReply(supabase, {
+      conversationId: conversation.id,
+      businessId,
+      content: waitingReply,
+      snapshot: { handoff: true, paused: true },
+      inboundKey: replyKey,
+    });
 
     if (pausedInsertError || !saved) {
       console.error("Paused-conversation reply insert failed:", pausedInsertError);
       throw new ProcessMessageError("Something went wrong. Please try again.", 500);
     }
 
-    await supabase
-      .from("conversations")
-      .update({ last_message_at: new Date().toISOString() })
-      .eq("id", conversation.id);
-
-    return { reply: waitingReply, messageId: saved.id, productImages: [] };
+    return { reply: waitingReply, messageId: saved.messageId, productImages: [] };
   }
 
   const intent = classifyIntent(trimmedMessage);
@@ -241,54 +298,33 @@ export async function processMessage(
     intent === "human_handoff" || repeatedFallback || isFrustrationSignal(trimmedMessage);
 
   if (needsHandoff) {
-    // Flip false -> true and report whether THIS call is the one that did
-    // it, in one round trip -- zero rows back means a concurrent request
-    // won the race and flagged it first (we already know needs_human was
-    // false as of our SELECT above, so a real flagError here is a genuine
-    // write failure, not just "already flagged").
-    const { data: flaggedRows, error: flagError } = await supabase
-      .from("conversations")
-      .update({ needs_human: true })
-      .eq("id", conversation.id)
-      .eq("needs_human", false)
-      .select("id");
-
-    if (flagError) {
-      // Don't tell the customer a human is now on this if we couldn't
-      // actually record that -- nobody would ever see it flagged on the
-      // business side, so promising a handoff here would be a lie the
-      // customer has no way to know about. Fail loudly instead.
-      console.error("Failed to flag conversation for human handoff:", flagError);
-      throw new ProcessMessageError("Something went wrong. Please try again.", 500);
-    }
-
-    const alreadyFlagged = (flaggedRows?.length ?? 0) === 0;
+    // The needs_human flip, the handoff message and the last_message_at bump
+    // now happen in ONE transaction (record_assistant_reply). Previously the
+    // flag flipped first, so a failed message insert left the conversation
+    // flagged with no reply, and the retry then saw "already flagged" and
+    // sent the wrong wording. needs_human was false as of our SELECT above
+    // (the paused branch already returned otherwise), and the per-conversation
+    // lease serializes webhook callers, so this call is the one that flags it.
     const reason: HandoffReason = intent === "human_handoff" ? "requested" : "confused";
-    const handoffText = getHandoffReply(businessName, reason, alreadyFlagged);
+    const handoffText = getHandoffReply(businessName, reason, false);
 
-    const { data: savedHandoff, error: handoffInsertError } = await supabase
-      .from("messages")
-      .insert({
-        conversation_id: conversation.id,
-        business_id: businessId,
-        role: "assistant",
-        content: handoffText,
-        context_snapshot: { handoff: true, reason },
-      })
-      .select("id")
-      .single();
+    const { data: savedHandoff, error: handoffInsertError } = await recordAssistantReply(supabase, {
+      conversationId: conversation.id,
+      businessId,
+      content: handoffText,
+      snapshot: { handoff: true, reason },
+      inboundKey: replyKey,
+      flagHandoff: true,
+    });
 
     if (handoffInsertError || !savedHandoff) {
+      // Nothing was flagged and nothing was saved -- the transaction rolled
+      // back as one, so it's safe not to promise the customer a handoff.
       console.error("Handoff reply insert failed:", handoffInsertError);
       throw new ProcessMessageError("Something went wrong. Please try again.", 500);
     }
 
-    await supabase
-      .from("conversations")
-      .update({ last_message_at: new Date().toISOString() })
-      .eq("id", conversation.id);
-
-    return { reply: handoffText, messageId: savedHandoff.id, productImages: [] };
+    return { reply: handoffText, messageId: savedHandoff.messageId, productImages: [] };
   }
 
 
@@ -333,45 +369,31 @@ export async function processMessage(
   const productImages = matchProductImages(replyText, context.products);
   await recordProductInterest(supabase, businessId, sessionToken, productImages);
 
-  // Insert now selects the row back (previously fire-and-forget) --
-  // deliberate change: feedback (thumbs up/down) needs a real message id
-  // to attach to, so a failed write has to be a hard error now rather
-  // than a reply the customer sees that doesn't actually exist anywhere.
-  const { data: savedAssistantMessage, error: assistantInsertError } = await supabase
-    .from("messages")
-    .insert({
-      conversation_id: conversation.id,
-      business_id: businessId,
-      role: "assistant",
-      content: replyText,
-      context_snapshot: { systemPrompt, productImages },
-    })
-    .select("id")
-    .single();
+  // Recorded atomically with the last_message_at bump. The insert still
+  // selects the row back (feedback thumbs need a real message id), so a
+  // failed write is a hard error rather than a reply that exists nowhere.
+  const { data: savedAssistantMessage, error: assistantInsertError } = await recordAssistantReply(supabase, {
+    conversationId: conversation.id,
+    businessId,
+    content: replyText,
+    snapshot: { systemPrompt, productImages },
+    inboundKey: replyKey,
+  });
 
   if (assistantInsertError || !savedAssistantMessage) {
     console.error("Assistant message insert failed:", assistantInsertError);
     throw new ProcessMessageError("Something went wrong. Please try again.", 500);
   }
 
- after(() => recordAiResponseTelemetry({
+  after(() => recordAiResponseTelemetry({
     businessId,
     conversationId: conversation.id,
-    messageId: savedAssistantMessage.id,
+    messageId: savedAssistantMessage.messageId,
     channel,
     success: true,
     latencyMs: Date.now() - aiStartedAt,
     metadata: aiMetadata,
   }));
 
-  const { error: timestampError } = await supabase
-    .from("conversations")
-    .update({ last_message_at: new Date().toISOString() })
-    .eq("id", conversation.id);
-
-  if (timestampError) {
-    console.error("Conversation timestamp update failed:", timestampError);
-  }
-
-  return { reply: replyText, messageId: savedAssistantMessage.id, productImages };
+  return { reply: replyText, messageId: savedAssistantMessage.messageId, productImages };
 }
