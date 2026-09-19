@@ -13,12 +13,13 @@ export default function SubscribeButton({ plan, businessName, email }: Props) {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (!reference) return;
+    const paymentReference = reference;
+    if (!paymentReference) return;
     let cancelled = false;
     async function poll() {
       for (let attempt = 0; attempt < 15 && !cancelled; attempt += 1) {
         try {
-          const response = await fetch(`/api/paystack/verify?reference=${encodeURIComponent(reference)}`, { cache: 'no-store' });
+          const response = await fetch(`/api/paystack/verify?reference=${encodeURIComponent(paymentReference)}`, { cache: 'no-store' });
           const result = await response.json() as { success?: boolean; status?: string; terminal?: boolean };
           if (cancelled) return;
           if (response.ok && result.success) { setStatus('Payment confirmed. Your subscription is active.'); router.refresh(); return; }
