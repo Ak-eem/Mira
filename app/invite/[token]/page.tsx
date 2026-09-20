@@ -112,11 +112,13 @@ async function acceptInvite(formData: FormData) {
 
 export default async function InvitePage({ params, searchParams }: InvitePageProps) {
   const { token: rawToken } = await params;
-  const actionError = actionMessage((await searchParams)?.error);
+  const actionError = (await searchParams)?.error;
   const token = typeof rawToken === "string" ? rawToken.trim() : "";
   const invitePath = token ? `/invite/${encodeURIComponent(token)}` : "/invite";
   const loginHref = `/portal/login?next=${encodeURIComponent(invitePath)}`;
   const signupHref = `/portal/signup?next=${encodeURIComponent(invitePath)}`;
+
+  const now = Date.now();
 
   let state: InviteState = "invalid";
   let businessName: string | null = null;
@@ -145,7 +147,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
           invite.status === "expired" ||
           !invite.expires_at ||
           Number.isNaN(Date.parse(invite.expires_at)) ||
-          Date.parse(invite.expires_at) <= Date.now()
+          Date.parse(invite.expires_at) <= now
         ) {
           state = "expired";
         } else if (invite.status !== "pending" || !business || business.is_active !== true) {
