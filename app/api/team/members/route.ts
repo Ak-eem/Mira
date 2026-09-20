@@ -1,7 +1,6 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
-
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -55,7 +54,7 @@ export async function GET(request: Request) {
     );
   }
 
-  if (!owner) {
+  if (!owner)
     return NextResponse.json(
       { error: "Only a business owner can list team members" },
       { status: 403 },
@@ -80,13 +79,23 @@ export async function GET(request: Request) {
     );
   }
 
-  const members = ((data ?? []) as MemberRow[]).map((member) => ({
-    id: member.id,
-    businessId: member.business_id,
-    userId: member.user_id,
-    role: member.role,
-    createdAt: member.created_at,
-  }));
+  const members = await Promise.all(
+    ((data ?? []) as MemberRow[]).map(async (member) => {
+      const { data: userData } = await service.auth.admin.getUserById(member.user_id);
+      const metadata = userData.user?.user_metadata as Record<string, unknown> | undefined;
+      const name = [metadata?.full_name, metadata?.display_name, metadata?.name].find(
+        (value): value is string => typeof value === "string" && value.trim().length > 0,
+      );
+
+      return {
+        id: member.id,
+        name: name ?? "Unnamed member",
+        email: userData.user?.email ?? "No email available",
+        role: member.role,
+        joinedAt: member.created_at,
+      };
+    }),
+  );
 
   return NextResponse.json({ members });
 }
