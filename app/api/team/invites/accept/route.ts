@@ -1,7 +1,6 @@
 import "server-only";
 
 import { NextResponse } from "next/server";
-
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -16,8 +15,8 @@ type InviteRow = {
   expires_at: string;
 };
 
-function errorResponse(error: string, status: number) {
-  return NextResponse.json({ error }, { status });
+function errorResponse(error: string, status: number, code?: string) {
+  return NextResponse.json({ error, ...(code ? { code } : {}) }, { status });
 }
 
 export async function POST(request: Request) {
@@ -66,12 +65,12 @@ export async function POST(request: Request) {
   }
 
   if (invite.status !== "pending") {
-    return errorResponse("Team invite is no longer valid", 410);
+    return errorResponse("Team invite is no longer valid", 410, "revoked");
   }
 
   const now = new Date();
   if (Number.isNaN(Date.parse(invite.expires_at)) || Date.parse(invite.expires_at) <= now.getTime()) {
-    return errorResponse("Team invite is no longer valid", 410);
+    return errorResponse("Team invite is no longer valid", 410, "expired");
   }
 
   const authenticatedEmail = user.email?.trim().toLowerCase() ?? "";
@@ -94,7 +93,7 @@ export async function POST(request: Request) {
   }
 
   if (!business || !business.is_active) {
-    return errorResponse("Business is not active", 410);
+    return errorResponse("Business is not active", 410, "business_inactive");
   }
 
   const { error: ownerError } = await service.from("business_owners").upsert(

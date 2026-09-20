@@ -27,11 +27,15 @@ type InviteState =
   | "ready"
   | "unauthenticated";
 
+function getRequestNow() {
+  return Date.now();
+}
+
 function maskEmail(email: string) {
   const [localPart, domain] = email.trim().toLowerCase().split("@");
   if (!localPart || !domain) return "the invited email address";
   if (localPart.length === 1) return `${localPart}***@${domain}`;
-  const middle = "*".repeat(Math.min(5, Math.max(2, localPart.length - 2)));
+  const middle = "*".repeat(Math.min(3, Math.max(2, localPart.length - 2)));
   return `${localPart[0]}${middle}${localPart[localPart.length - 1]}@${domain}`;
 }
 
@@ -43,6 +47,11 @@ function actionMessage(error?: string) {
       return "This invite has already been accepted.";
     case "expired":
       return "This invite has expired. Ask the business owner to send a new one.";
+    case "revoked":
+      return "This invite has been revoked. Ask the business owner to send a new one.";
+    case "business_inactive":
+    case "inactive":
+      return "This business is not currently accepting team members.";
     case "unavailable":
       return "We couldn't accept this invite right now. Please try again.";
     default:
@@ -68,7 +77,6 @@ async function acceptInvite(formData: FormData) {
     .getAll()
     .map(({ name, value }) => `${name}=${value}`)
     .join("; ");
-
   let response: Response;
   try {
     response = await fetch(`${protocol}://${host}/api/team/invites/accept`, {
@@ -95,7 +103,11 @@ async function acceptInvite(formData: FormData) {
     redirect(`/invite/${encodeURIComponent(token)}?error=accepted`);
   }
   if (response.status === 410) {
-    redirect(`/invite/${encodeURIComponent(token)}?error=expired`);
+    const payload = (await response.json().catch(() => null)) as { code?: string } | null;
+    const error = payload?.code === "revoked" || payload?.code === "business_inactive"
+      ? payload.code
+      : "expired";
+    redirect(`/invite/${encodeURIComponent(token)}?error=${error}`);
   }
 
   redirect(`/invite/${encodeURIComponent(token)}?error=unavailable`);
@@ -108,7 +120,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
   const invitePath = token ? `/invite/${encodeURIComponent(token)}` : "/invite";
   const loginHref = `/portal/login?next=${encodeURIComponent(invitePath)}`;
   const signupHref = `/portal/signup?next=${encodeURIComponent(invitePath)}`;
-  const now = Date.now();
+  const now = getRequestNow();
 
   let state: InviteState = "invalid";
   let businessName: string | null = null;
