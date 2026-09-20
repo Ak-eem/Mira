@@ -9,14 +9,14 @@ CREATE TABLE IF NOT EXISTS public.team_invites (
   invited_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   accepted_by uuid REFERENCES auth.users(id) ON DELETE SET NULL,
   status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'revoked', 'expired')),
-  expires_at timestampz NOT NULL,
+  expires_at timestamptz NOT NULL,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   accepted_at timestamptz,
   revoked_at timestamptz,
   last_sent_at timestamptz,
   send_count integer NOT NULL DEFAULT 0
- CHECK (send_count >= 0)
+  CHECK (send_count >= 0)
 );
 
 CREATE OR REPLACE FUNCTION public.normalize_team_invite_email()
@@ -49,16 +49,17 @@ DROP TRIGGER IF EXISTS team_invites_set_updated_at ON public.team_invites;
 CREATE TRIGGER team_invites_set_updated_at
 BEFORE UPDATE ON public.team_invites
 FOR EACH ROW
-EXECUTE FUNCTIOn public.update_updated_at_column();
+EXECUTE FUNCTION public.update_updated_at_column();
 
 CREATE UNIQUE INDEX IF NOT EXISTS team_invites_pending_business_email_key
   ON public.team_invites (business_id, lower(email))
   WHERE status = 'pending';
 
-CREATE INDEX IF NOT EXITS team_invites_business_id_idx
+CREATE INDEX IF NOT EXISTS team_invites_business_id_idx
   ON public.team_invites (business_id);
 
-CREATE INDEX IF NOT EXITS team_invites_status_idx  ON public.team_invites (status);
+CREATE INDEX IF NOT EXISTS team_invites_status_idx
+  ON public.team_invites (status);
 
 CREATE INDEX IF NOT EXISTS team_invites_expires_at_idx
   ON public.team_invites (expires_at);
@@ -100,10 +101,11 @@ GRANT EXECUTE ON FUNCTION public.is_business_member(uuid) TO authenticated;
 
 ALTER TABLE public.team_invites ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS team_invites_owner_select ON public.team_invites;CREATE POLICY team_invites_owner_select
+DROP POLICY IF EXISTS team_invites_owner_select ON public.team_invites;
+CREATE POLICY team_invites_owner_select
 ON public.team_invites
 FOR SELECT
-ATO authenticated
+TO authenticated
 USING (public.is_business_admin(business_id));
 
 DROP POLICY IF EXISTS team_invites_owner_insert ON public.team_invites;
@@ -135,20 +137,21 @@ BEGIN
     FROM pg_policies
     WHERE schemaname = 'public'
       AND tablename = 'conversations'
-      AND tablename = 'conversations_member_select'
+      AND policyname = 'conversations_member_select'
   ) THEN
     DROP POLICY conversations_member_select ON public.conversations;
   END IF;
 END;
 $$;
 
-DO $$BEGIN
+DO $$
+BEGIN
   IF EXISTS (
     SELECT 1
     FROM pg_policies
     WHERE schemaname = 'public'
       AND tablename = 'conversations'
-      AND tablename = 'conversations_member_insert'
+      AND policyname = 'conversations_member_insert'
   ) THEN
     DROP POLICY conversations_member_insert ON public.conversations;
   END IF;
@@ -194,9 +197,19 @@ USING (public.is_business_member(business_id));
 CREATE POLICY conversations_member_insert
 ON public.conversations
 FOR INSERT
-8 authenticated
+TO authenticated
 WITH CHECK (public.is_business_member(business_id));
 
 CREATE POLICY conversations_member_update
 ON public.conversations
 FOR UPDATE
+TO authenticated
+USING (public.is_business_member(business_id))
+WITH CHECK (public.is_business_member(business_id));
+
+DROP POLICY IF EXISTS conversations_member_delete ON public.conversations;
+CREATE POLICY conversations_member_delete
+ON public.conversations
+FOR DELETE
+TO authenticated
+USING (public.is_business_member(business_id));
