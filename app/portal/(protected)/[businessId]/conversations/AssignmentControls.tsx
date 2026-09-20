@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 export type AssignmentControlsProps = {
   conversationId: string;
@@ -26,23 +26,28 @@ export function AssignmentControls({
   isOwner,
   onAssignmentChange,
 }: AssignmentControlsProps) {
-  const [currentAssignedTo, setCurrentAssignedTo] = useState(assignedTo);
+  const [optimisticAssignedTo, setOptimisticAssignedTo] = useState<{
+    base: string | null;
+    value: string | null;
+  } | null>(null);
   const [isPending, setIsPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  useEffect(() => {
-    setCurrentAssignedTo(assignedTo);
-  }, [assignedTo]);
-
-  const isAssignedToMe = currentAssignedTo === currentUserId;
+  const displayedAssignedTo =
+    optimisticAssignedTo && assignedTo === optimisticAssignedTo.base
+      ? optimisticAssignedTo.value
+      : assignedTo;
+  const isAssignedToMe = displayedAssignedTo === currentUserId;
   const canUnclaim = isAssignedToMe || isOwner;
   const endpoint = `/api/conversations/${conversationId}/claim`;
 
   async function updateAssignment() {
-    const method = currentAssignedTo ? "DELETE" : "POST";
+    const method = displayedAssignedTo ? "DELETE" : "POST";
+    const nextAssignedTo = method === "POST" ? currentUserId : null;
 
     setIsPending(true);
     setErrorMessage(null);
+    setOptimisticAssignedTo({ base: assignedTo, value: nextAssignedTo });
 
     try {
       const response = await fetch(endpoint, {
@@ -52,6 +57,7 @@ export function AssignmentControls({
       const body = await response.json().catch(() => null);
 
       if (!response.ok) {
+        setOptimisticAssignedTo(null);
         if (response.status === 409) {
           setErrorMessage("claimed by someone else");
         } else {
@@ -62,10 +68,9 @@ export function AssignmentControls({
         return;
       }
 
-      const nextAssignedTo = method === "POST" ? currentUserId : null;
-      setCurrentAssignedTo(nextAssignedTo);
       onAssignmentChange?.(nextAssignedTo);
     } catch {
+      setOptimisticAssignedTo(null);
       setErrorMessage("Unable to update assignment. Please check your connection and try again.");
     } finally {
       setIsPending(false);
@@ -76,31 +81,33 @@ export function AssignmentControls({
     <div className="flex flex-wrap items-center gap-2">
       <span
         className={
-          currentAssignedTo
+          displayedAssignedTo
             ? "rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700"
             : "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
         }
-        aria-label={currentAssignedTo ? `Assigned to ${currentAssignedTo}` : "Unassigned"}
+        aria-label={
+          displayedAssignedTo ? `Assigned to ${displayedAssignedTo}` : "Unassigned"
+        }
       >
-        {currentAssignedTo
+        {displayedAssignedTo
           ? isAssignedToMe
             ? "Assigned to you"
-            : `Assigned to ${currentAssignedTo}`
+            : `Assigned to ${displayedAssignedTo}`
           : "Unassigned"}
       </span>
 
-      {(!currentAssignedTo || canUnclaim) && (
+      {(!displayedAssignedTo || canUnclaim) && (
         <button
           type="button"
           onClick={updateAssignment}
           disabled={isPending}
           className="rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isPending ? "Updating…" : currentAssignedTo ? "Unclaim" : "Claim"}
+          {isPending ? "Updating…" : displayedAssignedTo ? "Unclaim" : "Claim"}
         </button>
       )}
 
-      {currentAssignedTo && !canUnclaim && (
+      {displayedAssignedTo && !canUnclaim && (
         <span className="text-xs text-slate-500">Claimed by another teammate</span>
       )}
 
