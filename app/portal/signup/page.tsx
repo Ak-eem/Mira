@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -24,6 +24,7 @@ export default function PortalSignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [teamChoice, setTeamChoice] = useState<"invite" | "just-me" | "">("");
   const [otp, setOtp] = useState("");
   const [verificationSent, setVerificationSent] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
@@ -43,7 +44,7 @@ export default function PortalSignupPage() {
       const result = await response.json().catch(() => null);
       if (!response.ok) {
         throw new Error(
-          getApiErrorMessage(result, "Unable to send verification email")
+          getApiErrorMessage(result, "Unable to send verification email"),
         );
       }
       setVerificationSent(true);
@@ -51,7 +52,7 @@ export default function PortalSignupPage() {
       setError(
         sendError instanceof Error
           ? sendError.message
-          : "Unable to send verification email"
+          : "Unable to send verification email",
       );
     } finally {
       setVerificationBusy(false);
@@ -69,16 +70,14 @@ export default function PortalSignupPage() {
       });
       const result = await response.json().catch(() => null);
       if (!response.ok) {
-        throw new Error(
-          getApiErrorMessage(result, "Unable to verify email")
-        );
+        throw new Error(getApiErrorMessage(result, "Unable to verify email"));
       }
       setEmailVerified(true);
     } catch (verifyError) {
       setError(
         verifyError instanceof Error
           ? verifyError.message
-          : "Unable to verify email"
+          : "Unable to verify email",
       );
     } finally {
       setVerificationBusy(false);
@@ -88,18 +87,27 @@ export default function PortalSignupPage() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+
     if (!businessName.trim()) {
       setError("Enter your business name.");
       return;
     }
+
+    if (!teamChoice) {
+      setError("Choose whether you want to invite your team.");
+      return;
+    }
+
     if (!emailVerified) {
       setError("Verify your email before creating an account.");
       return;
     }
+
     if (password !== confirmPassword) {
       setError("Passwords do not match.");
       return;
     }
+
     if (password.length < 6) {
       setError("Password must be at least 6 characters.");
       return;
@@ -109,12 +117,15 @@ export default function PortalSignupPage() {
 
     try {
       const supabase = createClient();
-      const { data, error: signUpError } = await supabase.auth.signUp({ email, password });
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+      });
       if (signUpError || !data.user) {
         setError(
           signUpError && typeof signUpError.message === "string"
             ? signUpError.message
-            : "Unable to create account"
+            : "Unable to create account",
         );
         return;
       }
@@ -125,21 +136,28 @@ export default function PortalSignupPage() {
         body: JSON.stringify({ email, userId: data.user.id }),
       });
       const confirmation = await confirmResponse.json().catch(() => null);
-      if (!confirmResponse.ok || confirmation?.emailConfirmed !== true) {
-        const message = confirmation && typeof confirmation.error === "string" ? confirmation.error : "Unable to confirm account email";
+      if (
+        !confirmResponse.ok ||
+        confirmation?.emailConfirmed !== true
+      ) {
+        const message =
+          confirmation && typeof confirmation.error === "string"
+            ? confirmation.error
+            : "Unable to confirm account email";
         setError(message);
         return;
       }
 
       // Businesses are admin-only to insert directly (see migration 0001) --
       // this RPC is the one sanctioned way a fresh signup creates its own
-      // business and gets a 14-day trial, in a single atomic call, instead
-      // of landing on a "your account isn't linked to a business yet, ask
-      // an admin" dead end.
-      const { error: provisionError } = await supabase.rpc("provision_new_business", {
-        p_name: businessName.trim(),
-        p_owner_id: data.user.id,
-      });
+      // business and gets a 14-day trial in a single atomic call.
+      const { error: provisionError } = await supabase.rpc(
+        "provision_new_business",
+        {
+          p_name: businessName.trim(),
+          p_owner_id: data.user.id,
+        },
+      );
       if (provisionError) {
         setError(
           provisionError.message === "TRIAL_ALREADY_USED"
@@ -153,9 +171,9 @@ export default function PortalSignupPage() {
       router.refresh();
     } catch (submitError) {
       setError(
-        submitError instanceof Error && submitError.message
+        submitError instanceof Error
           ? submitError.message
-          : "Unable to create account"
+          : "Unable to create account",
       );
     } finally {
       setSubmitting(false);
@@ -168,44 +186,156 @@ export default function PortalSignupPage() {
         <p className="mb-8 text-center text-xl font-semibold tracking-tight text-slate-900">
           Mira <span className="font-normal text-accent">for Business</span>
         </p>
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <form
+          onSubmit={handleSubmit}
+          className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
+        >
           <div>
-            <label className="block text-sm font-medium text-slate-700">Business name</label>
-            <input type="text" className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent" value={businessName} onChange={(e) => setBusinessName(e.target.value)} required />
+            <label className="block text-sm font-medium text-slate-700">
+              Business name
+            </label>
+            <input
+              type="text"
+              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              value={businessName}
+              onChange={(e) => setBusinessName(e.target.value)}
+              required
+            />
           </div>
+
+          <fieldset>
+            <legend className="block text-sm font-medium text-slate-700">
+              Team setup
+            </legend>
+            <p className="mt-1 text-xs text-slate-500">
+              Choose how you want to get started.
+            </p>
+            <div className="mt-2 space-y-2">
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name="teamChoice"
+                  value="invite"
+                  checked={teamChoice === "invite"}
+                  onChange={() => setTeamChoice("invite")}
+                  required
+                />
+                <span>Yes, invite my team</span>
+              </label>
+              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+                <input
+                  type="radio"
+                  name="teamChoice"
+                  value="just-me"
+                  checked={teamChoice === "just-me"}
+                  onChange={() => setTeamChoice("just-me")}
+                  required
+                />
+                <span>No, just me</span>
+              </label>
+            </div>
+          </fieldset>
+
           <div>
-            <label className="block text-sm font-medium text-slate-700">Email</label>
-            <input type="email" className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent" value={email} onChange={(e) => { setEmail(e.target.value); setEmailVerified(false); }} required disabled={emailVerified} />
+            <label className="block text-sm font-medium text-slate-700">
+              Email
+            </label>
+            <input
+              type="email"
+              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailVerified(false);
+              }}
+              required
+              disabled={emailVerified}
+            />
             {!emailVerified && (
-              <button type="button" onClick={sendVerification} disabled={verificationBusy || !email} className="mt-2 text-sm font-medium text-accent hover:underline disabled:opacity-50">
-                {verificationBusy ? "Sending…" : verificationSent ? "Resend code" : "Send verification code"}
+              <button
+                type="button"
+                onClick={sendVerification}
+                disabled={verificationBusy || !email}
+                className="mt-2 text-sm font-medium text-accent hover:underline disabled:opacity-50"
+              >
+                {verificationBusy
+                  ? "Sending…"
+                  : verificationSent
+                    ? "Resend code"
+                    : "Send verification code"}
               </button>
             )}
           </div>
           {verificationSent && !emailVerified && (
             <div>
-              <label className="block text-sm font-medium text-slate-700">6-digit verification code</label>
+              <label className="block text-sm font-medium text-slate-700">
+                6-digit verification code
+              </label>
               <div className="mt-1 flex gap-2">
-                <input inputMode="numeric" pattern="[0-9]{6}" maxLength={6} className="w-full rounded border border-slate-300 px-3 py-2 text-sm tracking-[0.3em] focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} required />
-                <button type="button" onClick={verifyEmail} disabled={verificationBusy || otp.length !== 6} className="rounded bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50">Verify</button>
+                <input
+                  inputMode="numeric"
+                  pattern="[0-9]{6}"
+                  maxLength={6}
+                  className="w-full rounded border border-slate-300 px-3 py-2 text-sm tracking-[0.3em] focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                  value={otp}
+                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={verifyEmail}
+                  disabled={verificationBusy || otp.length !== 6}
+                  className="rounded bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+                >
+                  Verify
+                </button>
               </div>
             </div>
           )}
-          {emailVerified && <p className="text-sm text-green-700">Email verified. You can create your account.</p>}
+          {emailVerified && (
+            <p className="text-sm text-green-700">
+              Email verified. You can create your account.
+            </p>
+          )}
+
           <div>
-            <label className="block text-sm font-medium text-slate-700">Password</label>
-            <input type="password" className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent" value={password} onChange={(e) => setPassword(e.target.value)} minLength={6} required />
+            <label className="block text-sm font-medium text-slate-700">
+              Password
+            </label>
+            <input
+              type="password"
+              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              minLength={6}
+              required
+            />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700">Confirm password</label>
-            <input type="password" className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} minLength={6} required />
+            <label className="block text-sm font-medium text-slate-700">
+              Confirm password
+            </label>
+            <input
+              type="password"
+              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              minLength={6}
+              required
+            />
           </div>
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <button type="submit" disabled={submitting || !emailVerified} className="w-full rounded bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark disabled:opacity-50">
+          <button
+            type="submit"
+            disabled={submitting || !emailVerified || !teamChoice}
+            className="w-full rounded bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark disabled:opacity-50"
+          >
             {submitting ? "Creating account…" : "Create account"}
           </button>
         </form>
-        <p className="mt-4 text-center text-xs text-slate-400">Already have an account? <Link href="/portal/login" className="text-accent hover:underline">Sign in</Link></p>
+        <p className="mt-4 text-center text-xs text-slate-400">
+          Already have an account? <Link href="/portal/login" className="text-accent hover:underline">Sign in</Link>
+        </p>
       </div>
     </div>
   );
