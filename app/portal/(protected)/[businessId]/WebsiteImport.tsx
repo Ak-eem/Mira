@@ -18,7 +18,19 @@ export function WebsiteImport({ businessId }: { businessId: string }) {
     if (response.ok) setDrafts((await response.json()).drafts ?? []);
   }, [businessId]);
 
-  useEffect(() => { void loadDrafts(); }, [loadDrafts]);
+  useEffect(() => {
+    let cancelled = false;
+    void fetch(`/api/portal/businesses/${businessId}/scrape`)
+      .then(async (response) => {
+        if (!response.ok) return;
+        const data = await response.json();
+        if (!cancelled) setDrafts(data.drafts ?? []);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, [businessId]);
 
   async function importWebsite(event: React.FormEvent) {
     event.preventDefault();
