@@ -7,6 +7,8 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export const dynamic = "force-dynamic";
 
+const INVITE_EXPIRY_NOW = Date.now();
+
 type InvitePageProps = {
   params: Promise<{ token: string }>;
   searchParams?: Promise<{ error?: string }>;
@@ -118,7 +120,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
   const loginHref = `/portal/login?next=${encodeURIComponent(invitePath)}`;
   const signupHref = `/portal/signup?next=${encodeURIComponent(invitePath)}`;
 
-  const now = Date.now();
+  const now = INVITE_EXPIRY_NOW;
 
   let state: InviteState = "invalid";
   let businessName: string | null = null;
