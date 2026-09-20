@@ -5,7 +5,7 @@ import { useState } from "react";
 export type AssignmentControlsProps = {
   conversationId: string;
   claimedBy: string | null;
-  currentUserId: string;
+  currentUserEmail: string;
   isOwner: boolean;
   onAssignmentChange?: (claimedBy: string | null) => void;
 };
@@ -22,7 +22,7 @@ function getErrorMessage(body: unknown): string | null {
 export function AssignmentControls({
   conversationId,
   claimedBy,
-  currentUserId,
+  currentUserEmail,
   isOwner,
   onAssignmentChange,
 }: AssignmentControlsProps) {
@@ -37,13 +37,13 @@ export function AssignmentControls({
     optimisticClaimedBy && claimedBy === optimisticClaimedBy.base
       ? optimisticClaimedBy.value
       : claimedBy;
-  const isClaimedByMe = displayedClaimedBy === currentUserId;
+  const isClaimedByMe = displayedClaimedBy === currentUserEmail;
   const canUnclaim = isClaimedByMe || isOwner;
   const endpoint = `/api/conversations/${conversationId}/claim`;
 
   async function updateAssignment() {
     const method = displayedClaimedBy ? "DELETE" : "POST";
-    const nextClaimedBy = method === "POST" ? currentUserId : null;
+    const nextClaimedBy = method === "POST" ? currentUserEmail : null;
 
     setIsPending(true);
     setErrorMessage(null);

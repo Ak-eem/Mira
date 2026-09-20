@@ -21,7 +21,7 @@ type Supabase = Awaited<ReturnType<typeof createClient>>;
 
 type AuthResult = {
   supabase: Supabase;
-  user: { id: string } | null;
+  user: { id: string; email?: string } | null;
   memberships: Membership[] | null;
   response: NextResponse | null;
 };
@@ -126,10 +126,18 @@ export async function POST(
     );
   }
 
+  const claimantEmail = auth.user!.email;
+  if (!claimantEmail) {
+    return NextResponse.json(
+      { error: "Your account has no email on file; cannot claim a conversation" },
+      { status: 400 },
+    );
+  }
+
   const { data: claimed, error: claimError } = await auth.supabase
     .from("conversations")
     .update({
-      claimed_by: String(auth.user!.id),
+      claimed_by: claimantEmail,
       claimed_at: new Date().toISOString(),
     })
     .eq("id", conversation.id)
@@ -197,9 +205,16 @@ export async function DELETE(
     (candidate) => candidate.business_id === conversation.business_id,
   );
   const isOwner = membership?.role.toLowerCase() === "owner";
-  const userId = String(auth.user!.id);
+  const claimantEmail = auth.user!.email;
 
-  if (!isOwner && conversation.claimed_by !== userId) {
+  if (!isOwner && !claimantEmail) {
+    return NextResponse.json(
+      { error: "Your account has no email on file; cannot verify claim ownership" },
+      { status: 400 },
+    );
+  }
+
+  if (!isOwner && conversation.claimed_by !== claimantEmail) {
     return NextResponse.json(
       { error: "You may only clear your own claim" },
       { status: 403 },
