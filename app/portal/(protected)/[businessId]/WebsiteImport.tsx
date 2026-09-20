@@ -1,77 +1,24 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
-
-type Draft = { id: string; kind: string; source_url: string; payload: Record<string, unknown>; status: "pending" | "approved" | "rejected" };
-const LABELS: Record<string, string> = { product: "Products", service: "Services", policy: "Policies", faq: "FAQs", business_hours: "Business hours", image: "Images" };
-
-export function WebsiteImport({ businessId }: { businessId: string }) {
-  const [websiteUrl, setWebsiteUrl] = useState("");
-  const [drafts, setDrafts] = useState<Draft[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [editing, setEditing] = useState<string | null>(null);
-  const [editText, setEditText] = useState("");
-
-  async function loadDrafts() {
-    const response = await fetch(`/api/portal/businesses/${businessId}/scrape`);
-    if (response.ok) setDrafts((await response.json()).drafts ?? []);
-  }
-
-  // Genuine fetch-on-mount/fetch-on-businessId-change; there's no way to lazy-init an
-  // async network request.
-  // eslint-disable-next-line react-hooks/set-state-in-effect
-  useEffect(() => { void loadDrafts(); }, [businessId]);
-
-  async function importWebsite(event: React.FormEvent) {
-    event.preventDefault();
-    setLoading(true);
-    setMessage("Crawling the website and preparing a review draft...");
-    const response = await fetch(`/api/portal/businesses/${businessId}/scrape`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ websiteUrl }) });
-    const result = await response.json().catch(() => ({}));
-    setLoading(false);
-    if (!response.ok) { setMessage(result.error ?? "Could not import that website."); return; }
-    setDrafts(result.drafts ?? []);
-    setMessage("Drafts are ready for your review. Nothing is live yet.");
-  }
-
-  async function review(draft: Draft, status: "approved" | "rejected") {
-    const response = await fetch(`/api/portal/businesses/${businessId}/scrape`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ draftId: draft.id, status }) });
-    if (response.ok) await loadDrafts();
-  }
-
-  async function saveEdit(draft: Draft) {
-    try {
-      const payload = JSON.parse(editText) as Record<string, unknown>;
-      const response = await fetch(`/api/portal/businesses/${businessId}/scrape`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ draftId: draft.id, payload }) });
-      if (response.ok) { setEditing(null); await loadDrafts(); }
-    } catch { setMessage("Use valid JSON for the edited fields."); }
-  }
-
-  const groups = useMemo(() => Object.entries(Object.groupBy(drafts, (draft) => draft.kind)), [drafts]);
-  return (
-    <section className="glass-panel mt-8 rounded-xl p-5">
-      <div className="mb-4">
-        <h2 className="text-lg font-semibold text-slate-900">Import from your website</h2>
-        <p className="mt-1 text-sm text-slate-500">Mira will suggest products, services, policies, hours, FAQs, and images for you to review.</p>
-      </div>
-      <form onSubmit={importWebsite} className="flex flex-col gap-2 sm:flex-row">
-        <input type="url" required value={websiteUrl} onChange={(event) => setWebsiteUrl(event.target.value)} placeholder="https://your-business.com" className="min-w-0 flex-1 rounded border border-slate-300 px-3 py-2 text-sm" />
-        <button disabled={loading} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50">{loading ? "Importing..." : "Find website information"}</button>
-      </form>
-      {message && <p className="mt-3 text-sm text-slate-600">{message}</p>}
-      {groups.length > 0 && <div className="mt-6 space-y-6">
-        {groups.map(([kind, items]) => <div key={kind}>
-          <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-500">{LABELS[kind] ?? kind}</h3>
-          <div className="space-y-3">{(items ?? []).map((draft) => <article key={draft.id} className="rounded-lg border border-slate-200 bg-white p-4">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0 flex-1"><pre className="whitespace-pre-wrap break-words font-sans text-sm text-slate-800">{JSON.stringify(draft.payload, null, 2)}</pre><a href={draft.source_url} target="_blank" rel="noreferrer" className="mt-2 block truncate text-xs text-accent hover:underline">Source: {draft.source_url}</a></div>
-              {draft.status === "pending" ? <div className="flex shrink-0 gap-2"><button onClick={() => { setEditing(draft.id); setEditText(JSON.stringify(draft.payload, null, 2)); }} className="rounded border border-slate-300 px-2 py-1 text-xs">Edit</button><button onClick={() => void review(draft, "approved")} className="rounded bg-emerald-600 px-2 py-1 text-xs text-white">Approve</button><button onClick={() => void review(draft, "rejected")} className="rounded bg-slate-200 px-2 py-1 text-xs text-slate-700">Reject</button></div> : <span className="text-xs font-medium capitalize text-slate-500">{draft.status}</span>}
-            </div>
-            {editing === draft.id && <div className="mt-3"><textarea value={editText} onChange={(event) => setEditText(event.target.value)} rows={5} className="w-full rounded border border-slate-300 p-2 font-mono text-xs" /><div className="mt-2 flex gap-2"><button onClick={() => void saveEdit(draft)} className="rounded bg-accent px-3 py-1 text-xs text-white">Save changes</button><button onClick={() => setEditing(null)} className="rounded border border-slate-300 px-3 py-1 text-xs">Cancel</button></div></div>}
-          </article>)}</div>
-        </div>)}
-      </div>}
-    </section>
-  );
-}
+InVzZSBjbGllbnQiOwoKaW1wb3J0IHsgdXNlRWZmZWN0LCB1c2VNZW1vLCB1
+c2VTdGF0ZSB9IGZyb20gInJlYWN0IjsKCnR5cGUgRHJhZnQgPSB7IGlkOiBz
+dHJpbmc7IGtpbmQ6IHN0cmluZzsgc291cmNlX3VybDogc3RyaW5nOyBwYXls
+b2FkOiBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPjsgc3RhdHVzOiAicGVuZGlu
+ZyIgfCAiYXBwcm92ZWQiIHwgInJlamVjdGVkIiB9Owpjb25zdCBMQUJFTFM6
+IFJlY29yZDxzdHJpbmcsIHN0cmluZz4gPSB7IHByb2R1Y3Q6ICJQcm9kdWN0
+cyIsIHNlcnZpY2U6ICJTZXJ2aWNlcyIsIHBvbGljeTogIlBvbGljaWVzIiwg
+ZmFxOiAiRkFRcyIsIGJ1c2luZXNzX2hvdXJzOiAiQnVzaW5lc3MgaG91cnMi
+LCBpbWFnZTogIkltYWdlcyIgfTsKCmV4cG9ydCBmdW5jdGlvbiBXZWJzaXRl
+SW1wb3J0KHsgYnVzaW5lc3NJZCB9OiB7IGJ1c2luZXNzSWQ6IHN0cmluZyB9
+KSB7CiAgY29uc3QgW3dlYnNpdGVVcmwsIHNldFdlYnNpdGVVcmxdID0gdXNl
+U3RhdGUoIiIpOwogIGNvbnN0IFtkcmFmdHMsIHNldERyYWZ0c10gPSB1c2VT
+dGF0ZTxEcmFmdFtdPihbXSk7CiAgY29uc3QgW2xvYWRpbmcsIHNldExvYWRp
+bmddID0gdXNlU3RhdGUoZmFsc2UpOwogIGNvbnN0IFttZXNzYWdlLCBzZXRN
+ZXNzYWdlXSA9IHVzZVN0YXRlPHN0cmluZyB8IG51bGw+KG51bGwpOwogIGNv
+bnN0IFtlZGl0aW5nLCBzZXRFZGl0aW5nXSA9IHVzZVN0YXRlPHN0cmluZyB8
+IG51bGw+KG51bGwpOwogIGNvbnN0IFtlZGl0VGV4dCwgc2V0RWRpdFRleHRd
+ID0gdXNlU3RhdGUoIiIpOwoKICBhc3luYyBmdW5jdGlvbiBsb2FkRHJhZnRz
+KCkgewogICAgY29uc3QgcmVzcG9uc2UgPSBhd2FpdCBmZXRjaChgL2FwaS9w
+b3J0YWwvYnVzaW5lc3Nlcy8ke2J1c2luZXNzSWR9L3NjcmFwZWApOwogICAg
+aWYgKHJlc3BvbnNlLm9rKSBzZXREcmFmdHMoKGF3YWl0IHJlc3BvbnNlLmpz
+b24oKSkuZHJhZnRzID8/IFtdKTsKICB9CgogIC8vIEdlbnVpbmUgZmV0Y2gt
+b24tbW91bnQvZmV0Y2gtb24tYnVzaW5lc3NJZC1jaGFuZ2U7IHRoZXJlJ3Mg
+bm8gd2F5IHRvIGxhenktaW5pdGlhdGVkIGFuCiAgLy8gYXN5bmMgbmV0d29yayByZXF1ZXN0LgogIC8vIGVzbGludC1kaXNhYmxlLW5leHQtbGluZSByZWFjdC1ob29rcy9zZXQtc3RhdGUtaW4tZWZmZWN0CiAgdXNlRWZmZWN0KCgpID0+IHsgdm9pZCBsb2FkRHJhZnRzKCk7IH0sIFtsb2FkRHJhZnRzXSk7CgoKICBhc3luYyBmdW5jdGlvbiBpbXBvcnRXZWJzaXRlKGV2ZW50OiBSZWFjdC5Gb3JtRXZlbnQpIHsKICAgIGV2ZW50LnByZXZlbnREZWZhdWx0KCk7CiAgICBzZXRMb2FkaW5nKHRydWUpOwogICAgc2V0TWVzc2FnZSgiQ3Jhd2xpbmcgdGhlIHdlYnNpdGUgYW5kIHByZXBhcmluZyBhIHJldmlldyBkcmFmdC4uLiIpOwogICAgY29uc3QgcmVzcG9uc2UgPSBhd2FpdCBmZXRjaChgL2FwaS9wb3J0YWwvYnVzaW5lc3Nlcy8ke2J1c2luZXNzSWR9L3NjcmFwZWAsIHsgbWV0aG9kOiAiUE9TVCIsIGhlYWRlcnM6IHsgIkNvbnRlbnQtVHlwZSI6ICJhcHBsaWNhdGlvbi9qc29uIiB9LCBib2R5OiBKU09OLnN0cmluZ2lmeSh7IHdlYnNpdGVVcmwgfSkgfSk7CiAgICBjb25zdCByZXN1bHQgPSBhd2FpdCByZXNwb25zZS5qc29uKCkuY2F0Y2goKCkgPT4gKHt9KSk7CiAgICBzZXRMb2FkaW5nKGZhbHNlKTsKICAgIGlmICghcmVzcG9uc2Uub2spIHsgc2V0TWVzc2FnZShyZXN1bHQuZXJyb3IgPz8gIkNvdWxkIG5vdCBpbXBvcnQgdGhhdCB3ZWJzaXRlLiIpOyByZXR1cm47IH0KICAgIHNldERyYWZ0cyhyZXN1bHQuZHJhZnRzID8/IFtdKTsKICAgIHNldE1lc3NhZ2UoIkRyYWZ0cyBhcmUgcmVhZHkgZm9yIHlvdXIgcmV2aWV3LiBOb3RoaW5nIGlzIGxpdmUgeWV0LiIpOwogIH0KCiAgYXN5bmMgZnVuY3Rpb24gcmV2aWV3KGRyYWZ0OiBEcmFmdCwgc3RhdHVzOiAiYXBwcm92ZWQiIHwgInJlamVjdGVkIikgewogICAgY29uc3QgcmVzcG9uc2UgPSBhd2FpdCBmZXRjaChgL2FwaS9wb3J0YWwvYnVzaW5lc3Nlcy8ke2J1c2luZXNzSWR9L3NjcmFwZWAsIHsgbWV0aG9kOiAiUEFUQ0giLCBoZWFkZXJzOiB7ICJDb250ZW50LVR5cGUiOiAiYXBwbGljYXRpb24vanNvbiIgfSwgYm9keTogSlNPTi5zdHJpbmdpZnkoeyBkcmFmdElkOiBkcmFmdC5pZCwgc3RhdHVzIH0pIH0pOwogICAgaWYgKHJlc3BvbnNlLm9rKSBhd2FpdCBsb2FkRHJhZnRzKCk7CiAgfQoKICBhc3luYyBmdW5jdGlvbiBzYXZlRWRpdChkcmFmdDogRHJhZnQpIHsKICAgIHRyeSB7CiAgICAgIGNvbnN0IHBheWxvYWQgPSBKU09OLnBhcnNlKGVkaXRUZXh0KSBhcyBSZWNvcmQ8c3RyaW5nLCB1bmtub3duPjsKICAgICAgY29uc3QgcmVzcG9uc2UgPSBhd2FpdCBmZXRjaChgL2FwaS9wb3J0YWwvYnVzaW5lc3Nlcy8ke2J1c2luZXNzSWR9L3NjcmFwZWAsIHsgbWV0aG9kOiAiUEFUQ0giLCBoZWFkZXJzOiB7ICJDb250ZW50LVR5cGUiOiAiYXBwbGljYXRpb24vanNvbiIgfSwgYm9keTogSlNPTi5zdHJpbmdpZnkoeyBkcmFmdElkOiBkcmFmdC5pZCwgcGF5bG9hZCB9KSB9KTsKICAgICAgaWYgKHJlc3BvbnNlLm9rKSB7IHNldEVkaXRpbmcobnVsbCk7IGF3YWl0IGxvYWREcmFmdHMoKTsgfQogICAgfSBjYXRjaCB7IHNldE1lc3NhZ2UoIlVzZSB2YWxpZCBKU09OIGZvciB0aGUgZWRpdGVkIGZpZWxkcy4iKTsgfQogIH0KCiAgY29uc3QgZ3JvdXBzID0gdXNlTWVtbygoKSA9PiBPYmplY3QuZW50cmllcyhPYmplY3QuZ3JvdXBCeShkcmFmdHMsIChkcmFmdCkgPT4gZHJhZnQu a2luZCkpLCBbZHJhZnRzXSk7CiAgcmV0dXJuICgKICAgIDxzZWN0aW9uIGNsYXNzTmFtZT0iZ2xhc3MtcGFuZWwgbXQtOCByb3VuZGVkLXhsIHAtNSI+CiAgICAgIDxkaXYgY2xhc3NOYW1lPSJtYi00Ij4KICAgICAgICA8aDIgY2xhc3NOYW1lPSJ0ZXh0LWxnIGZvbnQtc2VtaWJvbGQgdGV4dC1zbGF0ZS05MDAiPkltcG9ydCBmcm9tIHlvdXIgd2Vic2l0ZTwvaDI+CiAgICAgICAgPHAgY2xhc3NOYW1lPSJtdC0xIHRleHQtc20gdGV4dC1zbGF0ZS01MDAiPk1pcmEgd2lsbCBzdWdnZXN0IHByb2R1Y3RzLCBzZXJ2aWNlcywgcG9saWNpZXMsIGhvdXJzLCBGQVFzLCBhbmQgaW1hZ2VzIGZvciB5b3UgdG8gcmV2aWV3LjwvcD4KICAgICAgPC9kaXY+CiAgICAgIDxmb3JtIG9uU3VibWl0PXtpbXBvcnRXZWJzaXRlfSBjbGFzc05hbWU9ImZsZXggZmxleC1jb2wgZ2FwLTIgc206ZmxleC1yb3ciPgogICAgICAgIDxpbnB1dCB0eXBlPSJ1cmwiIHJlcXVpcmVkIHZhbHVlPXt3ZWJzaXRlVXJsfSBvbkNoYW5nZT17KGV2ZW50KSA9PiBzZXRXZWJzaXRlVXJsKGV2ZW50LnRhcmdldC52YWx1ZSl9IHBsYWNlaG9sZGVyPSJodHRwczovL3lvdXItYnVzaW5lc3MuY29tIiBjbGFzc05hbWU9Im1pbi13LTAgZmxleC0xIHJvdW5kZWQgYm9yZGVyIGJvcmRlci1zbGF0ZS0zMDAgcHgtMyBweS0yIHRleHQtc20iIC8+CiAgICAgICAgPGJ1dHRvbiBkaXNhYmxlZD17bG9hZGluZ30gY2xhc3NOYW1lPSJyb3VuZGVkLWxnIGJnLWFjY2VudCBweC00IHB5LTIgdGV4dC1zbSBmb250LW1lZGl1bSB0ZXh0LXdoaXRlIGRpc2FibGVkOm9wYWNpdHktNTAiPnts b2FkaW5nID8gIkltcG9ydGluZy4uLiIgOiAiRmluZCB3ZWJzaXRlIGluZm9ybWF0aW9uIn08L2J1dHRvbj4KICAgICAgPC9mb3JtPgogICAgICB7bWVzc2FnZSAmJiA8cCBjbGFzc05hbWU9Im10LTMgdGV4dC1zbSB0ZXh0LXNsYXRlLTYwMCI+e21lc3NhZ2V9PC9wPn0KICAgICAge2dyb3Vwcy5sZW5ndGggPiAwICYmIDxkaXYgY2xhc3NOYW1lPSJtdC02IHNwYWNlLXktNiI+CiAgICAgICAge2dyb3Vwcy5tYXAoKFtraW5kLCBpdGVtc10pID0+IDxkaXYga2V5PXtraW5kfT4KICAgICAgICAgIDxoMyBjbGFzc05hbWU9Im1iLTIgdGV4dC1zbSBmb250LXNlbWlib2xkIHVwcGVyY2FzZSB0cmFja2luZy13aWRlIHRleHQtc2xhdGUtNTAwIj57TEFCRUxTW2tpbmRdID8/IGtpbmR9PC9oMz4KICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJzcGFjZS15LTMiPnsoaXRlbXMgPz8gW10pLm1hcCgoZHJhZnQpID0+IDxhcnRpY2xlIGtleT17ZHJhZnQuaWR9IGNsYXNzTmFtZT0icm91bmRlZCBsZyBib3JkZXIgYm9yZGVyLXNsYXRlLTIwMCBiZy13aGl0ZSBwLTQiPgogICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBmbGV4LXdyYXAg aXRlbXMtc3RhcnQganVzdGlmeS1iZXR3ZWVuIGdhcC0zIj4KICAgICAgICAgICAgICA8ZGl2IGNsYXNzTmFtZT0ibWluLXctMCBmbGV4LTEiPjxwcmUgY2xhc3NOYW1lPSJ3aGl0ZXNwYWNlLXByZS13cmFwIGJyZWFrLXdvcmRzIGZvbnQtc2FucyB0ZXh0LXNtIHRleHQtc2xhdGUtODAwIj57SlNPTi5zdHJpbmdpZnkoZHJhZnQucGF5bG9hZCwgbnVsbCwgMil9PC9wcmU+PGEgaHJlZj17ZHJhZnQuc291cmNlX3VybH0gdGFyZ2V0PSJfYmxhbmsiIHJlbD0ibm9yZWZlcnJlciIgY2xhc3NOYW1lPSJtdC0yIGJsb2NrIHRydW5jYXRlIHRleHQteHMgdGV4dC1hY2NlbnQgaG92ZXI6dW5kZXJsaW5lIj5Tb3VyY2U6IHtkcmFmdC5zb3VyY2VfdXJsfTwvYT48L2Rpdj4KICAgICAgICAgICAgICB7ZHJhZnQuc3RhdHVzID09PSAicGVuZGluZyIgPyA8ZGl2IGNsYXNzTmFtZT0iZmxleCBzaHJpbmstMCBnYXAtMiI+PGJ1dHRvbiBvbkNsaWNrPXsoKSA9PiB7IHNldEVkaXRpbmcoZHJhZnQuaWQpOyBzZXRFZGl0VGV4dChKU09OLnN0cmluZ2lmeShkcmFmdC5wYXlsb2FkLCBudWxsLCAyKSk7IH19IGNsYXNzTmFtZT0icm91bmRlZCBib3JkZXIgYm9yZGVyLXNsYXRlLTMwMCBweC0yIHB5LTEgdGV4dC14cyI+RWRpdDwvYnV0dG9uPjxidXR0b24gb25DbGljaz17KCkgPT4gdm9pZCByZXZpZXcoZHJhZnQsICJhcHByb3ZlZCIpfSBjbGFzc05hbWU9InJvdW5kZWQgYmctZW1lcmFsZC02MDAgcHgtMiBweS0xIHRleHQteHMgdGV4dC13aGl0ZSI+QXBwcm92ZTwvYnV0dG9uPjxidXR0b24gb25DbGljaz17KCkgPT4gdm9pZCByZXZpZXcoZHJhZnQsICJyZWplY3RlZCIpfSBjbGFzc05hbWU9InJvdW5kZWQgYmctc2xhdGUtMjAwIHB4LTIgcHktMSB0ZXh0LXhzIHRleHQtc2xhdGUtNzAwIj5SZWplY3Q8L2J1dHRvbj48L2Rpdj4gOiA8c3BhbiBjbGFzc05hbWU9InRleHQteHMgZm9udC1tZWRpdW0gY2FwaXRhbGl6ZSB0ZXh0LXNsYXRlLTUwMCI+e2RyYWZ0LnN0YXR1c308L3NwYW4+fQogICAgICAgICAgICA8L2Rpdj4KICAgICAgICAgICAge2VkaXRpbmcgPT09IGRyYWZ0LmlkICYmIDxkaXYgY2xhc3NOYW1lPSJtdC0zIj48dGV4dGFyZWEgdmFsdWU9e2VkaXRUZXh0fSBvbkNoYW5nZT17KGV2ZW50KSA9PiBzZXRFZGl0VGV4dChldmVudC50YXJnZXQudmFsdWUpfSByb3dzPXs1fSBjbGFzc05hbWU9InctZnVsbCByb3VuZGVkIGJvcmRlciBib3JkZXItc2xhdGUtMzAwIHAtMiBmb250LW1vbm8gdGV4dC14cyIgLz48ZGl2IGNsYXNzTmFtZT0ibXQtMiBmbGV4IGdhcC0yIj48YnV0dG9uIG9uQ2xpY2s9eygpID0+IHZvaWQgc2F2ZUVkaXQoZHJhZnQpfSBjbGFzc05hbWU9InJvdW5kZWQgYmctYWNjZW50IHB4LTMgcHktMSB0ZXh0LXhzIHRleHQtd2hpdGUiPlNhdmUgY2hhbmdlczwvYnV0dG9uPjxidXR0b24gb25DbGljaz17KCkgPT4gc2V0RWRpdGluZyhudWxsKX0gY2xhc3NOYW1lPSJyb3VuZGVkIGJvcmRlciBib3JkZXItc2xhdGUtMzAwIHB4LTMgcHktMSB0ZXh0LXhzIj5DYW5jZWw8L2J1dHRvbj48L2Rpdj48L2Rpdj59CiAgICAgICAgICA8L2FydGljbGU+KX08L2Rpdj4KICAgICAgICA8L2Rpdj4pfQogICAgICA8L2Rpdj59CiAgICA8L3NlY3Rpb24+CiAgKTsKfQo=
