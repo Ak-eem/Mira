@@ -59,7 +59,6 @@ export async function GET(request: Request) {
       { error: "Only a business owner can list team members" },
       { status: 403 },
     );
-  }
 
   const service = createServiceRoleClient();
   const { data, error } = await service
@@ -81,8 +80,10 @@ export async function GET(request: Request) {
 
   const members = await Promise.all(
     ((data ?? []) as MemberRow[]).map(async (member) => {
-      const { data: userData } = await service.auth.admin.getUserById(member.user_id);
-      const metadata = userData.user?.user_metadata as Record<string, unknown> | undefined;
+      const { data: userData } = await service
+        .auth.admin.getUserById(member.user_id);
+      const metadata =
+        userData.user?.user_metadata as Record<string, unknown> | undefined;
       const name = [metadata?.full_name, metadata?.display_name, metadata?.name].find(
         (value): value is string => typeof value === "string" && value.trim().length > 0,
       );
