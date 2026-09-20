@@ -2,43 +2,31 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 
 type RouteContext = {
-  params: { id: string } | Promise<{ id: string }>;
+  params: Promise<{ id: string }>;
 };
 
 type Membership = {
   business_id: string;
-  role: string | null;
+  role: string;
 };
 
-async function getMemberships(supabase: Awaited<ReturnType<typeof createClient>>, userId: string) {
-  const { data, error } = await supabase
-    .from("business_members")
-    .select("business_id, role")
-    .eq("user_id", userId);
+type Conversation = {
+  id: string;
+  business_id: string;
+  claimed_by: string | null;
+  claimed_at: string | null;
+};
 
-  if (error) {
-    return { memberships: null, error };
-  }
+type Supabase = Awaited<ReturnType<typeof createClient>>;
 
-  return { memberships: (data ?? []) as Membership[], error: null };
-}
+type AuthResult = {
+  supabase: Supabase;
+  user: { id: string } | null;
+  memberships: Membership[] | null;
+  response: NextResponse | null;
+};
 
-async function getConversation(
-  supabase: Awaited<ReturnType<typeof createClient>>,
-  conversationId: string,
-  businessIds: string[],
-) {
-  const { data, error } = await supabase
-    .from("conversations")
-    .select("id, business_id, assigned_to")
-    .eq("id", conversationId)
-    .in("business_id", businessIds)
-    .maybeSingle();
-
-  return { conversation: data, error };
-}
-
-async function authenticate(request: Request) {
+async function authenticate(request: Request): Promise<AuthResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -46,29 +34,78 @@ async function authenticate(request: Request) {
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    return { supabase, user: null, memberships: null, response: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+    return {
+      supabase,
+      user: null,
+      memberships: null,
+      response: NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 },
+      ),
+    };
   }
 
-  const { memberships, error: membershipError } = await getMemberships(supabase, user.id);
+  const { data, error: membershipError } = await supabase
+    .from("business_owners")
+    .select("business_id, role")
+    .eq("user_id", user.id);
+
   if (membershipError) {
-    console.error("Failed to load business membership", membershipError);
-    return { supabase, user: null, memberships: null, response: NextResponse.json({ error: "Internal server error" }, { status: 500 }) };
+    return {
+      supabase,
+      user: null,
+      memberships: null,
+      response: NextResponse.json(
+        { error: "Unable to verify business access" },
+        { status: 500 },
+      ),
+    };
   }
 
-  if (!memberships?.length) {
-    return { supabase, user: null, memberships: null, response: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  const memberships = (data ?? []) as Membership[];
+
+  if (memberships.length === 0) {
+    return {
+      supabase,
+      user: null,
+      memberships: null,
+      response: NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403 },
+      ),
+    };
   }
 
+  void request;
   return { supabase, user, memberships, response: null };
 }
 
-export async function POST(request: Request, { params }: RouteContext) {
-  void request;
+async function getConversation(
+  supabase: Supabase,
+  conversationId: string,
+  businessIds: string[],
+): Promise<{ conversation: Conversation | null; error: unknown }> {
+  const { data, error } = await supabase
+    .from("conversations")
+    .select("id, business_id, claimed_by, claimed_at")
+    .eq("id", conversationId)
+    .in("business_id", businessIds)
+    .maybeSingle();
+
+  return { conversation: (data as Conversation | null) ?? null, error };
+}
+
+export async function POST(
+  request: Request,
+  { params }: RouteContext,
+) {
   const auth = await authenticate(request);
   if (auth.response) return auth.response;
 
   const { id } = await params;
-  const businessIds = [...new Set(auth.memberships!.map((membership) => membership.business_id))];
+  const businessIds = [
+    ...new Set(auth.memberships!.map((membership) => membership.business_id)),
+  ];
   const { conversation, error: conversationError } = await getConversation(
     auth.supabase,
     id,
@@ -76,42 +113,59 @@ export async function POST(request: Request, { params }: RouteContext) {
   );
 
   if (conversationError) {
-    console.error("Failed to load conversation", conversationError);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Unable to load conversation" },
+      { status: 500 },
+    );
   }
 
   if (!conversation) {
-    return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Conversation not found" },
+      { status: 404 },
+    );
   }
 
   const { data: claimed, error: claimError } = await auth.supabase
     .from("conversations")
-    .update({ assigned_to: auth.user!.id })
-    .eq("id", id)
+    .update({
+      claimed_by: String(auth.user!.id),
+      claimed_at: new Date().toISOString(),
+    })
+    .eq("id", conversation.id)
     .eq("business_id", conversation.business_id)
-    .is("assigned_to", null)
-    .select("id, business_id, assigned_to")
+    .is("claimed_by", null)
+    .select("id, business_id, claimed_by, claimed_at")
     .maybeSingle();
 
   if (claimError) {
-    console.error("Failed to claim conversation", claimError);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Unable to claim conversation" },
+      { status: 500 },
+    );
   }
 
   if (!claimed) {
-    return NextResponse.json({ error: "Conversation is already assigned" }, { status: 409 });
+    return NextResponse.json(
+      { error: "Conversation is already claimed" },
+      { status: 409 },
+    );
   }
 
   return NextResponse.json({ conversation: claimed }, { status: 200 });
 }
 
-export async function DELETE(request: Request, { params }: RouteContext) {
-  void request;
+export async function DELETE(
+  request: Request,
+  { params }: RouteContext,
+) {
   const auth = await authenticate(request);
   if (auth.response) return auth.response;
 
   const { id } = await params;
-  const businessIds = [...new Set(auth.memberships!.map((membership) => membership.business_id))];
+  const businessIds = [
+    ...new Set(auth.memberships!.map((membership) => membership.business_id)),
+  ];
   const { conversation, error: conversationError } = await getConversation(
     auth.supabase,
     id,
@@ -119,40 +173,60 @@ export async function DELETE(request: Request, { params }: RouteContext) {
   );
 
   if (conversationError) {
-    console.error("Failed to load conversation", conversationError);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Unable to load conversation" },
+      { status: 500 },
+    );
   }
 
   if (!conversation) {
-    return NextResponse.json({ error: "Conversation not found" }, { status: 404 });
+    return NextResponse.json(
+      { error: "Conversation not found" },
+      { status: 404 },
+    );
+  }
+
+  if (!conversation.claimed_by) {
+    return NextResponse.json(
+      { error: "Conversation is not claimed" },
+      { status: 409 },
+    );
   }
 
   const membership = auth.memberships!.find(
     (candidate) => candidate.business_id === conversation.business_id,
   );
-  const isOwner = membership?.role?.toLowerCase() === "owner";
+  const isOwner = membership?.role.toLowerCase() === "owner";
+  const userId = String(auth.user!.id);
 
-  let deleteQuery = auth.supabase
-    .from("conversations")
-    .update({ assigned_to: null })
-    .eq("id", id)
-    .eq("business_id", conversation.business_id);
-
-  if (!isOwner) {
-    deleteQuery = deleteQuery.eq("assigned_to", auth.user!.id);
+  if (!isOwner && conversation.claimed_by !== userId) {
+    return NextResponse.json(
+      { error: "You may only clear your own claim" },
+      { status: 403 },
+    );
   }
 
-  const { data: unclaimed, error: unclaimError } = await deleteQuery
-    .select("id, business_id, assigned_to")
+  const { data: unclaimed, error: unclaimError } = await auth.supabase
+    .from("conversations")
+    .update({ claimed_by: null, claimed_at: null })
+    .eq("id", conversation.id)
+    .eq("business_id", conversation.business_id)
+    .eq("claimed_by", conversation.claimed_by)
+    .select("id, business_id, claimed_by, claimed_at")
     .maybeSingle();
 
   if (unclaimError) {
-    console.error("Failed to unclaim conversation", unclaimError);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Unable to clear conversation claim" },
+      { status: 500 },
+    );
   }
 
   if (!unclaimed) {
-    return NextResponse.json({ error: "Conversation is not assigned to you" }, { status: 409 });
+    return NextResponse.json(
+      { error: "Conversation claim changed; retry" },
+      { status: 409 },
+    );
   }
 
   return NextResponse.json({ conversation: unclaimed }, { status: 200 });
