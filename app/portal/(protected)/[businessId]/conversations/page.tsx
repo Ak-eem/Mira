@@ -41,18 +41,18 @@ export default async function PortalConversationsPage({
   let conversationsQuery = supabase
     .from("conversations")
     .select(
-      "id, session_token, channel, needs_human, assigned_to, is_unread, last_message_at",
+      "id, session_token, channel, needs_human, claimed_by, is_unread, last_message_at",
     )
     .eq("business_id", businessId);
 
   if (filter === "mine") {
-    conversationsQuery = conversationsQuery.eq("assigned_to", currentUserId);
+    conversationsQuery = conversationsQuery.eq("claimed_by", currentUserId);
   } else if (filter === "unassigned") {
-    conversationsQuery = conversationsQuery.is("assigned_to", null);
+    conversationsQuery = conversationsQuery.is("claimed_by", null);
   } else if (filter === "other") {
     conversationsQuery = conversationsQuery
-      .not("assigned_to", "is", null)
-      .neq("assigned_to", currentUserId);
+      .not("claimed_by", "is", null)
+      .neq("claimed_by", currentUserId);
   }
 
   const { data: conversations } = await conversationsQuery
@@ -155,7 +155,7 @@ export default async function PortalConversationsPage({
 
               <AssignmentControls
                 conversationId={conversation.id}
-                assignedTo={conversation.assigned_to ?? null}
+                claimedBy={conversation.claimed_by ?? null}
                 currentUserId={currentUserId}
                 isOwner={isOwner}
               />
