@@ -1,9 +1,17 @@
+import { notFound, redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { SettingsForm } from "./SettingsForm";
+import { EmbedSnippet } from "./EmbedSnippet";
+import { OwnersPanel } from "./OwnersPanel";
+import { SubscriptionPanel } from "./SubscriptionPanel";
+import { DeleteBusinessPanel } from "./DeleteBusinessPanel";
+import { TeamInviteForm } from "./TeamInviteForm";
 
 export const dynamic = "force-dynamic";
 
- type PageProps = {
+type PageProps = {
   params: Promise<{ businessId: string }> | { businessId: string };
 };
 
@@ -34,7 +42,7 @@ function asArray(value: unknown, keys: string[]): unknown[] {
   for (const key of keys) {
     if (Array.isArray(record[key])) return record[key] as unknown[];
   }
-  if (record.data && Array.isArray(record.data)) return record.data as unknown[];
+  if (Array.isArray(record.data)) return record.data as unknown[];
   return [];
 }
 
@@ -94,47 +102,71 @@ async function getJson(url: string, cookie: string) {
   }
 }
 
-export default async function TeamSettingsPage({ params }: PageProps) {
+export default async function SettingsPage({ params }: PageProps) {
   const { businessId } = await Promise.resolve(params);
-  const requestHeaders = await headers();
-  const cookie = requestHeaders.get("cookie") ?? "";
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
-  const protocol = requestHeaders.get("x-forwarded-proto") ?? "https";
-
-  if (!host) redirect("/admin");
-
-  // Load the helper dynamically so this page works with either supported server-client export.
-  const serverModule = (await import("@/lib/supabase/server")) as {
-    createClient?: () => Promise<any> | any;
-    getSupabaseServerClient?: () => Promise<any> | any;
-  };
-  const createServerClient = serverModule.createClient ?? serverModule.getSupabaseServerClient;
-  if (!createServerClient) redirect("/admin");
-
-  const supabase = await createServerClient();
+  const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  if (!user) redirect(`/login?next=/admin/businesses/${encodeURIComponent(businessId)}/settings`);
+  if (!user) {
+    redirect(`/login?next=/admin/businesses/${encodeURIComponent(businessId)}/settings`);
+  }
 
-  // Do not trust the route parameter alone: only an authenticated business owner may view this page.
+  const [{ data: business }, { data: ownerRows }, { data: subscription }] = await Promise.all([
+    supabase.from("businesses").select("*").eq("id", businessId).maybeSingle(),
+    supabase.from("business_owners").select("id, user_id").eq("business_id", businessId),
+    supabase.from("business_subscriptions").select("*").eq("business_id", businessId).maybeSingle(),
+  ]);
+
+  if (!business) notFound();
+
+  // Keep this direct membership query separate from the owner list below. A database
+  // failure must never be treated as if the authenticated owner were absent.
   const { data: owner, error: ownerError } = await supabase
     .from("business_owners")
-    .select("business_id")
+    .select("id")
     .eq("business_id", businessId)
     .eq("user_id", user.id)
     .eq("role", "owner")
     .maybeSingle();
 
-  if (ownerError || !owner) redirect("/admin");
+  if (ownerError) {
+    console.error("Unable to verify business owner access", {
+      businessId,
+      userId: user.id,
+      code: ownerError.code,
+      message: ownerError.message,
+    });
+    throw new Error("Unable to verify business owner access");
+  }
 
-  const baseUrl = `${protocol}://${host}`;
+  if (!owner) redirect("/admin");
+
+  // business_owners doesn't store email itself, and auth.users isn't
+  // joinable through the regular client -- resolve each one via the
+  // admin API. Fine for the handful of rows a single business will
+  // realistically have; not worth a bulk lookup for this.
+  const serviceRole = createServiceRoleClient();
+  const owners = await Promise.all(
+    (ownerRows ?? []).map(async (row) => {
+      const { data } = await serviceRole.auth.admin.getUserById(row.user_id);
+      return { id: row.id, email: data.user?.email ?? row.user_id };
+    }),
+  );
+
+  const requestHeaders = await headers();
+  const cookie = requestHeaders.get("cookie") ?? "";
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "https";
+  const baseUrl = host ? `${protocol}://${host}` : null;
   const query = `businessId=${encodeURIComponent(businessId)}`;
-  const [invitationPayload, memberPayload] = await Promise.all([
-    getJson(`${baseUrl}/api/team/invites?${query}`, cookie),
-    getJson(`${baseUrl}/api/team/members?${query}`, cookie),
-  ]);
+  const [invitationPayload, memberPayload] = baseUrl
+    ? await Promise.all([
+        getJson(`${baseUrl}/api/team/invites?${query}`, cookie),
+        getJson(`${baseUrl}/api/team/members?${query}`, cookie),
+      ])
+    : [null, null];
 
   const invitations = asArray(invitationPayload, ["invitations", "invites"]).map(normaliseInvitation);
   const members = asArray(memberPayload, ["members", "teamMembers"]).map(normaliseMember);
@@ -144,58 +176,45 @@ export default async function TeamSettingsPage({ params }: PageProps) {
   const usedCapacity = members.length + pendingInvitations.length;
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-10 text-slate-950 sm:px-6 lg:px-8">
-      <div className="mx-auto max-w-5xl space-y-8">
-        <header className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-indigo-600">Business settings</p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight">Team access</h1>
-            <p className="mt-2 max-w-2xl text-sm text-slate-600">
-              Invite teammates, review pending invitations, and manage who can access this business.
-            </p>
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm">
-            <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Team capacity</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900">{usedCapacity}/5</p>
-          </div>
-        </header>
+    <div className="max-w-lg space-y-6">
+      <div>
+        <h1 className="mb-6 mt-2 text-xl font-semibold">Settings</h1>
+        <SettingsForm business={business} />
+      </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-          <div className="mb-5">
-            <h2 className="text-lg font-semibold">Invite a teammate</h2>
-            <p className="mt-1 text-sm text-slate-500">They will receive an invitation to join this business.</p>
-          </div>
-          <form action="/api/team/invites" method="post" className="flex flex-col gap-3 sm:flex-row">
-            <input type="hidden" name="businessId" value={businessId} />
-            <label className="sr-only" htmlFor="team-invite-email">Teammate email address</label>
-            <input
-              id="team-invite-email"
-              name="email"
-              type="email"
-              required
-              placeholder="teammate@example.com"
-              className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none ring-indigo-500 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2"
-            />
-            <button
-              type="submit"
-              className="rounded-lg bg-indigo-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-            >
-              Send invite
-            </button>
-          </form>
-        </section>
+      <OwnersPanel businessId={businessId} owners={owners} />
+      <EmbedSnippet slug={business.slug} businessName={business.name} />
+      <SubscriptionPanel businessId={businessId} subscription={subscription} />
+      <DeleteBusinessPanel businessId={businessId} businessName={business.name} />
 
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-6 py-5">
-            <h2 className="text-lg font-semibold">Invitations</h2>
-            <p className="mt-1 text-sm text-slate-500">Track invitations and manage their access.</p>
+      <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Additional section</p>
+          <h2 className="mt-1 text-lg font-semibold">Team access</h2>
+          <p className="mt-1 text-sm text-slate-500">Invite teammates and manage access without replacing the rest of business settings.</p>
+        </div>
+
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Team capacity</p>
+          <p className="mt-1 text-2xl font-semibold text-slate-900">{usedCapacity}/5</p>
+        </div>
+
+        <div>
+          <h3 className="text-sm font-semibold text-slate-900">Invite a teammate</h3>
+          <p className="mt-1 text-sm text-slate-500">They will receive an invitation to join this business.</p>
+          <TeamInviteForm businessId={businessId} />
+        </div>
+
+        <div className="rounded-xl border border-slate-200">
+          <div className="border-b border-slate-200 px-4 py-3">
+            <h3 className="text-sm font-semibold text-slate-900">Invitations</h3>
           </div>
           {invitations.length === 0 ? (
-            <p className="px-6 py-10 text-center text-sm text-slate-500">No invitations yet.</p>
+            <p className="px-4 py-6 text-center text-sm text-slate-500">No invitations yet.</p>
           ) : (
             <div className="divide-y divide-slate-100">
               {invitations.map((invitation) => (
-                <div key={invitation.id} className="flex flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div key={invitation.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-slate-900">{invitation.email}</p>
                     <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-500">
@@ -219,19 +238,18 @@ export default async function TeamSettingsPage({ params }: PageProps) {
               ))}
             </div>
           )}
-        </section>
+        </div>
 
-        <section className="rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div className="border-b border-slate-200 px-6 py-5">
-            <h2 className="text-lg font-semibold">Members</h2>
-            <p className="mt-1 text-sm text-slate-500">People who currently have access to this business.</p>
+        <div className="rounded-xl border border-slate-200">
+          <div className="border-b border-slate-200 px-4 py-3">
+            <h3 className="text-sm font-semibold text-slate-900">Members</h3>
           </div>
           {members.length === 0 ? (
-            <p className="px-6 py-10 text-center text-sm text-slate-500">No members found.</p>
+            <p className="px-4 py-6 text-center text-sm text-slate-500">No members found.</p>
           ) : (
             <div className="divide-y divide-slate-100">
               {members.map((member) => (
-                <div key={member.id} className="flex flex-col gap-4 px-6 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div key={member.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-slate-900">{member.name}</p>
                     <p className="truncate text-sm text-slate-500">{member.email}</p>
@@ -253,14 +271,14 @@ export default async function TeamSettingsPage({ params }: PageProps) {
               ))}
             </div>
           )}
-        </section>
-      </div>
+        </div>
+      </section>
 
       <script
         dangerouslySetInnerHTML={{
           __html: `document.querySelectorAll('form[data-team-action]').forEach(function(form){form.addEventListener('submit',function(event){event.preventDefault();var button=form.querySelector('button[type=submit]');if(button){button.disabled=true;}var body={};new FormData(form).forEach(function(value,key){body[key]=value;});fetch(form.action,{method:form.dataset.method||'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(response){if(!response.ok){throw new Error('Request failed');}window.location.reload();}).catch(function(){if(button){button.disabled=false;}window.alert('The request could not be completed. Please try again.');});});});`,
         }}
       />
-    </main>
+    </div>
   );
 }
