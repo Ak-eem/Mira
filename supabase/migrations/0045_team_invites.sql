@@ -72,9 +72,10 @@ SET search_path = public, auth, pg_temp
 AS $$
   SELECT EXISTS (
     SELECT 1
-    FROM public.businesses AS b
-    WHERE b.id = p_business_id
-      AND b.owner_id = auth.uid()
+    FROM public.business_owners AS bo
+    WHERE bo.business_id = p_business_id
+      AND bo.user_id = auth.uid()
+      AND bo.role = 'owner'
   );
 $$;
 
@@ -87,16 +88,10 @@ SET search_path = public, auth, pg_temp
 AS $$
   SELECT EXISTS (
     SELECT 1
-    FROM public.businesses AS b
-    WHERE b.id = p_business_id
-      AND b.owner_id = auth.uid()
-  )
-  OR EXISTS (
-    SELECT 1
-    FROM public.business_members AS bm
-    WHERE bm.business_id = p_business_id
-      AND bm.user_id = auth.uid()
-      AND bm.role = 'staff'
+    FROM public.business_owners AS bo
+    WHERE bo.business_id = p_business_id
+      AND bo.user_id = auth.uid()
+      AND bo.role IN ('owner', 'staff')
   );
 $$;
 
@@ -134,41 +129,59 @@ FOR DELETE
 TO authenticated
 USING (public.is_business_admin(business_id));
 
-ALTER TABLE public.conversations
-  ADD COLUMN IF NOT EXISTS assigned_to uuid;
-
 DO $$
 BEGIN
-  IF NOT EXISTS (
+  IF EXISTS (
     SELECT 1
-    FROM pg_constraint
-    WHERE conrelid = 'public.conversations'::regclass
-      AND conname = 'conversations_assigned_to_fkey'
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'conversations'
+      AND policyname = 'conversations_member_select'
   ) THEN
-    ALTER TABLE public.conversations
-      ADD CONSTRAINT conversations_assigned_to_fkey
-      FOREIGN KEY (assigned_to)
-      REFERENCES auth.users(id)
-      ON DELETE SET NULL;
+    DROP POLICY conversations_member_select ON public.conversations;
   END IF;
 END;
 $$;
 
-CREATE INDEX IF NOT EXISTS conversations_business_id_assigned_to_idx
-  ON public.conversations (business_id, assigned_to);
-
 DO $$
-DECLARE
-  existing_policy record;
 BEGIN
-  FOR existing_policy IN
-    SELECT policyname
+  IF EXISTS (
+    SELECT 1
     FROM pg_policies
     WHERE schemaname = 'public'
       AND tablename = 'conversations'
-  LOOP
-    EXECUTE format('DROP POLICY IF EXISTS %I ON public.conversations', existing_policy.policyname);
-  END LOOP;
+      AND policyname = 'conversations_member_insert'
+  ) THEN
+    DROP POLICY conversations_member_insert ON public.conversations;
+  END IF;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'conversations'
+      AND policyname = 'conversations_member_update'
+  ) THEN
+    DROP POLICY conversations_member_update ON public.conversations;
+  END IF;
+END;
+$$;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1
+    FROM pg_policies
+    WHERE schemaname = 'public'
+      AND tablename = 'conversations'
+      AND policyname = 'conversations_member_delete'
+  ) THEN
+    DROP POLICY conversations_member_delete ON public.conversations;
+  END IF;
 END;
 $$;
 
