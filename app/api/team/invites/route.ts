@@ -4,6 +4,7 @@ import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
 
 import { sendEmailWithResend } from "@/lib/email/resend";
+import { checkRateLimit } from "@/lib/rateLimit";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -12,6 +13,8 @@ export const dynamic = "force-dynamic";
 
 const INVITE_TTL_MS = 72 * 60 * 60 * 1000;
 const STAFF_CAP = 5;
+const INVITE_RATE_LIMIT = 5;
+const INVITE_RATE_WINDOW_SECONDS = 60 * 60;
 const PUBLIC_INVITE_COLUMNS =
   "id,business_id,email,role,status,expires_at,created_at,updated_at,accepted_at,revoked_at,last_sent_at,send_count,invited_by,accepted_by";
 
@@ -33,7 +36,9 @@ type InviteRow = {
 };
 
 function isUuid(value: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value,
+  );
 }
 
 function normalizeEmail(value: string): string {
@@ -63,16 +68,14 @@ function publicInvite(row: InviteRow, now = Date.now()) {
 }
 
 function escapeHtml(value: string): string {
-  return value.replace(
-    /[&<>'"]/g,
-    (character) =>
-      ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        "'": "&#39;",
-        '"': "&quot;",
-      })[character] ?? character,
+  return value.replace(/[&<>\"']/g, (character) =>
+    ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '\"': "&quot;",
+      "'": "&#39;",
+    })[character] ?? character,
   );
 }
 
@@ -85,7 +88,10 @@ async function authenticateOwner(businessId: string) {
 
   if (userError || !user) {
     return {
-      response: NextResponse.json({ error: "Authentication required" }, { status: 401 }),
+      response: NextResponse.json(
+        { error: "Authentication required" },
+        { status: 401 },
+      ),
     } as const;
   }
 
@@ -98,43 +104,68 @@ async function authenticateOwner(businessId: string) {
     .maybeSingle();
 
   if (ownerError) {
-    console.error("team invites owner lookup failed", { code: ownerError.code });
+    console.error("team invites owner lookup failed", {
+      code: ownerError.code,
+    });
     return {
-      response: NextResponse.json({ error: "Unable to verify business access" }, { status: 500 }),
+      response: NextResponse.json(
+        { error: "Unable to verify business access" },
+        { status: 500 },
+      ),
     } as const;
   }
 
   if (!owner) {
     return {
-      response: NextResponse.json({ error: "Only a business owner can manage invites" }, { status: 403 }),
+      response: NextResponse.json(
+        { error: "Only a business owner can manage invites" },
+        { status: 403 },
+      ),
     } as const;
   }
 
   return { user, service: createServiceRoleClient() } as const;
 }
 
-async function sendInviteEmail(
-  email: string,
-  businessId: string,
-  token: string,
-  expiresAt: string,
-): Promise<boolean> {
-  const siteUrl =
+async function sendInviteEmail({
+  email,
+  businessName,
+  businessId,
+  token,
+  expiresAt,
+}: {
+  email: string;
+  businessName: string;
+  businessId: string;
+  token: string;
+  expiresAt: string;
+}): Promise<boolean> {
+  const baseUrl = (
     process.env.NEXT_PUBLIC_SITE_URL ??
     process.env.NEXT_PUBLIC_APP_URL ??
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+    (process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : undefined)
+  )?.replace(/\/$/, "");
 
-  if (!process.env.RESEND_API_KEY || !process.env.RESEND_FROM_EMAIL || !siteUrl) {
+  if (
+    !process.env.RESEND_API_KEY ||
+    !process.env.RESEND_FROM_EMAIL ||
+    !baseUrl
+  ) {
     return false;
   }
 
-  const inviteUrl = `${siteUrl.replace(/\/$/, "")}/team/invite?businessId=${encodeURIComponent(businessId)}&token=${encodeURIComponent(token)}`;
+  const inviteUrl = `${baseUrl}/invite/${token}`;
+  const safeBusinessName = escapeHtml(businessName);
+  const safeInviteUrl = escapeHtml(inviteUrl);
+  const safeExpiresAt = escapeHtml(expiresAt);
 
   try {
     await sendEmailWithResend({
       to: email,
-      subject: "You have been invited to join a Mira team",
-      html: `<p>You have been invited to join a Mira team as staff.</p><p><a href="${escapeHtml(inviteUrl)}">Accept your invitation</a></p><p>This invitation expires on ${escapeHtml(expiresAt)}.</p>`,
+      subject: `${businessName} invited you to join their team`,
+      html: `<p>You have been invited to join <strong>${safeBusinessName}</strong> as a staff member.</p><p><a href="${safeInviteUrl}">Accept your invitation</a></p><p>This invitation expires in 72 hours, on ${safeExpiresAt}.</p>`,
     });
     return true;
   } catch (error) {
@@ -147,10 +178,14 @@ async function sendInviteEmail(
 }
 
 export async function GET(request: Request) {
-  const businessId = new URL(request.url).searchParams.get("businessId")?.trim() ?? "";
+  const businessId =
+    new URL(request.url).searchParams.get("businessId")?.trim() ?? "";
 
   if (!isUuid(businessId)) {
-    return NextResponse.json({ error: "A valid businessId is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "A valid businessId is required" },
+      { status: 400 },
+    );
   }
 
   const auth = await authenticateOwner(businessId);
@@ -164,52 +199,90 @@ export async function GET(request: Request) {
 
   if (error) {
     console.error("team invites list failed", { businessId, code: error.code });
-    return NextResponse.json({ error: "Unable to list team invites" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Unable to list team invites" },
+      { status: 500 },
+    );
   }
 
-  return NextResponse.json({ invites: ((data ?? []) as InviteRow[]).map((row) => publicInvite(row)) });
+  return NextResponse.json({
+    invites: ((data ?? []) as InviteRow[]).map((row) => publicInvite(row)),
+  });
 }
 
 export async function POST(request: Request) {
-  let body: { businessId?: unknown; business_id?: unknown; email?: unknown };
+  let body: {
+    businessId?: unknown;
+    business_id?: unknown;
+    email?: unknown;
+  };
 
   try {
     body = (await request.json()) as typeof body;
   } catch {
-    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid JSON body" },
+      { status: 400 },
+    );
   }
 
   const businessId =
-    (typeof body.businessId === "string" ? body.businessId : body.business_id) as string | undefined;
-  const email = typeof body.email === "string" ? normalizeEmail(body.email) : "";
+    (typeof body.businessId === "string"
+      ? body.businessId
+      : body.business_id) as string | undefined;
+  const email =
+    typeof body.email === "string" ? normalizeEmail(body.email) : "";
 
   if (!businessId || !isUuid(businessId.trim())) {
-    return NextResponse.json({ error: "A valid businessId is required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "A valid businessId is required" },
+      { status: 400 },
+    );
   }
-  if (!email || email.length > 320 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return NextResponse.json({ error: "A valid email is required" }, { status: 400 });
+
+  if (
+    !email ||
+    email.length > 320 ||
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+  ) {
+    return NextResponse.json(
+      { error: "A valid email is required" },
+      { status: 400 },
+    );
   }
 
   const normalizedBusinessId = businessId.trim();
   const auth = await authenticateOwner(normalizedBusinessId);
   if ("response" in auth) return auth.response;
 
-  const ownerEmail = auth.user.email ? normalizeEmail(auth.user.email) : "";
+  const ownerEmail = auth.user.email
+    ? normalizeEmail(auth.user.email)
+    : "";
   if (ownerEmail && ownerEmail === email) {
-    return NextResponse.json({ error: "You cannot invite the business owner" }, { status: 409 });
+    return NextResponse.json(
+      { error: "You cannot invite the business owner" },
+      { status: 409 },
+    );
   }
 
-  const { data: usersData, error: usersError } = await auth.service.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  });
+  const { data: usersData, error: usersError } =
+    await auth.service.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
   if (usersError) {
-    console.error("team invite user lookup failed", { businessId: normalizedBusinessId });
-    return NextResponse.json({ error: "Unable to verify team membership" }, { status: 500 });
+    console.error("team invite user lookup failed", {
+      businessId: normalizedBusinessId,
+    });
+    return NextResponse.json(
+      { error: "Unable to verify team membership" },
+      { status: 500 },
+    );
   }
 
   const invitedUser = usersData.users.find(
-    (candidate) => candidate.email && normalizeEmail(candidate.email) === email,
+    (candidate) =>
+      candidate.email && normalizeEmail(candidate.email) === email,
   );
 
   if (invitedUser) {
@@ -221,13 +294,66 @@ export async function POST(request: Request) {
       .maybeSingle();
 
     if (memberError) {
-      console.error("team invite membership lookup failed", { businessId: normalizedBusinessId });
-      return NextResponse.json({ error: "Unable to verify team membership" }, { status: 500 });
+      console.error("team invite membership lookup failed", {
+        businessId: normalizedBusinessId,
+      });
+      return NextResponse.json(
+        { error: "Unable to verify team membership" },
+        { status: 500 },
+      );
     }
+
     if (member) {
-      return NextResponse.json({ error: "This person is already a member of the business" }, { status: 409 });
+      return NextResponse.json(
+        { error: "This person is already a member of the business" },
+        { status: 409 },
+      );
     }
   }
+
+  const rateLimitResults = await Promise.all([
+    checkRateLimit(
+      auth.service,
+      `team-invite-owner:${auth.user.id}`,
+      INVITE_RATE_LIMIT,
+      INVITE_RATE_WINDOW_SECONDS,
+    ),
+    checkRateLimit(
+      auth.service,
+      `team-invite-business:${normalizedBusinessId}`,
+      INVITE_RATE_LIMIT,
+      INVITE_RATE_WINDOW_SECONDS,
+    ),
+    checkRateLimit(
+      auth.service,
+      `team-invite-email:${normalizedBusinessId}:${email}`,
+      INVITE_RATE_LIMIT,
+      INVITE_RATE_WINDOW_SECONDS,
+    ),
+  ]);
+
+  const blockedRateLimit = rateLimitResults.find((result) => !result.allowed);
+  if (blockedRateLimit) {
+    return NextResponse.json(
+      { error: "Too many invitation emails. Please try again later." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(blockedRateLimit.retryAfterSeconds ?? 60),
+        },
+      },
+    );
+  }
+
+  const { data: business } = await auth.service
+    .from("businesses")
+    .select("name")
+    .eq("id", normalizedBusinessId)
+    .maybeSingle();
+  const businessName =
+    typeof business?.name === "string" && business.name.trim()
+      ? business.name.trim()
+      : "Mira";
 
   const now = new Date();
   const nowIso = now.toISOString();
@@ -240,8 +366,13 @@ export async function POST(request: Request) {
     .eq("status", "pending");
 
   if (pendingError) {
-    console.error("team invite pending lookup failed", { businessId: normalizedBusinessId });
-    return NextResponse.json({ error: "Unable to check invite capacity" }, { status: 500 });
+    console.error("team invite pending lookup failed", {
+      businessId: normalizedBusinessId,
+    });
+    return NextResponse.json(
+      { error: "Unable to check invite capacity" },
+      { status: 500 },
+    );
   }
 
   const pending = (pendingRows ?? []) as Array<{
@@ -250,7 +381,9 @@ export async function POST(request: Request) {
     expires_at: string;
     send_count: number;
   }>;
-  const existingPending = pending.find((row) => normalizeEmail(row.email) === email);
+  const existingPending = pending.find(
+    (row) => normalizeEmail(row.email) === email,
+  );
   const pendingUnexpiredCount = pending.filter(
     (row) => Date.parse(row.expires_at) > now.getTime(),
   ).length;
@@ -262,16 +395,25 @@ export async function POST(request: Request) {
     .eq("role", "staff");
 
   if (staffError) {
-    console.error("team invite staff count failed", { businessId: normalizedBusinessId });
-    return NextResponse.json({ error: "Unable to check invite capacity" }, { status: 500 });
+    console.error("team invite staff count failed", {
+      businessId: normalizedBusinessId,
+    });
+    return NextResponse.json(
+      { error: "Unable to check invite capacity" },
+      { status: 500 },
+    );
   }
 
   const acceptedStaffCount = staffRows?.length ?? 0;
   const existingPendingOccupiesCapacity =
-    existingPending && Date.parse(existingPending.expires_at) > now.getTime() ? 1 : 0;
+    existingPending && Date.parse(existingPending.expires_at) > now.getTime()
+      ? 1
+      : 0;
 
   if (
-    acceptedStaffCount + pendingUnexpiredCount - existingPendingOccupiesCapacity >=
+    acceptedStaffCount +
+      pendingUnexpiredCount -
+      existingPendingOccupiesCapacity >=
     STAFF_CAP
   ) {
     return NextResponse.json(
@@ -325,12 +467,24 @@ export async function POST(request: Request) {
       code: inviteError?.code,
     });
     if (inviteError?.code === "23505") {
-      return NextResponse.json({ error: "An invite for this email already exists" }, { status: 409 });
+      return NextResponse.json(
+        { error: "An invite for this email already exists" },
+        { status: 409 },
+      );
     }
-    return NextResponse.json({ error: "Unable to create team invite" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Unable to create team invite" },
+      { status: 500 },
+    );
   }
 
-  const emailSent = await sendInviteEmail(email, normalizedBusinessId, token, expiresAt);
+  const emailSent = await sendInviteEmail({
+    email,
+    businessName,
+    businessId: normalizedBusinessId,
+    token,
+    expiresAt,
+  });
 
   return NextResponse.json(
     { invite: publicInvite(invite), emailSent },
