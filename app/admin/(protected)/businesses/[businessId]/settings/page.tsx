@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -105,48 +105,26 @@ async function getJson(url: string, cookie: string) {
 export default async function SettingsPage({ params }: PageProps) {
   const { businessId } = await Promise.resolve(params);
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
-  if (!user) {
-    redirect(`/login?next=/admin/businesses/${encodeURIComponent(businessId)}/settings`);
-  }
-
-  const [{ data: business }, { data: ownerRows }, { data: subscription }] = await Promise.all([
+  const [
+    { data: business },
+    { data: ownerRows },
+    { data: subscription },
+  ] = await Promise.all([
     supabase.from("businesses").select("*").eq("id", businessId).maybeSingle(),
-    supabase.from("business_owners").select("id, user_id").eq("business_id", businessId),
-    supabase.from("business_subscriptions").select("*").eq("business_id", businessId).maybeSingle(),
+    supabase
+      .from("business_owners")
+      .select("id, user_id")
+      .eq("business_id", businessId),
+    supabase
+      .from("business_subscriptions")
+      .select("*")
+      .eq("business_id", businessId)
+      .maybeSingle(),
   ]);
 
   if (!business) notFound();
 
-  // Keep this direct membership query separate from the owner list below. A database
-  // failure must never be treated as if the authenticated owner were absent.
-  const { data: owner, error: ownerError } = await supabase
-    .from("business_owners")
-    .select("id")
-    .eq("business_id", businessId)
-    .eq("user_id", user.id)
-    .eq("role", "owner")
-    .maybeSingle();
-
-  if (ownerError) {
-    console.error("Unable to verify business owner access", {
-      businessId,
-      userId: user.id,
-      code: ownerError.code,
-      message: ownerError.message,
-    });
-    throw new Error("Unable to verify business owner access");
-  }
-
-  if (!owner) redirect("/admin");
-
-  // business_owners doesn't store email itself, and auth.users isn't
-  // joinable through the regular client -- resolve each one via the
-  // admin API. Fine for the handful of rows a single business will
-  // realistically have; not worth a bulk lookup for this.
   const serviceRole = createServiceRoleClient();
   const owners = await Promise.all(
     (ownerRows ?? []).map(async (row) => {
