@@ -160,6 +160,21 @@ export default async function SettingsPage({ params }: PageProps) {
         <SettingsForm business={business} />
       </div>
 
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Additional section</p>
+        <h2 className="mt-1 text-lg font-semibold">AI prompt</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          Tone and instructions now live in their own versioned editor — draft, diff against what&apos;s
+          live, publish, and roll back if needed.
+        </p>
+        <a
+          href={`/admin/businesses/${businessId}/settings/prompt`}
+          className="mt-3 inline-block rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark"
+        >
+          Open prompt editor
+        </a>
+      </section>
+
       <OwnersPanel businessId={businessId} owners={owners} />
       <EmbedSnippet slug={business.slug} businessName={business.name} />
       <SubscriptionPanel businessId={businessId} subscription={subscription} />
