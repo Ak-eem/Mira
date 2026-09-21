@@ -28,6 +28,7 @@ export function PortalNav({ businessId }: { businessId: string }) {
       <NavLink href={`/portal/${businessId}/conversations`}>Conversations</NavLink>
       <NavLink href={`/portal/${businessId}/nudges`}>Nudges</NavLink>
       <NavLink href={`/portal/${businessId}/orders`}>Orders</NavLink>
+      <NavLink href={`/portal/${businessId}/settings`}>Settings</NavLink>
     </nav>
   );
 }
