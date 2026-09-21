@@ -3,7 +3,7 @@ import { createClient } from "./server";
 export type CurrentBusinessOwner = {
   userId: string;
   email: string;
-  businesses: { id: string; name: string }[];
+  businesses: { id: string; name: string; role: "owner" | "staff" }[];
 };
 
 // Returns the current business owner and which businesses they can
@@ -24,7 +24,7 @@ export async function getCurrentBusinessOwner(): Promise<CurrentBusinessOwner | 
 
   const { data: memberships } = await supabase
     .from("business_owners")
-    .select("business_id, businesses(id, name)")
+    .select("business_id, role, businesses(id, name)")
     .eq("user_id", user.id);
 
   if (!memberships || memberships.length === 0) return null;
@@ -36,7 +36,8 @@ export async function getCurrentBusinessOwner(): Promise<CurrentBusinessOwner | 
   const businesses = memberships.flatMap((m) => {
     const b = m.businesses as { id: string; name: string } | { id: string; name: string }[] | null;
     if (!b) return [];
-    return Array.isArray(b) ? b : [b];
+    const role: "owner" | "staff" = m.role === "staff" ? "staff" : "owner";
+    return (Array.isArray(b) ? b : [b]).map((biz) => ({ ...biz, role }));
   });
 
   if (businesses.length === 0) return null;

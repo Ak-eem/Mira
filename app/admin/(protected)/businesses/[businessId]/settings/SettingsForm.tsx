@@ -13,8 +13,6 @@ export function SettingsForm({ business }: { business: Business }) {
   const [description, setDescription] = useState(business.description ?? "");
   const [currency, setCurrency] = useState(business.currency);
   const [timezone, setTimezone] = useState(business.timezone);
-  const [aiTone, setAiTone] = useState(business.ai_tone ?? "");
-  const [aiInstructions, setAiInstructions] = useState(business.ai_instructions ?? "");
   const [hoursNote, setHoursNote] = useState(business.hours_note ?? "");
   const [whatsappPhoneNumberId, setWhatsappPhoneNumberId] = useState(business.whatsapp_phone_number_id ?? "");
   const [emailResponsesEnabled, setEmailResponsesEnabled] = useState(business.email_responses_enabled);
@@ -32,7 +30,7 @@ export function SettingsForm({ business }: { business: Business }) {
 
     const result = await updateBusiness({
       businessId: business.id, name, slug, description, currency, timezone,
-      aiTone, aiInstructions, hoursNote, whatsappPhoneNumberId, emailResponsesEnabled, socialLinks, isActive,
+      hoursNote, whatsappPhoneNumberId, emailResponsesEnabled, socialLinks, isActive,
     });
 
     if (result?.error) {
@@ -99,31 +97,6 @@ export function SettingsForm({ business }: { business: Business }) {
           <label className="block text-sm font-medium text-slate-700">Timezone</label>
           <input className="mt-1 w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm" value={timezone} onChange={(e) => setTimezone(e.target.value)} />
         </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-slate-700">
-          AI tone <span className="font-normal text-slate-400">— shapes how Mira talks</span>
-        </label>
-        <input
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
-          placeholder="e.g. friendly, casual, short sentences"
-          value={aiTone}
-          onChange={(e) => setAiTone(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-slate-700">
-          Additional instructions <span className="font-normal text-slate-400">— optional</span>
-        </label>
-        <textarea
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
-          rows={2}
-          placeholder="e.g. Always mention we're cash-only on Mondays"
-          value={aiInstructions}
-          onChange={(e) => setAiInstructions(e.target.value)}
-        />
       </div>
 
       <div>
