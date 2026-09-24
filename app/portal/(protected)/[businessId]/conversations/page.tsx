@@ -35,6 +35,7 @@ export default async function PortalConversationsPage({
     data: { user },
   } = await supabase.auth.getUser();
   const currentUserId = user?.id ?? "";
+  const currentUserEmail = user?.email ?? "";
   const owner = await getCurrentBusinessOwner();
   const isOwner = owner?.userId === currentUserId;
 
@@ -46,13 +47,13 @@ export default async function PortalConversationsPage({
     .eq("business_id", businessId);
 
   if (filter === "mine") {
-    conversationsQuery = conversationsQuery.eq("claimed_by", currentUserId);
+    conversationsQuery = conversationsQuery.eq("claimed_by", currentUserEmail);
   } else if (filter === "unassigned") {
     conversationsQuery = conversationsQuery.is("claimed_by", null);
   } else if (filter === "other") {
     conversationsQuery = conversationsQuery
       .not("claimed_by", "is", null)
-      .neq("claimed_by", currentUserId);
+      .neq("claimed_by", currentUserEmail);
   }
 
   const { data: conversations } = await conversationsQuery
@@ -156,7 +157,7 @@ export default async function PortalConversationsPage({
               <AssignmentControls
                 conversationId={conversation.id}
                 claimedBy={conversation.claimed_by ?? null}
-                currentUserId={currentUserId}
+                currentUserEmail={currentUserEmail}
                 isOwner={isOwner}
               />
             </div>
