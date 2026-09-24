@@ -1,7 +1,9 @@
-import { notFound, redirect } from "next/navigation";
+import { redirect } from "next/navigation";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { getCurrentDraft, getActiveRelease, getPublishedHistory } from "@/lib/promptReleases";
+import { getAgentSettings } from "@/lib/agentSettings";
 import { PromptEditor } from "./PromptEditor";
+import { AgentSettingsPanel } from "./AgentSettingsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -16,13 +18,12 @@ export default async function PortalSettingsPage({ params }: PageProps) {
   const membership = owner?.businesses.find((b) => b.id === businessId);
   if (!owner || !membership) redirect("/portal/login");
 
-  const [draft, active, history] = await Promise.all([
+  const [draft, active, history, agentSettings] = await Promise.all([
     getCurrentDraft(businessId),
     getActiveRelease(businessId),
     getPublishedHistory(businessId),
+    getAgentSettings(businessId),
   ]);
-
-  if (!active && history.length === 0 && !draft) notFound();
 
   return (
     <div className="max-w-lg space-y-4">
@@ -33,6 +34,13 @@ export default async function PortalSettingsPage({ params }: PageProps) {
           changes what Mira actually says to your customers.
         </p>
       </div>
+
+      <AgentSettingsPanel
+        businessId={businessId}
+        initialEnabled={agentSettings.enabled}
+        initialProvider={agentSettings.provider}
+        canEdit={membership.role === "owner"}
+      />
 
       <PromptEditor
         businessId={businessId}

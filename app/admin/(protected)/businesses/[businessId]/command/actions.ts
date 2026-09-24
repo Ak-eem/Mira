@@ -5,8 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
 import { parseCommand } from "@/lib/ai/parseCommand";
 import { logActivity } from "@/lib/activityLog";
-import { updateService } from "../services/actions";
-import { updateProduct } from "../products/actions";
+import { updateService, createService } from "../services/actions";
+import { updateProduct, createProduct } from "../products/actions";
 import { createPromotion } from "../promotions/actions";
 import { createFaq } from "../faqs/actions";
 
@@ -269,6 +269,41 @@ export async function interpretCommand(businessId: string, instruction: string):
       };
     }
 
+    case "create_service": {
+      const name = String(parsed.args.name ?? "").trim();
+      if (!name) return { kind: "info", message: "I need a name for the new service." };
+      const description = parsed.args.description ? String(parsed.args.description).trim() : "";
+      const price = parsed.args.price !== undefined ? Number(parsed.args.price) : null;
+      if (price !== null && Number.isNaN(price)) {
+        return { kind: "info", message: "I couldn't tell what the price should be." };
+      }
+      return {
+        kind: "confirm",
+        action: "create_service",
+        summary: `Add a new service "${name}"${price !== null ? ` at ${price}` : ""}?`,
+        payload: { name, description, price },
+      };
+    }
+
+    case "create_product": {
+      const name = String(parsed.args.name ?? "").trim();
+      const price = Number(parsed.args.price);
+      if (!name || Number.isNaN(price) || price < 0) {
+        return { kind: "info", message: "I need a name and a valid price for the new product." };
+      }
+      const description = parsed.args.description ? String(parsed.args.description).trim() : "";
+      const stockQuantity = parsed.args.stock_quantity !== undefined ? Number(parsed.args.stock_quantity) : null;
+      if (stockQuantity !== null && (Number.isNaN(stockQuantity) || stockQuantity < 0)) {
+        return { kind: "info", message: "I couldn't tell what the starting stock count should be." };
+      }
+      return {
+        kind: "confirm",
+        action: "create_product",
+        summary: `Add a new product "${name}" at ${price}${stockQuantity !== null ? `, starting stock ${stockQuantity}` : ""}?`,
+        payload: { name, description, price, stockQuantity },
+      };
+    }
+
     default:
       return { kind: "info", message: "I'm not sure how to help with that yet." };
   }
@@ -404,6 +439,34 @@ export async function executeCommand(
         businessId,
         question: String(payload.question),
         answer: String(payload.answer),
+        source: "command_center",
+      });
+      return { error: result.error };
+    }
+
+    case "create_service": {
+      const result = await createService({
+        businessId,
+        name: String(payload.name),
+        description: payload.description ? String(payload.description) : "",
+        price: payload.price !== null && payload.price !== undefined ? String(payload.price) : "",
+        isAvailable: true,
+        availabilityNote: "",
+        source: "command_center",
+      });
+      return { error: result.error };
+    }
+
+    case "create_product": {
+      const result = await createProduct({
+        businessId,
+        name: String(payload.name),
+        description: payload.description ? String(payload.description) : "",
+        price: String(payload.price),
+        stockQuantity:
+          payload.stockQuantity !== null && payload.stockQuantity !== undefined ? String(payload.stockQuantity) : "",
+        isAvailable: true,
+        availabilityNote: "",
         source: "command_center",
       });
       return { error: result.error };
