@@ -71,8 +71,9 @@ export function CommandCenter({ businessId }: { businessId: string }) {
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {turns.length === 0 && !pending && (
           <p className="text-sm text-slate-400">
-            Try something like &quot;mark haircuts unavailable&quot; or &quot;add 20% off all
-            services until Friday.&quot;
+            Try something like &quot;mark haircuts unavailable&quot;, &quot;add 20% off all
+            services until Friday&quot;, or &quot;add a new service called Deep Tissue Massage at
+            15000&quot;.
           </p>
         )}
 

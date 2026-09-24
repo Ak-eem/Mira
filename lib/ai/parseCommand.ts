@@ -1,7 +1,7 @@
 import type { BusinessContext } from "./buildContext";
-import { geminiFetchJson } from "./geminiFetch";
+import { geminiFetchJson, type ProviderName } from "./geminiFetch";
 
-// Six command types, deliberately -- matches exactly what's actually
+// Eight command types, deliberately -- matches exactly what's actually
 // needed, not "everything Mira could theoretically do." Adding another
 // means one declaration here and one case in actions.ts, nothing else
 // needs to change.
@@ -100,6 +100,33 @@ const FUNCTION_DECLARATIONS = [
       required: ["question", "answer"],
     },
   },
+  {
+    name: "create_service",
+    description: "Add a brand new service that doesn't exist yet. Only use this when the instruction is clearly about adding something new, not changing an existing one.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        description: { type: "string" },
+        price: { type: "number", description: "Leave unset if no price was mentioned." },
+      },
+      required: ["name"],
+    },
+  },
+  {
+    name: "create_product",
+    description: "Add a brand new product that doesn't exist yet. Only use this when the instruction is clearly about adding something new, not changing an existing one.",
+    parameters: {
+      type: "object",
+      properties: {
+        name: { type: "string" },
+        description: { type: "string" },
+        price: { type: "number" },
+        stock_quantity: { type: "number", description: "Leave unset if no starting stock count was mentioned." },
+      },
+      required: ["name", "price"],
+    },
+  },
 ];
 
 // Names any caller can pass to parseCommand's allowedTools -- kept as a
@@ -110,15 +137,18 @@ export const COMMAND_NAMES = FUNCTION_DECLARATIONS.map((f) => f.name);
 
 // The subset relevant to "inventory" in the everyday sense a shop owner
 // means it: what's in stock, what it costs, whether it's for sale right
-// now. Deliberately excludes create_promotion/update_hours/add_faq --
-// not because they couldn't also be owner-facing eventually, but
-// because scoping the model's own tool choices this tightly means it
-// physically cannot suggest an out-of-scope action, rather than relying
-// on the caller to reject one after the fact.
+// now, and adding a new product. Deliberately excludes create_service --
+// the portal's inventory assistant is scoped to products, not services,
+// same as update_product_stock already was -- and create_promotion/
+// update_hours/add_faq, not because they couldn't also be owner-facing
+// eventually, but because scoping the model's own tool choices this
+// tightly means it physically cannot suggest an out-of-scope action,
+// rather than relying on the caller to reject one after the fact.
 export const INVENTORY_COMMAND_NAMES = [
   "mark_service_availability",
   "update_service_price",
   "update_product_stock",
+  "create_product",
 ];
 
 // 400 tokens -- was 200 until tonight, doubled for the same reason as
@@ -140,10 +170,17 @@ export type ParsedCommand =
 // allowedTools optionally restricts which of the declarations above the
 // model is even offered -- omitted (the admin Command Center's case)
 // means all of them, exactly as before this parameter existed.
+// preferredProvider optionally overrides which LLM provider handles this
+// call (see businesses.command_agent_provider) -- omitted falls back to
+// the platform-wide AI_PROVIDER env var, same as before this parameter
+// existed. Either way, the automatic groq<->gemini fallback in
+// geminiFetchJsonWithMetadata still applies if the chosen provider's
+// call fails.
 export async function parseCommand(
   instruction: string,
   context: BusinessContext,
-  allowedTools?: string[]
+  allowedTools?: string[],
+  preferredProvider?: ProviderName
 ): Promise<ParsedCommand> {
   const apiKey = process.env.LLM_API_KEY;
   if (!apiKey) throw new Error("LLM_API_KEY is not set.");
@@ -160,12 +197,16 @@ ${context.contextText}
 
 If the instruction doesn't clearly match one of the available actions, respond in plain text explaining what you can help with instead of guessing at one.`;
 
-  const data = (await geminiFetchJson(apiKey, {
-    contents: [{ role: "user", parts: [{ text: instruction }] }],
-    system_instruction: { parts: [{ text: systemPrompt }] },
-    tools: [{ function_declarations: declarations }],
-    generation_config: { max_output_tokens: MAX_OUTPUT_TOKENS },
-  })) as {
+  const data = (await geminiFetchJson(
+    apiKey,
+    {
+      contents: [{ role: "user", parts: [{ text: instruction }] }],
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      tools: [{ function_declarations: declarations }],
+      generation_config: { max_output_tokens: MAX_OUTPUT_TOKENS },
+    },
+    preferredProvider
+  )) as {
     candidates?: { content?: { parts?: { text?: string; functionCall?: { name?: string; args?: Record<string, unknown> } }[] } }[];
   };
 

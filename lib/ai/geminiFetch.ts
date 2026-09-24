@@ -15,7 +15,7 @@ const RETRY_DELAY_MS = 600;
 // is Groq's own recommended replacement for that exact model.
 const GROQ_MODEL = "openai/gpt-oss-120b";
 
-type ProviderName = "gemini" | "groq";
+export type ProviderName = "gemini" | "groq";
 
 export type JsonFetchMetadata = {
   provider: ProviderName;
@@ -486,10 +486,11 @@ export async function* groqFetchStream(
 export async function geminiFetchJsonWithMetadata(
   apiKey: string,
   body: unknown,
+  preferredProvider?: ProviderName,
 ): Promise<{ data: unknown; metadata: JsonFetchMetadata }> {
   const startedAt = Date.now();
   const primary: ProviderName =
-    process.env.AI_PROVIDER === "gemini" ? "gemini" : "groq";
+    preferredProvider ?? (process.env.AI_PROVIDER === "gemini" ? "gemini" : "groq");
   const primaryKey =
     primary === "groq"
       ? process.env.GROQ_API_KEY?.trim()
@@ -528,8 +529,8 @@ export async function geminiFetchJsonWithMetadata(
   throw new Error(second.message);
 }
 
-export async function geminiFetchJson(apiKey: string, body: unknown): Promise<unknown> {
-  const result = await geminiFetchJsonWithMetadata(apiKey, body);
+export async function geminiFetchJson(apiKey: string, body: unknown, preferredProvider?: ProviderName): Promise<unknown> {
+  const result = await geminiFetchJsonWithMetadata(apiKey, body, preferredProvider);
   return result.data;
 }
 

@@ -3,7 +3,7 @@
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/activityLog";
-import { applyProductUpdate } from "@/lib/products";
+import { applyProductUpdate, applyProductCreate } from "@/lib/products";
 
 export async function createProduct(input: {
   businessId: string;
@@ -13,45 +13,22 @@ export async function createProduct(input: {
   stockQuantity: string;
   isAvailable: boolean;
   availabilityNote: string;
+  source?: "admin_ui" | "command_center";
 }) {
   const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated." };
+  if (!admin) return { error: "Not authenticated.", id: null };
 
-  const name = input.name.trim();
-  if (!name) return { error: "Name is required." };
-
-  const price = Number(input.price);
-  if (input.price.trim() === "" || Number.isNaN(price) || price < 0) {
-    return { error: "Price is required and must be a number 0 or greater." };
-  }
-
-  let stockQuantity: number | null = null;
-  if (input.stockQuantity.trim() !== "") {
-    stockQuantity = Number(input.stockQuantity);
-    if (Number.isNaN(stockQuantity) || stockQuantity < 0) {
-      return { error: "Stock, if set, must be a whole number 0 or greater." };
-    }
-  }
-
-  const supabase = await createClient();
-  const { data: created, error } = await supabase
-    .from("products")
-    .insert({
-      business_id: input.businessId,
-      name,
-      description: input.description.trim() || null,
-      price,
-      stock_quantity: stockQuantity,
-      is_available: input.isAvailable,
-      availability_note: input.availabilityNote.trim() || null,
-    })
-    .select("id")
-    .single();
-
-  if (error) return { error: error.message };
-
-  await logActivity(input.businessId, "product", created?.id ?? null, "created", `"${name}" added`);
-  return { error: null, id: created?.id ?? null };
+  return applyProductCreate({
+    businessId: input.businessId,
+    name: input.name,
+    description: input.description,
+    price: input.price,
+    stockQuantity: input.stockQuantity,
+    isAvailable: input.isAvailable,
+    availabilityNote: input.availabilityNote,
+    source: input.source ?? "admin_ui",
+    actorLabel: admin.email,
+  });
 }
 
 export async function updateProduct(input: {

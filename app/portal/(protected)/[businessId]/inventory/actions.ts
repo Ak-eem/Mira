@@ -4,7 +4,7 @@ import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
 import { parseCommand, INVENTORY_COMMAND_NAMES } from "@/lib/ai/parseCommand";
-import { applyProductUpdate } from "@/lib/products";
+import { applyProductUpdate, applyProductCreate } from "@/lib/products";
 
 export type CommandResult =
   | { kind: "confirm"; action: string; summary: string; payload: Record<string, unknown> }
@@ -150,8 +150,27 @@ export async function interpretInventoryCommand(businessId: string, instruction:
       };
     }
 
+    case "create_product": {
+      const name = String(parsed.args.name ?? "").trim();
+      const price = Number(parsed.args.price);
+      if (!name || Number.isNaN(price) || price < 0) {
+        return { kind: "info", message: "I need a name and a valid price for the new product." };
+      }
+      const description = parsed.args.description ? String(parsed.args.description).trim() : "";
+      const stockQuantity = parsed.args.stock_quantity !== undefined ? Number(parsed.args.stock_quantity) : null;
+      if (stockQuantity !== null && (Number.isNaN(stockQuantity) || stockQuantity < 0)) {
+        return { kind: "info", message: "I couldn't tell what the starting stock count should be." };
+      }
+      return {
+        kind: "confirm",
+        action: "create_product",
+        summary: `Add a new product "${name}" at ${price}${stockQuantity !== null ? `, starting stock ${stockQuantity}` : ""}?`,
+        payload: { name, description, price, stockQuantity },
+      };
+    }
+
     default:
-      return { kind: "info", message: "I can only help with product availability, price, and stock here." };
+      return { kind: "info", message: "I can only help with product availability, price, stock, and adding new products here." };
   }
 }
 
@@ -167,8 +186,26 @@ export async function executeInventoryCommand(
   const { owner } = await requireOwner(businessId);
   if (!owner) return { error: "Only the business owner can use this." };
 
-  if (!["mark_service_availability", "update_service_price", "update_product_stock"].includes(action)) {
+  if (
+    !["mark_service_availability", "update_service_price", "update_product_stock", "create_product"].includes(action)
+  ) {
     return { error: "Unknown action." };
+  }
+
+  if (action === "create_product") {
+    const result = await applyProductCreate({
+      businessId,
+      name: String(payload.name),
+      description: payload.description ? String(payload.description) : "",
+      price: String(payload.price),
+      stockQuantity:
+        payload.stockQuantity !== null && payload.stockQuantity !== undefined ? String(payload.stockQuantity) : "",
+      isAvailable: true,
+      availabilityNote: "",
+      source: "portal_command",
+      actorLabel: owner.email,
+    });
+    return { error: result.error };
   }
 
   const productId = String(payload.productId);

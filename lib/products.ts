@@ -1,6 +1,66 @@
 import { createClient } from "@/lib/supabase/server";
 import { logActivity, type ActivityAction } from "@/lib/activityLog";
 
+// Same reasoning as applyProductUpdate below: one place that knows how
+// to validate and insert a new product, callable by admin's own
+// getCurrentAdmin()-gated createProduct and by the portal's
+// owner-gated inventory assistant alike.
+export async function applyProductCreate(input: {
+  businessId: string;
+  name: string;
+  description: string;
+  price: string;
+  stockQuantity: string;
+  isAvailable: boolean;
+  availabilityNote: string;
+  source: "admin_ui" | "command_center" | "portal_command";
+  actorLabel: string;
+}): Promise<{ error: string | null; id: string | null }> {
+  const name = input.name.trim();
+  if (!name) return { error: "Name is required.", id: null };
+
+  const price = Number(input.price);
+  if (input.price.trim() === "" || Number.isNaN(price) || price < 0) {
+    return { error: "Price is required and must be a number 0 or greater.", id: null };
+  }
+
+  let stockQuantity: number | null = null;
+  if (input.stockQuantity.trim() !== "") {
+    stockQuantity = Number(input.stockQuantity);
+    if (Number.isNaN(stockQuantity) || stockQuantity < 0) {
+      return { error: "Stock, if set, must be a whole number 0 or greater.", id: null };
+    }
+  }
+
+  const supabase = await createClient();
+  const { data: created, error } = await supabase
+    .from("products")
+    .insert({
+      business_id: input.businessId,
+      name,
+      description: input.description.trim() || null,
+      price,
+      stock_quantity: stockQuantity,
+      is_available: input.isAvailable,
+      availability_note: input.availabilityNote.trim() || null,
+    })
+    .select("id")
+    .single();
+
+  if (error) return { error: error.message, id: null };
+
+  await logActivity(
+    input.businessId,
+    "product",
+    created?.id ?? null,
+    "created",
+    `${input.actorLabel} added "${name}"`,
+    input.source,
+  );
+
+  return { error: null, id: created?.id ?? null };
+}
+
 // The actual field-update mechanics for a product, with no opinion on
 // who's allowed to call it -- that's each caller's job (admin's
 // getCurrentAdmin() check, or the portal's owner-membership check).
