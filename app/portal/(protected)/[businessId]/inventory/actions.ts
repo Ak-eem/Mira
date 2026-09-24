@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
 import { parseCommand, INVENTORY_COMMAND_NAMES } from "@/lib/ai/parseCommand";
 import { applyProductUpdate, applyProductCreate } from "@/lib/products";
+import { getAgentSettings } from "@/lib/agentSettings";
 
 export type CommandResult =
   | { kind: "confirm"; action: string; summary: string; payload: Record<string, unknown> }
@@ -28,14 +29,24 @@ function findMatches(items: ProductRow[], term: string): ProductRow[] {
 async function requireOwner(businessId: string) {
   const owner = await getCurrentBusinessOwner();
   const membership = owner?.businesses.find((b) => b.id === businessId);
-  if (!owner || !membership) return { owner: null };
-  if (membership.role !== "owner") return { owner: null };
-  return { owner };
+  if (!owner || !membership) return { owner: null, settings: null };
+  if (membership.role !== "owner") return { owner: null, settings: null };
+
+  // The page-level check in page.tsx is just UX (showing the right
+  // message instead of a working-looking form) -- this is the actual
+  // boundary. A business owner disabling the assistant in another tab
+  // shouldn't leave an already-loaded page still able to write.
+  const settings = await getAgentSettings(businessId);
+  if (!settings.enabled) return { owner: null, settings: null };
+
+  return { owner, settings };
 }
 
 export async function interpretInventoryCommand(businessId: string, instruction: string): Promise<CommandResult> {
-  const { owner } = await requireOwner(businessId);
-  if (!owner) return { kind: "error", message: "Only the business owner can use this." };
+  const { owner, settings } = await requireOwner(businessId);
+  if (!owner || !settings) {
+    return { kind: "error", message: "Only the business owner can use this, and it must be turned on in Settings." };
+  }
 
   if (!instruction.trim()) return { kind: "error", message: "Say what you'd like to change." };
 
@@ -43,7 +54,7 @@ export async function interpretInventoryCommand(businessId: string, instruction:
 
   let parsed;
   try {
-    parsed = await parseCommand(instruction, context, INVENTORY_COMMAND_NAMES);
+    parsed = await parseCommand(instruction, context, INVENTORY_COMMAND_NAMES, settings.provider);
   } catch (err) {
     return { kind: "error", message: err instanceof Error ? err.message : "Couldn't reach the AI." };
   }
@@ -184,7 +195,7 @@ export async function executeInventoryCommand(
   payload: Record<string, unknown>
 ): Promise<{ error: string | null }> {
   const { owner } = await requireOwner(businessId);
-  if (!owner) return { error: "Only the business owner can use this." };
+  if (!owner) return { error: "Only the business owner can use this, and it must be turned on in Settings." };
 
   if (
     !["mark_service_availability", "update_service_price", "update_product_stock", "create_product"].includes(action)

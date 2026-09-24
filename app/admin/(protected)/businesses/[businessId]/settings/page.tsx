@@ -8,6 +8,7 @@ import { OwnersPanel } from "./OwnersPanel";
 import { SubscriptionPanel } from "./SubscriptionPanel";
 import { DeleteBusinessPanel } from "./DeleteBusinessPanel";
 import { TeamInviteForm } from "./TeamInviteForm";
+import { AgentSettingsPanel } from "./AgentSettingsPanel";
 
 export const dynamic = "force-dynamic";
 
@@ -176,6 +177,11 @@ export default async function SettingsPage({ params }: PageProps) {
       </section>
 
       <OwnersPanel businessId={businessId} owners={owners} />
+      <AgentSettingsPanel
+        businessId={businessId}
+        initialEnabled={business.command_agent_enabled ?? false}
+        initialProvider={business.command_agent_provider === "gemini" ? "gemini" : "groq"}
+      />
       <EmbedSnippet slug={business.slug} businessName={business.name} />
       <SubscriptionPanel businessId={businessId} subscription={subscription} />
       <DeleteBusinessPanel businessId={businessId} businessName={business.name} />
