@@ -36,7 +36,13 @@ export default async function PortalConversationsPage({
   } = await supabase.auth.getUser();
   const currentUserId = user?.id ?? "";
   const owner = await getCurrentBusinessOwner();
-  const isOwner = owner?.userId === currentUserId;
+  // Was `owner?.userId === currentUserId` -- since getCurrentBusinessOwner()
+  // already returns the current session's own user, that comparison was
+  // trivially true for anyone linked to the business at all, staff
+  // included. Now checks the actual business_owners.role for this
+  // specific business.
+  const membership = owner?.businesses.find((b) => b.id === businessId);
+  const isOwner = membership?.role === "owner";
 
   let conversationsQuery = supabase
     .from("conversations")
