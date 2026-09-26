@@ -33,6 +33,7 @@ export async function POST(request: NextRequest) {
     checkRateLimit(client, `chat:${identity}`, CHAT_RATE_LIMIT_PER_MINUTE),
     checkRateLimit(client, `chat-ip:${ip}`, 120),
     checkRateLimit(client, "chat-global", 2000),
+    ...(slug === "mira-demo-cafe" ? [checkRateLimit(client, `demo:${ip}`, 10, 600)] : []),
   ]);
   const rejected = limits.find((item) => !item.allowed);
   if (rejected) {
