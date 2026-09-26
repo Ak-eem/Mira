@@ -205,16 +205,16 @@ export async function DELETE(
     (candidate) => candidate.business_id === conversation.business_id,
   );
   const isOwner = membership?.role.toLowerCase() === "owner";
-  const claimantEmail = auth.user!.email;
+  const userEmail = auth.user!.email;
 
-  if (!isOwner && !claimantEmail) {
+  if (!isOwner && !userEmail) {
     return NextResponse.json(
       { error: "Your account has no email on file; cannot verify claim ownership" },
       { status: 400 },
     );
   }
 
-  if (!isOwner && conversation.claimed_by !== claimantEmail) {
+  if (!isOwner && conversation.claimed_by !== userEmail) {
     return NextResponse.json(
       { error: "You may only clear your own claim" },
       { status: 403 },

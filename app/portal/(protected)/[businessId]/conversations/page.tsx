@@ -157,7 +157,7 @@ export default async function PortalConversationsPage({
               <AssignmentControls
                 conversationId={conversation.id}
                 claimedBy={conversation.claimed_by ?? null}
-                currentUserEmail={currentUserEmail}
+                currentUserId={currentUserEmail}
                 isOwner={isOwner}
               />
             </div>
