@@ -37,12 +37,18 @@ export async function GET(request: Request) {
   }
   if (!ownership) return NextResponse.json({ error: 'Payment business does not belong to this user' }, { status: 403 });
 
+  // metadata.promo is the price the user was quoted and accepted at
+  // checkout, not re-derived from the current signup count: if the promo
+  // window closed while this payment was in flight, the user still gets the
+  // price they agreed to pay. getPlanConfig still enforces that whichever
+  // price applies (promo or not) matches data.amount below, so this can
+  // only honor a real quoted price, never let the client pick an arbitrary one.
   let config;
   try { config = getPlanConfig('base', metadata.promo); } catch { return NextResponse.json({ error: 'Invalid plan configuration' }, { status: 400 }); }
   if (data.amount !== config.amountKobo) return NextResponse.json({ error: 'Payment amount does not match plan' }, { status: 400 });
 
   const expiresAt = new Date(Date.now() + config.durationDays * 24 * 60 * 60 * 1000).toISOString();
-  const { error: rpcError } = await createServiceRoleClient().rpc('activate_paystack_subscription', { p_business_id: metadata.business_id, p_reference: reference, p_amount: data.amount, p_expires_at: expiresAt, p_expected_amount_kobo: config.amountKobo, p_plan: 'base' });
+  const { error: rpcError } = await createServiceRoleClient().rpc('activate_paystack_subscription', { p_business_id: metadata.business_id, p_user_id: user.id, p_reference: reference, p_amount: data.amount, p_expires_at: expiresAt, p_expected_amount_kobo: config.amountKobo, p_plan: 'base' });
   if (rpcError) { console.error('Subscription activation RPC failed', rpcError); return NextResponse.json({ error: 'Subscription activation failed' }, { status: 500 }); }
   return NextResponse.json({ success: true, status, terminal: true });
 }
