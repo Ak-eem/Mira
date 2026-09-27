@@ -15,27 +15,37 @@ function toKobo(amountNgn: number) {
   return amountKobo;
 }
 
-// Read and validated once at module load, not per-request: a missing or
-// malformed PAYSTACK_* env var now fails at boot/first-import instead of
-// surfacing as a generic 502 on a customer's first checkout attempt.
-const basePlanConfig = (() => {
+// Validated on first real call to getPlanConfig(), then cached -- NOT at
+// module load. An eager top-level read broke `next build` in CI/anywhere
+// PAYSTACK_* isn't set: Next's build does module-graph analysis across all
+// route files (even ones that are dynamic at runtime and never actually
+// invoked, like these payment routes), so importing this file at all was
+// enough to hard-fail the build with zero env vars configured. Caching
+// still means the validation -- and its thrown error, if config is broken
+// -- happens once per process on the first real request, not per-request.
+let basePlanConfig: { amountNgn: { false: number; true: number }; amountKobo: { false: number; true: number }; durationDays: number } | null = null;
+
+function loadBasePlanConfig() {
+  if (basePlanConfig) return basePlanConfig;
   const amountNgn = positive('PAYSTACK_BASE_AMOUNT_NGN', env('PAYSTACK_BASE_AMOUNT_NGN'));
   const promoAmountNgn = positive('PAYSTACK_BASE_PROMO_AMOUNT_NGN', env('PAYSTACK_BASE_PROMO_AMOUNT_NGN'));
   const durationDays = integer('PAYSTACK_BASE_DURATION_DAYS', env('PAYSTACK_BASE_DURATION_DAYS'));
-  return {
+  basePlanConfig = {
     amountNgn: { false: amountNgn, true: promoAmountNgn },
     amountKobo: { false: toKobo(amountNgn), true: toKobo(promoAmountNgn) },
     durationDays,
   };
-})();
+  return basePlanConfig;
+}
 
 export function getPlanConfig(plan: unknown, promo = false) {
   if (plan !== 'base') throw new Error('plan must be base');
+  const config = loadBasePlanConfig();
   return {
     plan,
-    amountNgn: basePlanConfig.amountNgn[String(promo) as 'true' | 'false'],
-    amountKobo: basePlanConfig.amountKobo[String(promo) as 'true' | 'false'],
-    durationDays: basePlanConfig.durationDays,
+    amountNgn: config.amountNgn[String(promo) as 'true' | 'false'],
+    amountKobo: config.amountKobo[String(promo) as 'true' | 'false'],
+    durationDays: config.durationDays,
     promo,
   };
 }
