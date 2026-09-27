@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { interpretCommand, executeCommand, type CommandResult } from "./actions";
+import { interpretInventoryCommand as interpretCommand, executeInventoryCommand as executeCommand, type CommandResult } from "./actions";
 
 type Turn =
   | { role: "user"; text: string }
@@ -59,21 +59,11 @@ export function CommandCenter({ businessId }: { businessId: string }) {
 
   return (
     <div className="flex min-h-[60vh] flex-col rounded-lg border border-slate-200 bg-white">
-      {/* Temporary disambiguation label -- remove this block (only this
-          block) once it's no longer needed for telling this apart from
-          the customer chat at a glance. */}
-      <div className="flex items-center gap-2 rounded-t-lg border-b border-slate-200 bg-slate-50 px-4 py-2">
-        <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-          ⚙ Command Center -- Admin Only
-        </span>
-      </div>
-
       <div className="flex-1 space-y-3 overflow-y-auto p-4">
         {turns.length === 0 && !pending && (
           <p className="text-sm text-slate-400">
-            Try something like &quot;mark haircuts unavailable&quot;, &quot;add 20% off all
-            services until Friday&quot;, or &quot;add a new service called Deep Tissue Massage at
-            15000&quot;.
+            Try something like &quot;we&apos;re out of the red shirts&quot; or &quot;set the blue
+            hoodie to ₦8,500.&quot; Nothing changes until you confirm.
           </p>
         )}
 

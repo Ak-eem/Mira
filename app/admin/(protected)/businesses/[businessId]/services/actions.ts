@@ -11,6 +11,7 @@ export async function createService(input: {
   price: string;
   isAvailable: boolean;
   availabilityNote: string;
+  source?: "admin_ui" | "command_center";
 }) {
   const admin = await getCurrentAdmin();
   if (!admin) return { error: "Not authenticated." };
@@ -37,8 +38,15 @@ export async function createService(input: {
 
   if (error) return { error: error.message };
 
-  await logActivity(input.businessId, "service", created?.id ?? null, "created", `"${name}" added`);
-  return { error: null };
+  await logActivity(
+    input.businessId,
+    "service",
+    created?.id ?? null,
+    "created",
+    `"${name}" added`,
+    input.source ?? "admin_ui",
+  );
+  return { error: null, id: created?.id ?? null };
 }
 
 export async function updateService(input: {
