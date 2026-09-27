@@ -6,17 +6,38 @@ export type PaystackTransactionData = { authorization_url?: string; access_code?
 
 const API = 'https://api.paystack.co';
 function env(name: string) { const value = process.env[name]?.trim(); if (!value) throw new Error(`Missing ${name}`); return value; }
-function positive(name: string) { const value = Number(env(name)); if (!Number.isFinite(value) || value <= 0) throw new Error(`${name} must be positive`); return value; }
-function integer(name: string) { const value = Number(env(name)); if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer`); return value; }
+function positive(name: string, value: string) { const n = Number(value); if (!Number.isFinite(n) || n <= 0) throw new Error(`${name} must be positive`); return n; }
+function integer(name: string, value: string) { const n = Number(value); if (!Number.isSafeInteger(n) || n <= 0) throw new Error(`${name} must be a positive integer`); return n; }
+
+function toKobo(amountNgn: number) {
+  const amountKobo = Math.round(amountNgn * 100);
+  if (!Number.isSafeInteger(amountKobo) || amountKobo <= 0) throw new Error('amount is out of range');
+  return amountKobo;
+}
+
+// Read and validated once at module load, not per-request: a missing or
+// malformed PAYSTACK_* env var now fails at boot/first-import instead of
+// surfacing as a generic 502 on a customer's first checkout attempt.
+const basePlanConfig = (() => {
+  const amountNgn = positive('PAYSTACK_BASE_AMOUNT_NGN', env('PAYSTACK_BASE_AMOUNT_NGN'));
+  const promoAmountNgn = positive('PAYSTACK_BASE_PROMO_AMOUNT_NGN', env('PAYSTACK_BASE_PROMO_AMOUNT_NGN'));
+  const durationDays = integer('PAYSTACK_BASE_DURATION_DAYS', env('PAYSTACK_BASE_DURATION_DAYS'));
+  return {
+    amountNgn: { false: amountNgn, true: promoAmountNgn },
+    amountKobo: { false: toKobo(amountNgn), true: toKobo(promoAmountNgn) },
+    durationDays,
+  };
+})();
 
 export function getPlanConfig(plan: unknown, promo = false) {
   if (plan !== 'base') throw new Error('plan must be base');
-  const amountName = promo ? 'PAYSTACK_BASE_PROMO_AMOUNT_NGN' : 'PAYSTACK_BASE_AMOUNT_NGN';
-  const amountNgn = positive(amountName);
-  const durationDays = integer('PAYSTACK_BASE_DURATION_DAYS');
-  const amountKobo = Math.round(amountNgn * 100);
-  if (!Number.isSafeInteger(amountKobo) || amountKobo <= 0) throw new Error('amount is out of range');
-  return { plan, amountNgn, amountKobo, durationDays, promo };
+  return {
+    plan,
+    amountNgn: basePlanConfig.amountNgn[String(promo) as 'true' | 'false'],
+    amountKobo: basePlanConfig.amountKobo[String(promo) as 'true' | 'false'],
+    durationDays: basePlanConfig.durationDays,
+    promo,
+  };
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
