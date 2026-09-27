@@ -4,12 +4,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import GoogleAuthButton from "@/app/components/GoogleAuthButton";
 
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("error") === "oauth"
+      ? "Google sign-in didn't complete. Please try again."
+      : null,
+  );
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -41,10 +46,16 @@ export default function LoginPage() {
           <p className="mt-3 text-sm text-slate-600">Sign in to manage your businesses and customer conversations.</p>
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-5 rounded-[2rem] border border-white/80 bg-white/65 p-7 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl sm:p-8"
-        >
+        <div className="space-y-5 rounded-[2rem] border border-white/80 bg-white/65 p-7 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl sm:p-8">
+          <GoogleAuthButton next="/portal" />
+
+          <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+            <span className="h-px flex-1 bg-slate-200" />
+            or
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-slate-700">Email</label>
             <input
@@ -76,7 +87,8 @@ export default function LoginPage() {
           >
             {submitting ? "Signing in…" : "Sign in"}
           </button>
-        </form>
+          </form>
+        </div>
 
         <div className="mt-5 text-center text-sm text-slate-500">
           <p>

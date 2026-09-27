@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import GoogleAuthButton from "@/app/components/GoogleAuthButton";
 
 function getApiErrorMessage(value: unknown, fallback: string): string {
   if (
@@ -186,10 +187,16 @@ export default function PortalSignupPage() {
         <p className="mb-8 text-center text-xl font-semibold tracking-tight text-slate-900">
           Mira <span className="font-normal text-accent">for Business</span>
         </p>
-        <form
-          onSubmit={handleSubmit}
-          className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"
-        >
+        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <GoogleAuthButton next="/portal/signup/complete" label="Sign up with Google" />
+
+          <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+            <span className="h-px flex-1 bg-slate-200" />
+            or
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700">
               Business name
@@ -332,10 +339,9 @@ export default function PortalSignupPage() {
           >
             {submitting ? "Creating account…" : "Create account"}
           </button>
-        </form>
-        <p className="mt-4 text-center text-xs text-slate-400">
-          Already have an account? <Link href="/portal/login" className="text-accent hover:underline">Sign in</Link>
-        </p>
+          </form>
+        </div>
+        <p className="mt-4 text-center text-xs text-slate-400">Already have an account? <Link href="/portal/login" className="text-accent hover:underline">Sign in</Link></p>
       </div>
     </div>
   );
