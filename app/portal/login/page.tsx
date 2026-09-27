@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import GoogleAuthButton from "@/app/components/GoogleAuthButton";
 
 function getSafeRedirect(search: string) {
   const next = new URLSearchParams(search).get("next");
@@ -62,7 +63,16 @@ export default function PortalLoginPage() {
           Mira <span className="font-normal text-accent">for Business</span>
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="space-y-4 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <GoogleAuthButton next={getSafeRedirect(typeof window !== "undefined" ? window.location.search : "")} />
+
+          <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+            <span className="h-px flex-1 bg-slate-200" />
+            or
+            <span className="h-px flex-1 bg-slate-200" />
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700">Email</label>
             <input
@@ -94,7 +104,8 @@ export default function PortalLoginPage() {
           >
             {submitting ? "Signing in…" : "Sign in"}
           </button>
-        </form>
+          </form>
+        </div>
 
         <div className="mt-4 space-y-2 text-center">
           <p className="text-sm text-slate-500">Need an account?</p>
