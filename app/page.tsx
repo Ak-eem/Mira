@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ChatWindow } from "./chat/[businessSlug]/ChatWindow";
 import { ScrollReveal } from "./components/scroll-reveal";
 
 const features = [
@@ -69,26 +70,20 @@ export default function Home() {
             <ScrollReveal delay={180} className="relative mx-auto w-full max-w-md">
               <div className="absolute -inset-6 rounded-[2.5rem] bg-cyan-200/30 blur-3xl" />
               <div className="relative rounded-[2rem] border border-white/80 bg-white/60 p-5 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl">
-                <div className="hero-surface rounded-[1.5rem] border border-sky-100 bg-gradient-to-br from-white via-sky-50 to-cyan-100 p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">Mira assistant</p>
-                      <p className="mt-2 text-lg font-semibold text-slate-900">A helpful answer, every time.</p>
-                    </div>
-                    <span className="h-3 w-3 rounded-full bg-cyan-400 shadow-lg shadow-cyan-300" />
-                  </div>
-                  <div className="mt-8 space-y-3 text-sm">
-                    <div className="ml-auto max-w-[85%] rounded-2xl rounded-br-md bg-slate-900 px-4 py-3 text-white shadow-sm">
-                      Do you have this service available today?
-                    </div>
-                    <div className="max-w-[90%] rounded-2xl rounded-bl-md border border-cyan-100 bg-white px-4 py-3 leading-6 text-slate-600 shadow-sm">
-                      Yes — Mira can share your hours, answer the key details, and guide them to the next step.
-                    </div>
-                  </div>
-                  <div className="mt-8 flex items-center gap-2 text-xs font-medium text-slate-500">
-                    <span className="h-2 w-2 rounded-full bg-accent" />
-                    Connected to your business knowledge
-                  </div>
+                <ChatWindow
+                  businessSlug="mira-demo-cafe"
+                  businessName="Mira Demo Cafe"
+                  openNow={true}
+                  embedMode
+                />
+                <div className="mt-6 flex items-center justify-center gap-4">
+                  <Link
+                    href="/signup"
+                    className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-200/70 transition hover:bg-accent-dark"
+                  >
+                    Get started
+                  </Link>
+                  <span className="text-xs font-medium text-slate-500">Try the live demo</span>
                 </div>
               </div>
             </ScrollReveal>
@@ -127,8 +122,8 @@ export default function Home() {
         </ScrollReveal>
       </section>
 
-      <footer className="mx-auto max-w-6xl border-t border-slate-200/80 px-6 py-8 sm:px-8 lg:px-10">
-        <div className="flex flex-col items-center justify-between gap-4 text-xs text-slate-500 sm:flex-row">
+      <footer className="mx-auto max-w-6xl border-t border-slate-200/80 px-6 py-8 text-xs text-slate-500 sm:px-8 lg:px-10">
+        <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
           <p>© {new Date().getFullYear()} Mira for Business. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="/privacy" className="font-medium text-slate-600 transition hover:text-accent">
