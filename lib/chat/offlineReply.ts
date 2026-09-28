@@ -54,12 +54,20 @@ function closureReply(businessName: string, endsAt: string, timezone: string): s
     return `Thanks for reaching out! ${businessName} is temporarily closed right now. We'll get back to you as soon as we reopen.`;
   }
 
-  const formatted = new Intl.DateTimeFormat("en-US", {
-    timeZone: timezone,
-    weekday: "long",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(end);
+  // A bad timezone value throws RangeError. Fail safe (same as isOpenNow /
+  // findNextOpen) with a reply that just omits the reopening time, rather
+  // than turning every closure-time opener into a 500.
+  let formatted: string;
+  try {
+    formatted = new Intl.DateTimeFormat("en-US", {
+      timeZone: timezone,
+      weekday: "long",
+      hour: "numeric",
+      minute: "2-digit",
+    }).format(end);
+  } catch {
+    return `Thanks for reaching out! ${businessName} is temporarily closed right now. We'll get back to you as soon as we reopen.`;
+  }
 
   return `Thanks for reaching out! ${businessName} is temporarily closed right now, back ${formatted}. We'll get back to you when we reopen.`;
 }
