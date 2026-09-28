@@ -54,7 +54,17 @@ export async function POST(request: Request) {
 
   let config;
   try { config = getPlanConfig('base', promo); } catch { return NextResponse.json({ error: 'Invalid plan configuration' }, { status: 400 }); }
-  if (data.amount !== config.amountKobo) return NextResponse.json({ error: 'Payment amount does not match plan' }, { status: 400 });
+  if (data.amount !== config.amountKobo) {
+    // Paystack does not retry 4xx, so answering 400 here silently strands a
+    // legitimate customer whenever the plan price or promo flag changed
+    // between checkout and webhook: they paid, nothing activates, nobody
+    // retries. 500 keeps Paystack retrying (hourly for ~72h), which recovers
+    // config drift once fixed, while a genuine underpayment (the popup lets
+    // the payer set the amount) simply never activates. Logged loudly so it
+    // can be reconciled by hand.
+    console.error('Paystack webhook: amount mismatch, not activating', { reference, businessId, received: data.amount, expected: config.amountKobo, promo });
+    return NextResponse.json({ error: 'Payment amount does not match plan' }, { status: 500 });
+  }
 
   const serviceRole = createServiceRoleClient();
 
