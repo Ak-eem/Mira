@@ -88,31 +88,54 @@ export async function runNudgeCheck(): Promise<NudgeCheckSummary> {
         continue;
       }
 
-      const to = target.customerIdentifier.replace(/^wa_/, "");
-      const messageId = await sendWhatsAppTemplate(phoneNumberId, to, rule.template_name, target.params);
+      // Claim first, send second. The partial unique indexes in migration
+      // 0017 make this insert the atomic dedup point: only one concurrent
+      // run (or manual trigger) can win the row for a given order /
+      // restock event, and only the winner calls Meta. The row starts as
+      // 'failed' (the status constraint has no "sending" value) so a crash
+      // between claim and send errs toward not-sent rather than
+      // double-sent; it flips to 'sent' once Meta accepts the message.
+      const { data: claim, error: claimError } = await supabase
+        .from("nudge_sends")
+        .insert({
+          business_id: rule.business_id,
+          nudge_rule_id: rule.id,
+          customer_identifier: target.customerIdentifier,
+          order_id: target.orderId ?? null,
+          restock_event_id: target.restockEventId ?? null,
+          whatsapp_message_id: null,
+          status: "failed",
+        })
+        .select("id")
+        .single();
 
-      const { error: insertError } = await supabase.from("nudge_sends").insert({
-        business_id: rule.business_id,
-        nudge_rule_id: rule.id,
-        customer_identifier: target.customerIdentifier,
-        order_id: target.orderId ?? null,
-        restock_event_id: target.restockEventId ?? null,
-        whatsapp_message_id: messageId,
-        status: messageId ? "sent" : "failed",
-      });
-
-      if (insertError) {
+      if (claimError || !claim) {
         // 23505 = unique_violation: another run already claimed this
-        // order/restock event first. Not a real failure, just a race
-        // the DB caught -- the partial unique indexes in migration
-        // 0017 are the actual dedup guarantee, this check is just the
-        // fast path that avoids sending in the first place.
-        if (insertError.code !== "23505") summary.failed += 1;
+        // order/restock event. Not a failure, the DB just caught the race.
+        if (claimError?.code !== "23505") summary.failed += 1;
         continue;
       }
 
-      if (messageId) summary.sent += 1;
-      else summary.failed += 1;
+      const to = target.customerIdentifier.replace(/^wa_/, "");
+      const messageId = await sendWhatsAppTemplate(phoneNumberId, to, rule.template_name, target.params);
+
+      if (!messageId) {
+        // Row already says 'failed'; nothing to update.
+        summary.failed += 1;
+        continue;
+      }
+
+      const { error: updateError } = await supabase
+        .from("nudge_sends")
+        .update({ whatsapp_message_id: messageId, status: "sent" })
+        .eq("id", claim.id);
+
+      if (updateError) {
+        // The message went out but we couldn't record the id (status
+        // webhooks won't correlate). Don't count it as a send failure.
+        console.error("nudge_sends update after send failed:", updateError);
+      }
+      summary.sent += 1;
     }
   }
 
