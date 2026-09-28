@@ -1,4 +1,5 @@
 import { processMessage } from "@/lib/chat/processMessage";
+import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 export type ChatResult = Awaited<ReturnType<typeof processMessage>> & { silent?: boolean };
@@ -22,14 +23,22 @@ export async function processIncomingMessage(
 ): Promise<ChatResult> {
   const conversation = await client
     .from("conversations")
-    .select("id,claimed_by")
+    .select("id,claimed_by,last_message_at")
     .eq("business_id", businessId)
     .eq("session_token", sessionToken)
     .eq("status", "open")
     .maybeSingle();
   if (conversation.error) throw conversation.error;
 
-  if (conversation.data?.claimed_by) {
+  // A claimed conversation that has sat idle past the timeout is NOT silenced:
+  // processMessage closes expired conversations and starts a fresh one, so
+  // fall through to it. Otherwise a customer returning after >24h would have
+  // their message swallowed with no reply.
+  const claimedAndActive =
+    Boolean(conversation.data?.claimed_by) &&
+    Date.now() - new Date(conversation.data!.last_message_at).getTime() < CONVERSATION_IDLE_TIMEOUT_MS;
+
+  if (conversation.data && claimedAndActive) {
     const saved = await client
       .from("messages")
       .insert({
