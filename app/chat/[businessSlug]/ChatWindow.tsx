@@ -169,10 +169,12 @@ export function ChatWindow({
       return false;
     }
   });
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (messages.length === 0) return;
+    const el = containerRef.current;
+    if (el) el.scrolllTop = el.scrollHeight;
   }, [messages]);
 
   useEffect(() => {
