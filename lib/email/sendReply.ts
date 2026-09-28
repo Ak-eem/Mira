@@ -26,7 +26,7 @@ export async function sendEmailReply(
       {
         from,
         to: [to],
-        subject: subject.startsWith("Re:") ? subject : `Re: ${subject}`,
+        subject: /^re:/i.test(subject.trim()) ? subject : `Re: ${subject}`,
         text: body,
         headers,
       },
