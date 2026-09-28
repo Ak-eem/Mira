@@ -52,8 +52,15 @@ export function startOfDayUTC(dateOnly: string, timeZone: string): string {
   return zonedWallTimeToUtcISO(`${dateOnly}T00:00`, timeZone);
 }
 
+// The last instant of the day: one millisecond before the next local
+// midnight. (It used to be 23:59:00, expiring promotions/closures up to 59s
+// early.) Anchoring on the NEXT day's midnight also uses the UTC offset in
+// force at that midnight, so a DST change during the day doesn't shift it.
 export function endOfDayUTC(dateOnly: string, timeZone: string): string {
-  return zonedWallTimeToUtcISO(`${dateOnly}T23:59`, timeZone);
+  const [y, m, d] = dateOnly.split("-").map(Number);
+  const next = new Date(Date.UTC(y, (m || 1) - 1, (d || 1) + 1));
+  const nextDate = `${next.getUTCFullYear()}-${String(next.getUTCMonth() + 1).padStart(2, "0")}-${String(next.getUTCDate()).padStart(2, "0")}`;
+  return new Date(new Date(startOfDayUTC(nextDate, timeZone)).getTime() - 1).toISOString();
 }
 
 function zonedParts(iso: string, timeZone: string) {
