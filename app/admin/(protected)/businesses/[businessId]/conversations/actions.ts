@@ -3,6 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { createClient } from "@/lib/supabase/server";
+import { clearHandoff } from "@/lib/chat/clearHandoff";
+import { closeConversation } from "@/lib/chat/closeConversation";
 import { logActivity } from "@/lib/activityLog";
 import { sendWhatsappReply } from "@/lib/whatsapp/sendMessage";
 
@@ -21,11 +23,7 @@ export async function resolveHandoff(businessId: string, conversationId: string)
   }
 
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("conversations")
-    .update({ needs_human: false })
-    .eq("id", conversationId)
-    .eq("business_id", businessId);
+  const { error } = await clearHandoff(supabase, { businessId, conversationId, releaseClaim: false });
 
   if (error) {
     console.error("Failed to resolve handoff flag:", error);
@@ -225,11 +223,7 @@ export async function handBackToAI(businessId: string, conversationId: string): 
 
   const supabase = await createClient();
 
-  const { error } = await supabase
-    .from("conversations")
-    .update({ claimed_by: null, claimed_at: null, needs_human: false })
-    .eq("id", conversationId)
-    .eq("business_id", businessId);
+  const { error } = await clearHandoff(supabase, { businessId, conversationId, releaseClaim: true });
 
   if (error) {
     console.error("handBackToAI: update failed", error);
@@ -275,11 +269,7 @@ export async function endConversation(businessId: string, conversationId: string
 
   const supabase = await createClient();
 
-  const { error } = await supabase
-    .from("conversations")
-    .update({ status: "closed", ended_by: "operator", claimed_by: null, claimed_at: null, needs_human: false })
-    .eq("id", conversationId)
-    .eq("business_id", businessId);
+  const { error } = await closeConversation(supabase, { conversationId, businessId, endedBy: "operator" });
 
   if (error) {
     console.error("endConversation: update failed", error);

@@ -3,13 +3,11 @@
 import { revalidatePath } from "next/cache";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
-import { sendOrderStatusEmailIfConsented } from "@/lib/notifications/sendOrderStatusEmail";
-
-type OrderStatus = "cart" | "placed" | "shipped" | "delivered" | "cancelled";
+import { transitionOrderStatus } from "@/lib/orders/transition";
+import { ORDER_STATUSES, type OrderStatus } from "@/lib/orders/status";
 
 // Server actions receive raw runtime payloads, so the TS types above prove
 // nothing about what a crafted call actually sends. Validate explicitly.
-const ORDER_STATUSES: readonly OrderStatus[] = ["cart", "placed", "shipped", "delivered", "cancelled"];
 const MAX_ITEMS_PER_ORDER = 100;
 const MAX_ITEM_QUANTITY = 10_000;
 const MAX_UNIT_PRICE = 1_000_000_000;
@@ -70,6 +68,7 @@ export async function createOrder(input: {
   const supabase = await createClient();
 
   let normalizedIdentifier: string;
+  let linkedConversationId: string | null = null;
   const pickedIdentifier = typeof input.selectedConversationIdentifier === "string" ? input.selectedConversationIdentifier.trim() : "";
   if (pickedIdentifier) {
     // Only ownership of businessId was checked above; the identifier itself
@@ -81,10 +80,12 @@ export async function createOrder(input: {
       .select("id")
       .eq("business_id", input.businessId)
       .eq("session_token", pickedIdentifier)
+      .order("last_message_at", { ascending: false })
       .limit(1)
       .maybeSingle();
     if (!conversation) return { error: "That chat wasn't found for this business." };
     normalizedIdentifier = pickedIdentifier;
+    linkedConversationId = conversation.id;
   } else {
     const customerIdentifier = typeof input.customerIdentifier === "string" ? input.customerIdentifier.trim() : "";
     if (!customerIdentifier) return { error: "Pick a recent chat, or enter a customer phone number." };
@@ -130,6 +131,7 @@ export async function createOrder(input: {
     .from("orders")
     .insert({
       business_id: input.businessId,
+      conversation_id: linkedConversationId,
       customer_identifier: normalizedIdentifier,
       status: input.status,
       total,
@@ -148,56 +150,24 @@ export async function createOrder(input: {
   return { error: null };
 }
 
-const EMAILABLE_STATUSES = new Set<OrderStatus>(["placed", "shipped", "delivered", "cancelled"]);
-
-export async function updateOrderStatus(businessId: string, orderId: string, status: OrderStatus): Promise<void> {
+// Staff status changes go through the same transition service the customer's
+// "mark delivered" uses, so the in-thread notice, the shared handoff queue,
+// the customer ping and the delivered auto-close can never drift apart
+// between the two paths. Any business_owners role (owner or staff) may do this.
+export async function updateOrderStatus(businessId: string, orderId: string, status: OrderStatus): Promise<{ error: string | null }> {
   if (!ORDER_STATUSES.includes(status)) {
     console.error("updateOrderStatus called with an invalid status");
-    return;
+    return { error: "Invalid order status." };
   }
   if (!(await assertOwnsBusiness(businessId))) {
     console.error("updateOrderStatus called without owning this business");
-    return;
+    return { error: "Not authorized for this business." };
   }
 
   const supabase = await createClient();
-  const { data: updated, error } = await supabase
-    .from("orders")
-    .update({ status, status_changed_at: new Date().toISOString() })
-    .eq("id", orderId)
-    .eq("business_id", businessId)
-    .select("customer_identifier, total, order_items(name, quantity)")
-    .maybeSingle();
-
-  if (error) console.error("Failed to update order status:", error);
+  const result = await transitionOrderStatus(supabase, { businessId, orderId, to: status, actor: "staff" });
 
   revalidatePath(`/portal/${businessId}/orders`);
-
-  // Best-effort notification, fired after the status update above has
-  // already succeeded (or failed) -- a Resend outage or a missing
-  // consent row should never be able to undo or block the status change
-  // itself. 'cart' is excluded: it's an in-progress state the customer
-  // never asked to hear about.
-  if (updated && EMAILABLE_STATUSES.has(status)) {
-    const { data: business } = await supabase
-      .from("businesses")
-      .select("name, currency")
-      .eq("id", businessId)
-      .maybeSingle();
-
-    if (business) {
-      await sendOrderStatusEmailIfConsented(supabase, {
-        businessId,
-        businessName: business.name,
-        currency: business.currency,
-        customerIdentifier: updated.customer_identifier,
-        status: status as "placed" | "shipped" | "delivered" | "cancelled",
-        items: (updated.order_items ?? []).map((item: { name: string; quantity: number }) => ({
-          name: item.name,
-          quantity: item.quantity,
-        })),
-        total: updated.total,
-      });
-    }
-  }
+  revalidatePath(`/portal/${businessId}/conversations`);
+  return { error: result.ok ? null : result.error };
 }

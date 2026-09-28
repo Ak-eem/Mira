@@ -52,6 +52,7 @@ export type BusinessContext = {
     currency: string;
     ai_tone: string | null;
     ai_instructions: string | null;
+    ai_order_taking: boolean;
   };
   contextText: string;
   products: { id: string; name: string; image_url: string | null }[];
@@ -163,7 +164,7 @@ export async function buildBusinessContext(
   ] = await Promise.all([
     supabase
       .from("businesses")
-      .select("id,name,currency,timezone,ai_tone,ai_instructions,hours_note,social_links")
+      .select("id,name,currency,timezone,ai_tone,ai_instructions,ai_order_taking,hours_note,social_links")
       .eq("id", businessId)
       .eq("is_active", true)
       .maybeSingle(),
@@ -322,6 +323,7 @@ export async function buildBusinessContext(
       currency: business.currency,
       ai_tone: sanitizedTone || null,
       ai_instructions: sanitizedInstructions || null,
+      ai_order_taking: business.ai_order_taking === true,
     },
     contextText: fitContext(sections, businessId),
     products: products.map((p) => ({ id: p.id, name: p.name, image_url: p.image_url })),

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { saveDraft, publishRelease } from "@/lib/promptReleases";
 import { updateAgentSettings } from "@/lib/agentSettings";
+import { updateOrderTakingEnabled } from "@/lib/orderSettings";
 import type { ProviderName } from "@/lib/ai/geminiFetch";
 
 // Both actions require the caller to actually be linked to this business
@@ -79,5 +80,22 @@ export async function saveAgentSettings(businessId: string, enabled: boolean, pr
 
   revalidatePath(`/portal/${businessId}/settings`);
   revalidatePath(`/portal/${businessId}/inventory`);
+  return { error: null };
+}
+
+// Turns AI order-taking on or off for this business. Owner-only, same
+// protection level as the inventory assistant toggle: it decides whether Mira
+// may start creating orders from chat at all. Off by default.
+export async function saveOrderTaking(businessId: string, enabled: boolean) {
+  const { owner, role } = await requireMembership(businessId);
+  if (!owner || !role) return { error: "Not authorized." };
+  if (role !== "owner") {
+    return { error: "Only the business owner can change this." };
+  }
+
+  const { error } = await updateOrderTakingEnabled(businessId, enabled);
+  if (error) return { error };
+
+  revalidatePath(`/portal/${businessId}/settings`);
   return { error: null };
 }

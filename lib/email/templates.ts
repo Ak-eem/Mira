@@ -82,7 +82,7 @@ export function renderVerificationOtpEmail({
 const SUPPORT_EMAIL = "mirasupport03@gmail.com";
 const SUPPORT_WHATSAPP_URL = "https://wa.me/2348020821800";
 
-type OrderStatusForEmail = "placed" | "shipped" | "delivered" | "cancelled";
+type OrderStatusForEmail = "placed" | "confirmed" | "shipped" | "delivered" | "cancelled";
 
 type OrderStatusTemplateInput = {
   businessName: string;
@@ -98,9 +98,14 @@ type OrderStatusTemplateInput = {
 // sending for that status rather than pass it in.
 const ORDER_STATUS_COPY: Record<OrderStatusForEmail, { subject: string; heading: string; body: string }> = {
   placed: {
+    subject: "Order received",
+    heading: "We've received your order",
+    body: "We've received your order and let the business know. They'll confirm it shortly.",
+  },
+  confirmed: {
     subject: "Order confirmed",
     heading: "Your order is confirmed",
-    body: "We've received your order and let the business know.",
+    body: "Good news -- the business has confirmed your order and is getting it ready.",
   },
   shipped: {
     subject: "Your order is on its way",

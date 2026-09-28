@@ -4,6 +4,8 @@ import { getCurrentDraft, getActiveRelease, getPublishedHistory } from "@/lib/pr
 import { getAgentSettings } from "@/lib/agentSettings";
 import { PromptEditor } from "./PromptEditor";
 import { AgentSettingsPanel } from "./AgentSettingsPanel";
+import { OrderTakingPanel } from "./OrderTakingPanel";
+import { getOrderTakingEnabled } from "@/lib/orderSettings";
 
 export const dynamic = "force-dynamic";
 
@@ -18,11 +20,12 @@ export default async function PortalSettingsPage({ params }: PageProps) {
   const membership = owner?.businesses.find((b) => b.id === businessId);
   if (!owner || !membership) redirect("/portal/login");
 
-  const [draft, active, history, agentSettings] = await Promise.all([
+  const [draft, active, history, agentSettings, orderTakingEnabled] = await Promise.all([
     getCurrentDraft(businessId),
     getActiveRelease(businessId),
     getPublishedHistory(businessId),
     getAgentSettings(businessId),
+    getOrderTakingEnabled(businessId),
   ]);
 
   return (
@@ -39,6 +42,12 @@ export default async function PortalSettingsPage({ params }: PageProps) {
         businessId={businessId}
         initialEnabled={agentSettings.enabled}
         initialProvider={agentSettings.provider}
+        canEdit={membership.role === "owner"}
+      />
+
+      <OrderTakingPanel
+        businessId={businessId}
+        initialEnabled={orderTakingEnabled}
         canEdit={membership.role === "owner"}
       />
 

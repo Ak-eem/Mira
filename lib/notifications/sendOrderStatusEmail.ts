@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { sendEmailWithResend } from "@/lib/email/resend";
 import { renderOrderStatusEmail } from "@/lib/email/templates";
 
-type OrderStatusForEmail = "placed" | "shipped" | "delivered" | "cancelled";
+type OrderStatusForEmail = "placed" | "confirmed" | "shipped" | "delivered" | "cancelled";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://miraapp.com.ng";
 

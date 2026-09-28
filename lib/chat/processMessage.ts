@@ -10,6 +10,8 @@ import { getHandoffReply, getPausedReply, isFrustrationSignal, type HandoffReaso
 import { matchProductImages, type ProductImageRef } from "@/lib/chat/matchProductImages";
 import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
 import { replyKeyFor } from "@/lib/chat/inboundKey";
+import { processDeliveryConfirmation, processOrderRequest, type RecordReply } from "@/lib/chat/orderTaking";
+import { isDeliveryConfirmation } from "@/lib/orders/deliveryPhrase";
 
 export class ProcessMessageError extends Error {
   status: number;
@@ -301,6 +303,33 @@ export async function processMessage(
     return { reply: waitingReply, messageId: saved.messageId, productImages: [] };
   }
 
+  // Recording helper for the order-taking replies below. Same atomic RPC and
+  // the same reply key as every other reply in this function.
+  const conversationId = conversation.id;
+  const recordReply: RecordReply = async ({ content, snapshot, flagHandoff }) => {
+    const { data, error } = await recordAssistantReply(supabase, {
+      conversationId,
+      businessId,
+      content,
+      snapshot,
+      inboundKey: replyKey,
+      flagHandoff,
+    });
+    if (error || !data) {
+      console.error("Order-taking reply insert failed:", error);
+      return null;
+    }
+    return { messageId: data.messageId };
+  };
+
+  // A customer saying "delivered" / "received" on a channel with no button.
+  // Only acts when they really have a confirmed or shipped order; otherwise
+  // it falls straight through to the normal pipeline below.
+  if (isDeliveryConfirmation(trimmedMessage)) {
+    const delivered = await processDeliveryConfirmation(supabase, { businessId, sessionToken }, recordReply);
+    if (delivered) return { reply: delivered.reply, messageId: delivered.messageId, productImages: [] };
+  }
+
   const intent = classifyIntent(trimmedMessage);
   // Only human_handoff changes behavior today; injection attempts otherwise
   // rely on the model refusing. Record hits (no message text -- it may hold
@@ -376,11 +405,15 @@ export async function processMessage(
   // above, so nothing is lost by keeping it out of the thrown message.
   let replyText: string;
   let aiMetadata;
+  let orderRequest: Awaited<ReturnType<typeof generateReplyWithMetadata>>["orderRequest"];
   const aiStartedAt = Date.now();
   try {
-    const result = await generateReplyWithMetadata(systemPrompt, llmMessages);
+    const result = await generateReplyWithMetadata(systemPrompt, llmMessages, {
+      orderTool: context.business?.ai_order_taking === true,
+    });
     replyText = result.text;
     aiMetadata = result.metadata;
+    orderRequest = result.orderRequest;
   } catch (err) {
     console.error("generateReply failed:", err);
     after(() => recordAiResponseTelemetry({
@@ -392,6 +425,44 @@ export async function processMessage(
       errorCode: err instanceof Error ? err.name : "unknown",
     }));
     throw new ProcessMessageError("The assistant is unavailable right now.", 502);
+  }
+
+  // The model reported that the customer wants to order. Everything from here
+  // is deterministic and server-owned -- see lib/chat/orderTaking.ts.
+  if (orderRequest) {
+    let handled;
+    try {
+      handled = await processOrderRequest(
+        supabase,
+        {
+          businessId,
+          businessName,
+          currency: context.business?.currency ?? "NGN",
+          conversationId,
+          sessionToken,
+          channel,
+          inboundKey: inboundKey ?? null,
+          replyKey,
+        },
+        orderRequest,
+        recordReply,
+      );
+    } catch (orderError) {
+      console.error("Order-taking failed:", orderError);
+      throw new ProcessMessageError("Something went wrong. Please try again.", 500);
+    }
+
+    after(() => recordAiResponseTelemetry({
+      businessId,
+      conversationId,
+      messageId: handled.messageId,
+      channel,
+      success: true,
+      latencyMs: Date.now() - aiStartedAt,
+      metadata: aiMetadata,
+    }));
+
+    return { reply: handled.reply, messageId: handled.messageId, productImages: [] };
   }
 
   const productImages = matchProductImages(replyText, context.products);

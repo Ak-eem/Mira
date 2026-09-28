@@ -70,6 +70,7 @@ export async function POST(request: NextRequest) {
       claimed_by: null,
       claimed_at: null,
       needs_human: false,
+      handoff_reason: null,
     })
     .eq("business_id", business.data.id)
     .eq("session_token", `web_${visitor}`)

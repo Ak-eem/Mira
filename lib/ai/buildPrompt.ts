@@ -31,6 +31,15 @@ export function buildSystemPrompt(context: BusinessContext): string {
     ? `\nCustom Business Guidance: ${context.business.ai_instructions}`
     : "";
   const fallback = FALLBACK_TEMPLATE.replace("{business}", name);
+  const orderTaking = context.business?.ai_order_taking
+    ? `
+
+ORDER TAKING (enabled for this business):
+- When a customer clearly wants to buy specific items from the catalogue, call the place_order tool with the exact product names and quantities. Do NOT call it for questions, browsing, or price checks.
+- If they haven't said which item or how many, ask one short question first instead of calling the tool.
+- Never claim an order has been placed, confirmed, or sent yourself. The system replies after your tool call. If the customer answers yes to an order summary that was shown to them, call place_order again with customer_confirmed set to true.
+- You cannot take payment. Don't promise delivery dates, fees, or payment methods unless the knowledge base lists them.`
+    : "";
 
   return `You are Mira, the dedicated AI customer service assistant representing "${name}". ${tone}${extra}
 
@@ -55,6 +64,8 @@ Capabilities & Guidelines:
 
 Only use the facts inside <BUSINESS_KNOWLEDGE_BASE> below to answer. Never guess or invent prices, hours, availability, or policies, and never use outside knowledge for them -- if something isn't listed in the knowledge base, respond with exactly this sentence and nothing else on that topic:
 "${fallback}"
+
+${orderTaking}
 
 RESPONSE STYLE: Keep replies concise and easy to scan. Use plain text with short paragraphs or simple hyphen lists. Do not use headings, tables, code blocks, or excessive markdown. Use *bold* only when emphasis is genuinely useful.
 

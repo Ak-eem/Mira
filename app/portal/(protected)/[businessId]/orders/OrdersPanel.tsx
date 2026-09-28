@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { createOrder, updateOrderStatus } from "./actions";
+import { ORDER_STATUSES, type OrderStatus } from "@/lib/orders/status";
 
-type OrderStatus = "cart" | "placed" | "shipped" | "delivered" | "cancelled";
 type OrderItem = { name: string; quantity: number; unit_price: number | null };
 type Order = {
   id: string;
@@ -11,10 +11,12 @@ type Order = {
   status: OrderStatus;
   total: number | null;
   status_changed_at: string;
+  source?: "manual" | "ai";
+  note?: string | null;
   order_items: OrderItem[];
 };
 
-const STATUS_OPTIONS: OrderStatus[] = ["cart", "placed", "shipped", "delivered", "cancelled"];
+const STATUS_OPTIONS: readonly OrderStatus[] = ORDER_STATUSES;
 
 type RecentConversation = { identifier: string; label: string };
 
@@ -159,37 +161,76 @@ function NewOrderForm({
 function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
   const [status, setStatus] = useState(order.status);
   const [updating, setUpdating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleStatusChange(next: OrderStatus) {
+    const previous = status;
     setStatus(next);
     setUpdating(true);
-    await updateOrderStatus(businessId, order.id, next);
+    setError(null);
+    const result = await updateOrderStatus(businessId, order.id, next);
     setUpdating(false);
+    if (result.error) {
+      setStatus(previous);
+      setError(result.error);
+    }
   }
 
+  const awaitingConfirmation = status === "placed" && order.source === "ai";
+
   return (
-    <li className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <div className="flex items-center justify-between">
-        <span className="font-mono text-xs text-slate-500">{order.customer_identifier.replace(/^wa_/, "")}</span>
-        <select
-          value={status}
-          disabled={updating}
-          onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
-          className="rounded border border-slate-300 px-2 py-1 text-xs"
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+    <li
+      className={`rounded-xl border bg-white p-4 shadow-sm ${
+        awaitingConfirmation ? "border-amber-300 ring-1 ring-amber-200" : "border-slate-200"
+      }`}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="font-mono text-xs text-slate-500">
+          {order.customer_identifier.replace(/^(wa_|web_|email_)/, "")}
+          {order.source === "ai" && (
+            <span className="ml-2 rounded bg-indigo-50 px-1.5 py-0.5 font-sans text-[10px] font-semibold uppercase text-indigo-600">
+              Taken by Mira
+            </span>
+          )}
+        </span>
+        <div className="flex items-center gap-2">
+          {awaitingConfirmation && (
+            <button
+              type="button"
+              disabled={updating}
+              onClick={() => handleStatusChange("confirmed")}
+              className="rounded bg-accent px-2.5 py-1 text-xs font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+            >
+              Confirm order
+            </button>
+          )}
+          <select
+            value={status}
+            disabled={updating}
+            onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
+            className="rounded border border-slate-300 px-2 py-1 text-xs"
+          >
+            {STATUS_OPTIONS.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </div>
       </div>
       <p className="mt-1 text-sm text-slate-700">
-        {order.order_items.map((item) => item.name).join(", ") || "(no items)"}
+        {order.order_items.map((item) => `${item.quantity > 1 ? `${item.quantity} × ` : ""}${item.name}`).join(", ") || "(no items)"}
       </p>
+      {order.note && <p className="mt-1 text-xs text-slate-500">Note: {order.note}</p>}
       <p className="mt-1 text-xs text-slate-400">
         ₦{Number(order.total ?? 0).toLocaleString()} · {new Date(order.status_changed_at).toLocaleString()}
       </p>
+      {awaitingConfirmation && (
+        <p className="mt-1 text-xs text-amber-700">
+          Awaiting your confirmation. The customer&apos;s chat is flagged until you confirm or cancel.
+        </p>
+      )}
+      {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </li>
   );
 }

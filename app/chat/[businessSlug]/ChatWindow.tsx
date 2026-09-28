@@ -141,6 +141,14 @@ export function ChatWindow({
   const [showEndConfirm, setShowEndConfirm] = useState(false);
   const [ending, setEnding] = useState(false);
   const [endedConversationId, setEndedConversationId] = useState<string | null>(null);
+  // Orders the business has confirmed or shipped that this visitor can still
+  // mark as received. Filled from the same 6s poll that picks up operator
+  // replies -- web chat has no push channel, so this thread is where a
+  // customer finds out, and where they tell us it arrived.
+  const [deliverableOrders, setDeliverableOrders] = useState<
+    { id: string; items: { name: string; quantity: number }[] }[]
+  >([]);
+  const [markingOrderId, setMarkingOrderId] = useState<string | null>(null);
   const [conversationEnded, setConversationEnded] = useState(false);
   const [ratingState, setRatingState] = useState<"pending" | "submitting" | "done" | "skipped">("pending");
   const [locked, setLocked] = useState(false);
@@ -215,6 +223,7 @@ export function ChatWindow({
 
         const data = (await res.json().catch(() => null)) as {
           locked?: boolean;
+          orders?: { id: string; items: { name: string; quantity: number }[] }[];
           messages?: {
             id: string;
             role: "customer" | "assistant";
@@ -230,6 +239,8 @@ export function ChatWindow({
           clearInterval(interval);
           return;
         }
+
+        if (Array.isArray(data?.orders)) setDeliverableOrders(data.orders);
 
         const relevant = (data?.messages ?? []).filter((m) => m.isOperatorReply || m.isSystemNotice);
         if (relevant.length === 0) return;
@@ -257,6 +268,26 @@ export function ChatWindow({
 
     return () => clearInterval(interval);
   }, [businessSlug, visitorId]);
+
+  async function markOrderReceived(orderId: string) {
+    setMarkingOrderId(orderId);
+    try {
+      const res = await fetch("/api/chat/orders/delivered", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ businessSlug, visitorId, orderId }),
+      });
+      // Either outcome removes the button: on success it's delivered, on a
+      // 404/409 the order already moved on. The next poll shows the notice.
+      if (res.ok || res.status === 404 || res.status === 409) {
+        setDeliverableOrders((prev) => prev.filter((order) => order.id !== orderId));
+      }
+    } catch {
+      // Leave the button in place so the customer can try again.
+    } finally {
+      setMarkingOrderId(null);
+    }
+  }
 
   async function submitFeedback(index: number, messageId: string, rating: Feedback) {
     setMessages((prev) => {
@@ -603,6 +634,23 @@ export function ChatWindow({
           </div>
         </div>
       )}
+
+      {!locked &&
+        deliverableOrders.map((order) => (
+          <div key={order.id} className="glass-panel-strong flex items-center justify-between gap-3 px-4 py-2 text-xs">
+            <span className="min-w-0 truncate text-slate-600">
+              Your order{order.items.length > 0 ? `: ${order.items.map((item) => item.name).join(", ")}` : ""}
+            </span>
+            <button
+              type="button"
+              onClick={() => markOrderReceived(order.id)}
+              disabled={markingOrderId === order.id}
+              className="shrink-0 rounded bg-accent px-2 py-1 font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+            >
+              {markingOrderId === order.id ? "Saving..." : "I received it"}
+            </button>
+          </div>
+        ))}
 
       {/* Shown once a real exchange has happened, so it's contextual
           rather than the first thing a visitor sees. Consent is opt-in

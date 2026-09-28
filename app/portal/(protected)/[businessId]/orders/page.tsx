@@ -13,7 +13,7 @@ export default async function OrdersPage({
   const [{ data: orders }, recentConversations] = await Promise.all([
     supabase
       .from("orders")
-      .select("id, customer_identifier, status, total, status_changed_at, order_items(name, quantity, unit_price)")
+      .select("id, customer_identifier, status, source, note, total, status_changed_at, order_items(name, quantity, unit_price)")
       .eq("business_id", businessId)
       .order("status_changed_at", { ascending: false })
       .limit(50),
@@ -23,8 +23,9 @@ export default async function OrdersPage({
   return (
     <div className="space-y-6">
       <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
-        Orders are logged here manually for now — Mira doesn&apos;t take orders directly yet. This is what Nudges
-        (order shipped / abandoned cart) reads from.
+        Orders appear here two ways: you log them manually, or Mira takes them in chat when AI order-taking is
+        switched on in Settings. Orders Mira takes wait for your confirmation. This is also what Nudges (order
+        shipped / abandoned cart) reads from.
       </div>
       <OrdersPanel businessId={businessId} orders={orders ?? []} recentConversations={recentConversations} />
     </div>
