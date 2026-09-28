@@ -3,6 +3,7 @@
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/activityLog";
+import { applyProductUpdate, applyProductCreate } from "@/lib/products";
 
 export async function createProduct(input: {
   businessId: string;
@@ -12,45 +13,22 @@ export async function createProduct(input: {
   stockQuantity: string;
   isAvailable: boolean;
   availabilityNote: string;
+  source?: "admin_ui" | "command_center";
 }) {
   const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated." };
+  if (!admin) return { error: "Not authenticated.", id: null };
 
-  const name = input.name.trim();
-  if (!name) return { error: "Name is required." };
-
-  const price = Number(input.price);
-  if (input.price.trim() === "" || Number.isNaN(price) || price < 0) {
-    return { error: "Price is required and must be a number 0 or greater." };
-  }
-
-  let stockQuantity: number | null = null;
-  if (input.stockQuantity.trim() !== "") {
-    stockQuantity = Number(input.stockQuantity);
-    if (Number.isNaN(stockQuantity) || stockQuantity < 0) {
-      return { error: "Stock, if set, must be a whole number 0 or greater." };
-    }
-  }
-
-  const supabase = await createClient();
-  const { data: created, error } = await supabase
-    .from("products")
-    .insert({
-      business_id: input.businessId,
-      name,
-      description: input.description.trim() || null,
-      price,
-      stock_quantity: stockQuantity,
-      is_available: input.isAvailable,
-      availability_note: input.availabilityNote.trim() || null,
-    })
-    .select("id")
-    .single();
-
-  if (error) return { error: error.message };
-
-  await logActivity(input.businessId, "product", created?.id ?? null, "created", `"${name}" added`);
-  return { error: null, id: created?.id ?? null };
+  return applyProductCreate({
+    businessId: input.businessId,
+    name: input.name,
+    description: input.description,
+    price: input.price,
+    stockQuantity: input.stockQuantity,
+    isAvailable: input.isAvailable,
+    availabilityNote: input.availabilityNote,
+    source: input.source ?? "admin_ui",
+    actorLabel: admin.email,
+  });
 }
 
 export async function updateProduct(input: {
@@ -66,71 +44,17 @@ export async function updateProduct(input: {
   const admin = await getCurrentAdmin();
   if (!admin) return { error: "Not authenticated." };
 
-  const name = input.name.trim();
-  if (!name) return { error: "Name is required." };
-
-  const price = Number(input.price);
-  if (input.price.trim() === "" || Number.isNaN(price) || price < 0) {
-    return { error: "Price is required and must be a number 0 or greater." };
-  }
-
-  let stockQuantity: number | null = null;
-  if (input.stockQuantity.trim() !== "") {
-    stockQuantity = Number(input.stockQuantity);
-    if (Number.isNaN(stockQuantity) || stockQuantity < 0) {
-      return { error: "Stock, if set, must be a whole number 0 or greater." };
-    }
-  }
-
-  const supabase = await createClient();
-
-  const { data: existing } = await supabase
-    .from("products")
-    .select("name, price, stock_quantity, is_available, business_id")
-    .eq("id", input.productId)
-    .maybeSingle();
-
-  const { error } = await supabase
-    .from("products")
-    .update({
-      name,
-      description: input.description.trim() || null,
-      price,
-      stock_quantity: stockQuantity,
-      is_available: input.isAvailable,
-      availability_note: input.availabilityNote.trim() || null,
-    })
-    .eq("id", input.productId);
-
-  if (error) return { error: error.message };
-
-  if (existing) {
-    let summary = `"${name}" updated`;
-    if (existing.price !== price) {
-      summary = `"${name}" price changed from ${existing.price} to ${price}`;
-    } else if (existing.stock_quantity !== stockQuantity) {
-      const oldStock = existing.stock_quantity ?? "untracked";
-      const newStock = stockQuantity ?? "untracked";
-      summary = `"${name}" stock changed from ${oldStock} to ${newStock}`;
-    } else if (existing.is_available !== input.isAvailable) {
-      summary = `"${name}" marked ${input.isAvailable ? "available" : "unavailable"}`;
-    }
-    await logActivity(existing.business_id, "product", input.productId, "updated", summary, input.source ?? "admin_ui");
-
-    // Nudges' restock_alert trigger needs the specific 0 -> positive
-    // transition, not just "currently has stock" -- this is the one
-    // place that transition is actually visible (a single PATCH knows
-    // both the before and after value; the products table alone only
-    // ever has "now").
-    if (existing.stock_quantity === 0 && stockQuantity !== null && stockQuantity > 0) {
-      const { error: restockError } = await supabase
-        .from("product_restock_events")
-        .insert({ business_id: existing.business_id, product_id: input.productId });
-      if (restockError) console.error("Failed to record restock event:", restockError);
-    }
-  }
-
-  return { error: null };
+  return applyProductUpdate({
+    productId: input.productId,
+    name: input.name,
+    description: input.description,
+    price: input.price,
+    stockQuantity: input.stockQuantity,
+    isAvailable: input.isAvailable,
+    availabilityNote: input.availabilityNote,
+    source: input.source ?? "admin_ui",
+    actorLabel: admin.email,
+  });
 }
 
 export async function deleteProduct(productId: string) {

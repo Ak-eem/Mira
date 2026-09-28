@@ -23,11 +23,13 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
 
 export function PortalNav({ businessId }: { businessId: string }) {
   return (
-    <nav className="glass-panel mb-6 flex gap-1 rounded-xl p-1.5">
+    <nav className="glass-panel-strong mb-6 flex gap-1 rounded-xl p-1.5">
       <NavLink href={`/portal/${businessId}`}>Dashboard</NavLink>
       <NavLink href={`/portal/${businessId}/conversations`}>Conversations</NavLink>
       <NavLink href={`/portal/${businessId}/nudges`}>Nudges</NavLink>
       <NavLink href={`/portal/${businessId}/orders`}>Orders</NavLink>
+      <NavLink href={`/portal/${businessId}/inventory`}>Inventory assistant</NavLink>
+      <NavLink href={`/portal/${businessId}/settings`}>Settings</NavLink>
     </nav>
   );
 }

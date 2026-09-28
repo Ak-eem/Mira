@@ -27,8 +27,6 @@ export async function updateBusiness(input: {
   description: string;
   currency: string;
   timezone: string;
-  aiTone: string;
-  aiInstructions: string;
   hoursNote: string;
   whatsappPhoneNumberId: string;
   emailResponsesEnabled: boolean;
@@ -69,8 +67,6 @@ export async function updateBusiness(input: {
       description: input.description.trim() || null,
       currency: input.currency.trim() || "NGN",
       timezone,
-      ai_tone: input.aiTone.trim() || null,
-      ai_instructions: input.aiInstructions.trim() || null,
       hours_note: input.hoursNote.trim() || null,
       whatsapp_phone_number_id: input.whatsappPhoneNumberId.trim() || null,
       email_responses_enabled: input.emailResponsesEnabled && Boolean(existing?.email_inbound_address?.trim()),

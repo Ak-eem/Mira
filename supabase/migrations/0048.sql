@@ -95,3 +95,43 @@ begin
     (demo_business_id, 'Demo limitations', 'This public demo can answer questions about the sample cafe knowledge base, but it cannot accept payment, confirm a real order, or contact cafe staff.', true),
     (demo_business_id, 'Service and availability', 'Menu items and availability can change during the day. The cafe team can confirm the latest options at the counter.', true);
 end $$;
+
+-- The businesses upsert above sets ai_tone/ai_instructions directly,
+-- but supabase/migrations/0046_prompt_releases.sql made those columns a
+-- denormalized mirror of whichever prompt_releases row
+-- active_prompt_release_id points to -- everything else in the system
+-- (buildContext.ts, the admin/portal prompt editors) treats that table
+-- as the real source of history. Without this block, the demo business
+-- would have live ai_tone/ai_instructions content but zero version
+-- history and a null active_prompt_release_id -- a special case that
+-- breaks the editor's "nothing published yet" assumption. Idempotent:
+-- re-running this migration with unchanged content just repoints to the
+-- existing matching release rather than minting a new version each time.
+do $$
+declare
+  demo_business_id uuid;
+  current_tone text;
+  current_instructions text;
+  existing_release_id uuid;
+  new_release prompt_releases;
+begin
+  select id, ai_tone, ai_instructions
+    into demo_business_id, current_tone, current_instructions
+  from businesses where slug = 'mira-demo-cafe';
+
+  select id into existing_release_id
+  from prompt_releases
+  where business_id = demo_business_id
+    and status = 'published'
+    and ai_tone is not distinct from current_tone
+    and ai_instructions is not distinct from current_instructions
+  order by version desc
+  limit 1;
+
+  if existing_release_id is not null then
+    update businesses set active_prompt_release_id = existing_release_id where id = demo_business_id;
+  else
+    new_release := upsert_prompt_draft(demo_business_id, current_tone, current_instructions, 'Demo seed migration', 'system-demo-seed');
+    perform publish_prompt_release(demo_business_id, new_release.id, 'system-demo-seed');
+  end if;
+end $$;

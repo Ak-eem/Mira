@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 
 export type ActivityEntityType =
-  | "service" | "product" | "promotion" | "closure" | "faq" | "policy" | "hours" | "business" | "conversation";
+  | "service" | "product" | "promotion" | "closure" | "faq" | "policy" | "hours" | "business" | "conversation" | "prompt_release";
 export type ActivityAction = "created" | "updated" | "deleted";
 
 // Small shared helper so every actions.ts file writes to activity_log
@@ -15,7 +15,7 @@ export async function logActivity(
   entityId: string | null,
   action: ActivityAction,
   summary: string,
-  source: "admin_ui" | "command_center" = "admin_ui"
+  source: "admin_ui" | "command_center" | "portal_command" = "admin_ui"
 ) {
   const supabase = await createClient();
   await supabase.from("activity_log").insert({
