@@ -6,8 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint app lib",
-    "test": "npx tsx lib/ai/classifyIntent.test.ts && npx tsx lib/chat/matchProductImages.test.ts && npx tsx lib/email/parseInbound.test.ts && npx tsx lib/chat/inboundQueue.test.ts && npx tsx lib/whatsapp/sendTracking.test.ts && npx tsx lib/paystack.test.ts"
+    "lint": "eslint app lib middleware.ts",
+    "test": "tsx lib/ai/classifyIntent.test.ts && tsx lib/chat/matchProductImages.test.ts && tsx lib/email/parseInbound.test.ts && tsx lib/chat/inboundQueue.test.ts && tsx lib/whatsapp/sendTracking.test.ts && tsx lib/paystack.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
@@ -27,6 +27,7 @@
     "eslint-config-next": "^16.0.0",
     "postcss": "^8.4.0",
     "tailwindcss": "^3.4.19",
+    "tsx": "4.23.15",
     "typescript": "^5.6.0"
   }
 }
