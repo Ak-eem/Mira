@@ -8,6 +8,11 @@ const GEMINI_STREAM_API_URL =
 const GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions";
 
 const TIMEOUT_MS = 10_000;
+// Streaming: TIMEOUT_MS applies to getting response headers and to the gap
+// between chunks (idle), not to the whole reply. STREAM_MAX_MS is the hard
+// ceiling on total stream lifetime so a trickling provider can't hold a
+// request open forever.
+const STREAM_MAX_MS = 60_000;
 const RETRY_DELAY_MS = 600;
 // llama-3.3-70b-versatile was deprecated by Groq (announced June 2026) --
 // every request was 404ing, silently falling through to the Gemini
@@ -43,6 +48,22 @@ function extractTextFromParts(parts: unknown): string {
     })
     .filter(Boolean)
     .join("\n")
+    .trim();
+}
+
+// Reply text from a response's parts. A single model reply can arrive split
+// across several text parts (and Gemini may prepend "thought" parts), so
+// reading parts[0] alone truncates it. Parts are concatenated as-is -- the
+// provider splits mid-text, so no separator is added.
+export function extractReplyText(parts: unknown): string {
+  if (!Array.isArray(parts)) return "";
+
+  return parts
+    .map((part) => {
+      if (!isRecord(part) || part.thought === true) return "";
+      return typeof part.text === "string" ? part.text : "";
+    })
+    .join("")
     .trim();
 }
 
@@ -140,36 +161,31 @@ function parseGroqResponse(data: unknown): unknown {
     : undefined;
 
   if (toolCalls.length > 0) {
-    const firstToolCall = isRecord(toolCalls[0]) ? toolCalls[0] : undefined;
-    const functionInfo = isRecord(firstToolCall?.function) ? firstToolCall.function : undefined;
-    let parsedArgs: Record<string, unknown> = {};
+    // Convert every tool call, not just the first -- the model can emit
+    // several in one turn and dropping the rest silently loses actions.
+    const parts = toolCalls.map((toolCall) => {
+      const call = isRecord(toolCall) ? toolCall : undefined;
+      const functionInfo = isRecord(call?.function) ? call.function : undefined;
+      let parsedArgs: Record<string, unknown> = {};
 
-    if (typeof functionInfo?.arguments === "string") {
-      try {
-        parsedArgs = JSON.parse(functionInfo.arguments) as Record<string, unknown>;
-      } catch {
-        parsedArgs = {};
+      if (typeof functionInfo?.arguments === "string") {
+        try {
+          parsedArgs = JSON.parse(functionInfo.arguments) as Record<string, unknown>;
+        } catch {
+          parsedArgs = {};
+        }
       }
-    }
+
+      return {
+        functionCall: {
+          name: typeof functionInfo?.name === "string" ? functionInfo.name : "",
+          args: parsedArgs,
+        },
+      };
+    });
 
     return {
-      candidates: [
-        {
-          content: {
-            parts: [
-              {
-                functionCall: {
-                  name:
-                    typeof functionInfo?.name === "string"
-                      ? functionInfo.name
-                      : "",
-                  args: parsedArgs,
-                },
-              },
-            ],
-          },
-        },
-      ],
+      candidates: [{ content: { parts } }],
       ...(usageMetadata ? { usageMetadata } : {}),
     };
   }
@@ -364,6 +380,7 @@ function parseSseEvent(
 async function* readSseStream(
   response: Response,
   extractText: (data: unknown) => string,
+  onActivity?: () => void,
 ): AsyncGenerator<string> {
   if (!response.body) {
     throw new Error("The AI returned an empty stream.");
@@ -377,6 +394,7 @@ async function* readSseStream(
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
+      onActivity?.();
 
       buffer += decoder.decode(value, { stream: true });
       const events = buffer.split(/\r?\n\r?\n/);
@@ -404,7 +422,13 @@ export async function* geminiFetchStream(
   body: unknown,
 ): AsyncGenerator<string> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  // Idle timer: armed for the connection, re-armed on every chunk.
+  let timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const touch = () => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  };
+  const maxId = setTimeout(() => controller.abort(), STREAM_MAX_MS);
 
   try {
     const response = await fetch(GEMINI_STREAM_API_URL, {
@@ -425,7 +449,8 @@ export async function* geminiFetchStream(
       );
     }
 
-    yield* readSseStream(response, extractGeminiStreamText);
+    touch();
+    yield* readSseStream(response, extractGeminiStreamText, touch);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("The AI took too long to respond. Please try again.");
@@ -434,6 +459,7 @@ export async function* geminiFetchStream(
     throw new Error("Couldn't reach the AI. Please try again.");
   } finally {
     clearTimeout(timeoutId);
+    clearTimeout(maxId);
   }
 }
 
@@ -442,7 +468,13 @@ export async function* groqFetchStream(
   body: unknown,
 ): AsyncGenerator<string> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  // Idle timer: armed for the connection, re-armed on every chunk.
+  let timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const touch = () => {
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  };
+  const maxId = setTimeout(() => controller.abort(), STREAM_MAX_MS);
 
   try {
     const payload = {
@@ -468,7 +500,8 @@ export async function* groqFetchStream(
       );
     }
 
-    yield* readSseStream(response, extractGroqStreamText);
+    touch();
+    yield* readSseStream(response, extractGroqStreamText, touch);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error("The AI took too long to respond. Please try again.");
@@ -477,6 +510,7 @@ export async function* groqFetchStream(
     throw new Error("Couldn't reach the AI. Please try again.");
   } finally {
     clearTimeout(timeoutId);
+    clearTimeout(maxId);
   }
 }
 

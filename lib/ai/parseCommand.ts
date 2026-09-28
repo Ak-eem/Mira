@@ -1,5 +1,5 @@
 import type { BusinessContext } from "./buildContext";
-import { geminiFetchJson, type ProviderName } from "./geminiFetch";
+import { extractReplyText, geminiFetchJson, type ProviderName } from "./geminiFetch";
 
 // Eight command types, deliberately -- matches exactly what's actually
 // needed, not "everything Mira could theoretically do." Adding another
@@ -210,11 +210,14 @@ If the instruction doesn't clearly match one of the available actions, respond i
     candidates?: { content?: { parts?: { text?: string; functionCall?: { name?: string; args?: Record<string, unknown> } }[] } }[];
   };
 
-  const part = data.candidates?.[0]?.content?.parts?.[0];
+  const parts = data.candidates?.[0]?.content?.parts;
+  // Find the function call in any position, not just first -- a leading
+  // text or thought part would otherwise hide it.
+  const callPart = parts?.find((p) => p?.functionCall?.name);
 
-  if (part?.functionCall?.name) {
-    return { kind: "function", name: part.functionCall.name, args: part.functionCall.args ?? {} };
+  if (callPart?.functionCall?.name) {
+    return { kind: "function", name: callPart.functionCall.name, args: callPart.functionCall.args ?? {} };
   }
 
-  return { kind: "text", text: part?.text ?? "I'm not sure how to help with that." };
+  return { kind: "text", text: extractReplyText(parts) || "I'm not sure how to help with that." };
 }

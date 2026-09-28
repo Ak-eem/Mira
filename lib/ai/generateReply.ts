@@ -4,7 +4,7 @@ import {
   groqFetchStream,
 } from "./geminiFetch";
 import { fetchText } from "./urlFetch";
-import type { JsonFetchMetadata } from "./geminiFetch";
+import { extractReplyText, type JsonFetchMetadata } from "./geminiFetch";
 
 const MAX_OUTPUT_TOKENS = 2048;
 
@@ -157,7 +157,7 @@ export async function generateReplyWithMetadata(
     const followUpData = followUp.data as {
       candidates?: { content?: { parts?: { text?: string }[] } }[];
     };
-    const followUpText = followUpData.candidates?.[0]?.content?.parts?.[0]?.text;
+    const followUpText = extractReplyText(followUpData.candidates?.[0]?.content?.parts);
     if (!followUpText) {
       throw new Error(
         "The AI returned an unreadable response. Please try again.",
@@ -167,7 +167,7 @@ export async function generateReplyWithMetadata(
     return { text: followUpText, metadata: followUp.metadata };
   }
 
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+  const text = extractReplyText(data.candidates?.[0]?.content?.parts);
   if (!text) {
     throw new Error("The AI returned an unreadable response. Please try again.");
   }
