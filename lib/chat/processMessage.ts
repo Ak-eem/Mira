@@ -267,6 +267,24 @@ export async function processMessage(
   // operator marks it resolved) lifts this pause.
   if (conversation.needs_human) {
     const waitingReply = getPausedReply(businessName);
+
+    // Don't stack an identical canned notice under every customer message
+    // while paused: if the last assistant message is already this notice,
+    // reuse it. The customer still gets the reply text back (delivery is
+    // unchanged); only the stored transcript stops filling with repeats.
+    const { data: lastAssistant } = await supabase
+      .from("messages")
+      .select("id, content, context_snapshot")
+      .eq("conversation_id", conversation.id)
+      .eq("role", "assistant")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    const lastSnapshot = lastAssistant?.context_snapshot as { paused?: boolean } | null | undefined;
+    if (lastAssistant && lastSnapshot?.paused === true && lastAssistant.content === waitingReply) {
+      return { reply: waitingReply, messageId: lastAssistant.id, productImages: [] };
+    }
+
     const { data: saved, error: pausedInsertError } = await recordAssistantReply(supabase, {
       conversationId: conversation.id,
       businessId,
