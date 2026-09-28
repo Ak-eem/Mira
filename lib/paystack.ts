@@ -6,17 +6,48 @@ export type PaystackTransactionData = { authorization_url?: string; access_code?
 
 const API = 'https://api.paystack.co';
 function env(name: string) { const value = process.env[name]?.trim(); if (!value) throw new Error(`Missing ${name}`); return value; }
-function positive(name: string) { const value = Number(env(name)); if (!Number.isFinite(value) || value <= 0) throw new Error(`${name} must be positive`); return value; }
-function integer(name: string) { const value = Number(env(name)); if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${name} must be a positive integer`); return value; }
+function positive(name: string, value: string) { const n = Number(value); if (!Number.isFinite(n) || n <= 0) throw new Error(`${name} must be positive`); return n; }
+function integer(name: string, value: string) { const n = Number(value); if (!Number.isSafeInteger(n) || n <= 0) throw new Error(`${name} must be a positive integer`); return n; }
+
+function toKobo(amountNgn: number) {
+  const amountKobo = Math.round(amountNgn * 100);
+  if (!Number.isSafeInteger(amountKobo) || amountKobo <= 0) throw new Error('amount is out of range');
+  return amountKobo;
+}
+
+// Validated on first real call to getPlanConfig(), then cached -- NOT at
+// module load. An eager top-level read broke `next build` in CI/anywhere
+// PAYSTACK_* isn't set: Next's build does module-graph analysis across all
+// route files (even ones that are dynamic at runtime and never actually
+// invoked, like these payment routes), so importing this file at all was
+// enough to hard-fail the build with zero env vars configured. Caching
+// still means the validation -- and its thrown error, if config is broken
+// -- happens once per process on the first real request, not per-request.
+let basePlanConfig: { amountNgn: { false: number; true: number }; amountKobo: { false: number; true: number }; durationDays: number } | null = null;
+
+function loadBasePlanConfig() {
+  if (basePlanConfig) return basePlanConfig;
+  const amountNgn = positive('PAYSTACK_BASE_AMOUNT_NGN', env('PAYSTACK_BASE_AMOUNT_NGN'));
+  const promoAmountNgn = positive('PAYSTACK_BASE_PROMO_AMOUNT_NGN', env('PAYSTACK_BASE_PROMO_AMOUNT_NGN'));
+  const durationDays = integer('PAYSTACK_BASE_DURATION_DAYS', env('PAYSTACK_BASE_DURATION_DAYS'));
+  basePlanConfig = {
+    amountNgn: { false: amountNgn, true: promoAmountNgn },
+    amountKobo: { false: toKobo(amountNgn), true: toKobo(promoAmountNgn) },
+    durationDays,
+  };
+  return basePlanConfig;
+}
 
 export function getPlanConfig(plan: unknown, promo = false) {
   if (plan !== 'base') throw new Error('plan must be base');
-  const amountName = promo ? 'PAYSTACK_BASE_PROMO_AMOUNT_NGN' : 'PAYSTACK_BASE_AMOUNT_NGN';
-  const amountNgn = positive(amountName);
-  const durationDays = integer('PAYSTACK_BASE_DURATION_DAYS');
-  const amountKobo = Math.round(amountNgn * 100);
-  if (!Number.isSafeInteger(amountKobo) || amountKobo <= 0) throw new Error('amount is out of range');
-  return { plan, amountNgn, amountKobo, durationDays, promo };
+  const config = loadBasePlanConfig();
+  return {
+    plan,
+    amountNgn: config.amountNgn[String(promo) as 'true' | 'false'],
+    amountKobo: config.amountKobo[String(promo) as 'true' | 'false'],
+    durationDays: config.durationDays,
+    promo,
+  };
 }
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {

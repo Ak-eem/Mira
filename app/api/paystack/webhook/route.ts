@@ -4,6 +4,25 @@ import { getPlanConfig } from '@/lib/paystack';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
 export const runtime = 'nodejs';
+
+// Paystack's published webhook source ranges (see
+// https://paystack.com/docs/payments/webhooks/#ip-whitelisting). Kept as an
+// env var, not hardcoded, since Paystack can change these; unset disables
+// the check rather than blocking delivery. This is defense in depth on top
+// of -- never instead of -- the HMAC signature check below, which is what
+// actually proves the payload is genuine.
+const ALLOWED_IPS = new Set(
+  (process.env.PAYSTACK_WEBHOOK_IPS ?? '52.31.139.75,52.49.173.169,52.214.14.220')
+    .split(',')
+    .map((ip) => ip.trim())
+    .filter(Boolean),
+);
+
+function clientIp(request: Request): string | null {
+  const forwarded = request.headers.get('x-forwarded-for');
+  return forwarded?.split(',')[0]?.trim() || request.headers.get('x-real-ip')?.trim() || null;
+}
+
 function validSignature(raw: string, received: string | null, secret: string) {
   if (!received) return false;
   const expected = Buffer.from(createHmac('sha512', secret).update(raw).digest('hex'), 'utf8');
@@ -12,6 +31,12 @@ function validSignature(raw: string, received: string | null, secret: string) {
 }
 
 export async function POST(request: Request) {
+  const ip = clientIp(request);
+  if (ALLOWED_IPS.size > 0 && (!ip || !ALLOWED_IPS.has(ip))) {
+    console.error('Paystack webhook rejected: source IP not allowlisted', { ip });
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const rawBody = await request.text();
   const secret = process.env.PAYSTACK_SECRET_KEY;
   if (!secret || !validSignature(rawBody, request.headers.get('x-paystack-signature'), secret)) return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
@@ -31,8 +56,35 @@ export async function POST(request: Request) {
   try { config = getPlanConfig('base', promo); } catch { return NextResponse.json({ error: 'Invalid plan configuration' }, { status: 400 }); }
   if (data.amount !== config.amountKobo) return NextResponse.json({ error: 'Payment amount does not match plan' }, { status: 400 });
 
+  const serviceRole = createServiceRoleClient();
+
+  // Paystack retries webhooks aggressively on anything but a fast 200. The
+  // RPC itself is idempotent (ON CONFLICT guard keyed on business_id +
+  // reference + active status), so this check changes nothing about
+  // correctness -- it just answers "already applied" retries with a cheap
+  // read instead of re-running verification and the RPC on every replay.
+  const already = await serviceRole
+    .from('business_subscriptions')
+    .select('business_id')
+    .eq('business_id', businessId)
+    .eq('reference', reference)
+    .eq('status', 'active')
+    .maybeSingle();
+  if (already.error) console.error('Paystack webhook idempotency check failed (continuing to RPC)', already.error);
+  if (already.data) return NextResponse.json({ received: true });
+
   const expiresAt = new Date(Date.now() + config.durationDays * 24 * 60 * 60 * 1000).toISOString();
-  const { error } = await createServiceRoleClient().rpc('activate_paystack_subscription', { p_business_id: businessId, p_reference: reference, p_amount: data.amount as number, p_expires_at: expiresAt, p_expected_amount_kobo: config.amountKobo, p_plan: 'base' });
-  if (error) { console.error('Subscription activation RPC failed', error); return NextResponse.json({ error: 'Subscription activation failed' }, { status: 500 }); }
+  const { error } = await serviceRole.rpc('activate_paystack_subscription', { p_business_id: businessId, p_user_id: userId, p_reference: reference, p_amount: data.amount as number, p_expires_at: expiresAt, p_expected_amount_kobo: config.amountKobo, p_plan: 'base' });
+  if (error) {
+    // "user is no longer associated" is an expected, non-retriable outcome
+    // (membership changed after checkout began) -- ack it so Paystack
+    // doesn't hammer retries on something that will never succeed.
+    if (error.message?.includes('no longer associated')) {
+      console.warn('Paystack webhook: activation skipped, user no longer owns this business', { businessId, userId, reference });
+      return NextResponse.json({ received: true });
+    }
+    console.error('Subscription activation RPC failed', error);
+    return NextResponse.json({ error: 'Subscription activation failed' }, { status: 500 });
+  }
   return NextResponse.json({ received: true });
 }
