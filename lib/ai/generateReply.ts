@@ -6,6 +6,9 @@ import {
 import { fetchText } from "./urlFetch";
 import { extractReplyText, type JsonFetchMetadata } from "./geminiFetch";
 
+// Cap on fetched-URL text injected into the follow-up prompt (~2k tokens).
+const MAX_FETCHED_CONTENT_CHARS = 8_000;
+
 const MAX_OUTPUT_TOKENS = 2048;
 
 type LlmMessage = { role: "user" | "assistant"; content: string };
@@ -136,6 +139,12 @@ export async function generateReplyWithMetadata(
       fetchedContent = await fetchText(toolCall.url);
     } catch {
       fetchedContent = "Unable to fetch content from that URL.";
+    }
+    // fetchText allows up to 2MB of body for transport safety, but injecting
+    // all of that into the follow-up prompt would let a junk or hostile URL
+    // multiply token cost per request. Keep only the head.
+    if (fetchedContent.length > MAX_FETCHED_CONTENT_CHARS) {
+      fetchedContent = `${fetchedContent.slice(0, MAX_FETCHED_CONTENT_CHARS)}\n\n[Content truncated]`;
     }
 
     const followUp = await geminiFetchJsonWithMetadata(
