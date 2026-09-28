@@ -6,6 +6,8 @@ const QUEUE_COLUMNS = "id,status,attempts,reply_text,reply_sent_at";
 // A message that keeps failing is dropped after this many claims so a poison
 // message can't be redelivered forever. The webhook acks it with a 200.
 export const MAX_INBOUND_ATTEMPTS = 5;
+// A "processing" row whose lock is older than this is treated as abandoned.
+const STALE_LOCK_SECONDS = 5 * 60;
 
 export async function enqueueInboundMessage(client: Client, resendEmailId: string, toAddress: string, payload: unknown): Promise<QueueRow> {
   const created = await client
@@ -25,30 +27,24 @@ export async function enqueueInboundMessage(client: Client, resendEmailId: strin
 }
 
 export async function claimInboundMessage(client: Client, row: Pick<QueueRow, "id" | "attempts">): Promise<boolean> {
+  // Cheap early exit off the caller's (possibly stale) read. It can only
+  // understate attempts, so it never wrongly refuses; the RPC below is the
+  // real gate and re-checks the cap against the current DB value.
   if (row.attempts >= MAX_INBOUND_ATTEMPTS) {
     console.error(`Email queue row ${row.id} exceeded ${MAX_INBOUND_ATTEMPTS} attempts; not claiming.`);
     return false;
   }
-  const now = new Date();
-  const claim = await client
-    .from("email_inbound_queue")
-    .update({ status: "processing", locked_at: now.toISOString(), attempts: row.attempts + 1 })
-    .eq("id", row.id)
-    .in("status", ["pending", "failed"])
-    .lte("available_at", now.toISOString())
-    .select("id");
-  if (claim.error) throw claim.error;
-  if (Boolean(claim.data?.length)) return true;
-  const stale = new Date(now.getTime() - 5 * 60 * 1000).toISOString();
-  const reclaim = await client
-    .from("email_inbound_queue")
-    .update({ status: "processing", locked_at: now.toISOString(), attempts: row.attempts + 1 })
-    .eq("id", row.id)
-    .eq("status", "processing")
-    .lt("locked_at", stale)
-    .select("id");
-  if (reclaim.error) throw reclaim.error;
-  return Boolean(reclaim.data?.length);
+  // One atomic UPDATE in the database (migration 0050): increments attempts
+  // from the current row value, enforces the cap, and handles both the
+  // normal claim and the stale-lock reclaim, so a stale read can't rewind
+  // the counter or push a poison message past the cap.
+  const { data, error } = await client.rpc("claim_email_inbound", {
+    p_id: row.id,
+    p_max_attempts: MAX_INBOUND_ATTEMPTS,
+    p_stale_after_seconds: STALE_LOCK_SECONDS,
+  });
+  if (error) throw error;
+  return data === true;
 }
 
 /** Outbox: persist the reply text BEFORE sending so a retry re-sends it instead of regenerating. */

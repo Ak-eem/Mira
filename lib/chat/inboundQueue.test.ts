@@ -7,49 +7,57 @@ function check(condition: boolean, message: string): void {
   if (!condition) process.exitCode = 1;
 }
 
-type Call = { table: string; payload: Record<string, unknown> };
+type RpcCall = { fn: string; args: Record<string, unknown> };
 
-// Minimal chainable stand-in for the Supabase query builder. `winners` says
-// which update attempt (1-based) actually matches a row.
-function fakeClient(winners: number[]) {
-  const calls: Call[] = [];
-  let n = 0;
+// Minimal stand-in for the Supabase client: the claim is a single RPC now, so
+// this records the call and returns whatever the database "decided".
+function fakeClient(result: { data: unknown; error: unknown }) {
+  const calls: RpcCall[] = [];
   const client = {
-    from(table: string) {
-      return {
-        update(payload: Record<string, unknown>) {
-          calls.push({ table, payload });
-          const attempt = ++n;
-          const chain: Record<string, unknown> = {};
-          for (const m of ["eq", "in", "lte", "lt"]) chain[m] = () => chain;
-          chain.select = () => Promise.resolve({ data: winners.includes(attempt) ? [{ id: "row" }] : [], error: null });
-          return chain;
-        },
-      };
+    rpc(fn: string, args: Record<string, unknown>) {
+      calls.push({ fn, args });
+      return Promise.resolve(result);
     },
   };
   return { client: client as never, calls };
 }
 
 async function run() {
-  for (const [name, mod, table] of [
-    ["whatsapp", whatsapp, "whatsapp_inbound_queue"],
-    ["email", email, "email_inbound_queue"],
+  for (const [name, mod, fn] of [
+    ["whatsapp", whatsapp, "claim_whatsapp_inbound"],
+    ["email", email, "claim_email_inbound"],
   ] as const) {
-    const capped = fakeClient([1]);
+    const capped = fakeClient({ data: true, error: null });
     const refused = await mod.claimInboundMessage(capped.client, { id: "r", attempts: mod.MAX_INBOUND_ATTEMPTS });
-    check(refused === false && capped.calls.length === 0, `${name}: a row at the attempt cap is not claimed and never touches the DB`);
+    check(refused === false && capped.calls.length === 0, `${name}: a row at the attempt cap (per the caller's read) never touches the DB`);
 
-    const first = fakeClient([1]);
-    const claimed = await mod.claimInboundMessage(first.client, { id: "r", attempts: 2 });
-    check(claimed === true && first.calls[0]?.table === table && first.calls[0]?.payload.attempts === 3, `${name}: a successful claim increments attempts`);
+    const won = fakeClient({ data: true, error: null });
+    const claimed = await mod.claimInboundMessage(won.client, { id: "r", attempts: 2 });
+    check(claimed === true && won.calls.length === 1 && won.calls[0]?.fn === fn, `${name}: a claim is a single atomic RPC (${fn})`);
+    check(
+      won.calls[0]?.args.p_id === "r" && won.calls[0]?.args.p_max_attempts === mod.MAX_INBOUND_ATTEMPTS && !("attempts" in (won.calls[0]?.args ?? {})),
+      `${name}: the RPC gets the cap, and the caller never supplies an attempts value`,
+    );
 
-    const stale = fakeClient([2]);
-    const reclaimed = await mod.claimInboundMessage(stale.client, { id: "r", attempts: 0 });
-    check(reclaimed === true && stale.calls.length === 2 && stale.calls[1]?.payload.attempts === 1, `${name}: a stale-lock reclaim also increments attempts`);
+    // The regression this fixes: the caller's read says 0 attempts, but the
+    // database knows the row is already at the cap. The RPC refuses.
+    const staleRead = fakeClient({ data: false, error: null });
+    check(
+      (await mod.claimInboundMessage(staleRead.client, { id: "r", attempts: 0 })) === false && staleRead.calls.length === 1,
+      `${name}: a stale read can't get past the cap; the DB-side check decides`,
+    );
 
-    const lost = fakeClient([]);
+    const lost = fakeClient({ data: false, error: null });
     check((await mod.claimInboundMessage(lost.client, { id: "r", attempts: 0 })) === false, `${name}: losing the claim race returns false`);
+
+    const broken = fakeClient({ data: null, error: new Error("boom") });
+    let threw = false;
+    try {
+      await mod.claimInboundMessage(broken.client, { id: "r", attempts: 0 });
+    } catch {
+      threw = true;
+    }
+    check(threw, `${name}: an RPC error is thrown, not treated as a lost race`);
   }
 
   check(replyKeyFor("wa:abc") === "reply:wa:abc", "reply key is derived from the inbound key");
