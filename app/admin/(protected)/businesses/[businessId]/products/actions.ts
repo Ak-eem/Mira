@@ -65,12 +65,19 @@ export async function deleteProduct(productId: string) {
 
   const { data: existing } = await supabase
     .from("products")
-    .select("name, business_id")
+    .select("name, business_id, image_url")
     .eq("id", productId)
     .maybeSingle();
 
   const { error } = await supabase.from("products").delete().eq("id", productId);
   if (error) return { error: error.message };
+
+  // Best-effort, same as the replace/remove flows: the row is already gone, so
+  // a failed cleanup only leaves one orphaned file in the bucket.
+  const imagePath = existing?.image_url?.split("/product-images/")[1];
+  if (imagePath) {
+    await supabase.storage.from("product-images").remove([imagePath]);
+  }
 
   if (existing) {
     await logActivity(existing.business_id, "product", productId, "deleted", `"${existing.name}" removed`);
