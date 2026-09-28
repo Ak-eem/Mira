@@ -378,7 +378,7 @@ export async function processMessage(
     conversationId: conversation.id,
     businessId,
     content: replyText,
-    snapshot: { systemPrompt, productImages },
+    snapshot: { productImages },
     inboundKey: replyKey,
     // Written in the same transaction as the reply, so a retry can never
     // record the same interest twice.
