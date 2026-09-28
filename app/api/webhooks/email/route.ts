@@ -48,8 +48,23 @@ async function captureForHuman(client: Client, businessId: string, sender: strin
       })
       .select("id")
       .single();
-    if (created.error || !created.data) throw created.error ?? new Error("Could not start email conversation.");
-    conversationId = created.data.id;
+    if (created.data) {
+      conversationId = created.data.id;
+    } else if (created.error?.code === "23505") {
+      // A concurrent delivery opened the conversation first (one open
+      // conversation per session, migration 0009). Not an error: use theirs.
+      const winner = await client
+        .from("conversations")
+        .select("id")
+        .eq("business_id", businessId)
+        .eq("session_token", sessionToken)
+        .eq("status", "open")
+        .maybeSingle();
+      if (winner.error || !winner.data) throw winner.error ?? new Error("Could not start email conversation.");
+      conversationId = winner.data.id;
+    } else {
+      throw created.error ?? new Error("Could not start email conversation.");
+    }
   }
 
   const saved = await client.from("messages").insert({
@@ -101,23 +116,30 @@ export async function POST(request: NextRequest) {
   if (!sender || !toAddress || !item.email_id) return NextResponse.json({ error: "Incomplete email event." }, { status: 400 });
 
   const client = createServiceRoleClient();
-  const limits = await Promise.all([
-    checkRateLimit(client, `email:${sender}`, 20),
-    checkRateLimit(client, "email-global", 2000),
-  ]);
-  const rejected = limits.find((result) => !result.allowed);
-  if (rejected) {
-    return NextResponse.json(
-      { error: "Too many messages." },
-      { status: rejected.error ? 503 : 429, headers: { "Retry-After": String(rejected.retryAfterSeconds ?? 60) } },
-    );
-  }
-
   let queueId: string | null = null;
   try {
     const queued = await enqueueInboundMessage(client, item.email_id, toAddress, event);
     queueId = queued.id;
-    if (queued.status === "done" || !(await claimInboundMessage(client, queued))) {
+    if (queued.status === "done") return NextResponse.json({ status: "received" }, { status: 200 });
+
+    // Dedup BEFORE the rate limit (same as the WhatsApp route): a replayed
+    // copy of an already-processed email must be a free no-op, otherwise
+    // replaying a captured webhook burns the sender's hourly budget. A
+    // rate-limited row stays queued and is picked up when the webhook is
+    // redelivered.
+    const limits = await Promise.all([
+      checkRateLimit(client, `email:${sender}`, 20),
+      checkRateLimit(client, "email-global", 2000),
+    ]);
+    const rejected = limits.find((result) => !result.allowed);
+    if (rejected) {
+      return NextResponse.json(
+        { error: "Too many messages." },
+        { status: rejected.error ? 503 : 429, headers: { "Retry-After": String(rejected.retryAfterSeconds ?? 60) } },
+      );
+    }
+
+    if (!(await claimInboundMessage(client, queued))) {
       return NextResponse.json({ status: "received" }, { status: 200 });
     }
 
@@ -130,7 +152,7 @@ export async function POST(request: NextRequest) {
     const business = await client
       .from("businesses")
       .select("id,email_responses_enabled")
-      .ilike("email_inbound_address", toAddress)
+      .eq("email_inbound_address", toAddress) // column is constrained lowercase (migration 0040); ilike would treat "_" as a wildcard
       .maybeSingle();
     if (business.error) throw business.error;
     if (!business.data) {
