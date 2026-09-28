@@ -174,7 +174,7 @@ export function ChatWindow({
   useEffect(() => {
     if (messages.length === 0) return;
     const el = containerRef.current;
-    if (el) el.scrolllTop = el.scrollHeight;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [messages]);
 
   useEffect(() => {
@@ -753,7 +753,7 @@ export function ChatWindow({
           </div>
         )}
         {error && <p className="text-sm text-red-600">{error}</p>}
-        <div ref={bottomRef} />
+        <div ref={containerRef} />
       </div>
 
       {conversationEnded ? (
