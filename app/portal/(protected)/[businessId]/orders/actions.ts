@@ -7,6 +7,14 @@ import { sendOrderStatusEmailIfConsented } from "@/lib/notifications/sendOrderSt
 
 type OrderStatus = "cart" | "placed" | "shipped" | "delivered" | "cancelled";
 
+// Server actions receive raw runtime payloads, so the TS types above prove
+// nothing about what a crafted call actually sends. Validate explicitly.
+const ORDER_STATUSES: readonly OrderStatus[] = ["cart", "placed", "shipped", "delivered", "cancelled"];
+const MAX_ITEMS_PER_ORDER = 100;
+const MAX_ITEM_QUANTITY = 10_000;
+const MAX_UNIT_PRICE = 1_000_000_000;
+const MAX_ITEM_NAME_LENGTH = 200;
+
 async function assertOwnsBusiness(businessId: string): Promise<boolean> {
   const owner = await getCurrentBusinessOwner();
   return !!owner && owner.businesses.some((b) => b.id === businessId);
@@ -54,37 +62,70 @@ export async function createOrder(input: {
   items: { name: string; quantity: string; unitPrice: string }[];
 }): Promise<{ error: string | null }> {
   if (!(await assertOwnsBusiness(input.businessId))) return { error: "Not authorized for this business." };
+  if (!ORDER_STATUSES.includes(input.status)) return { error: "Invalid order status." };
+  if (!Array.isArray(input.items) || input.items.length > MAX_ITEMS_PER_ORDER) {
+    return { error: `An order can have at most ${MAX_ITEMS_PER_ORDER} items.` };
+  }
+
+  const supabase = await createClient();
 
   let normalizedIdentifier: string;
-  const pickedIdentifier = input.selectedConversationIdentifier?.trim();
+  const pickedIdentifier = typeof input.selectedConversationIdentifier === "string" ? input.selectedConversationIdentifier.trim() : "";
   if (pickedIdentifier) {
+    // Only ownership of businessId was checked above; the identifier itself
+    // is client-supplied. Make sure it's a real conversation of THIS
+    // business, or a crafted call could attach an order to another
+    // business's customer.
+    const { data: conversation } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("business_id", input.businessId)
+      .eq("session_token", pickedIdentifier)
+      .limit(1)
+      .maybeSingle();
+    if (!conversation) return { error: "That chat wasn't found for this business." };
     normalizedIdentifier = pickedIdentifier;
   } else {
-    const customerIdentifier = input.customerIdentifier.trim();
+    const customerIdentifier = typeof input.customerIdentifier === "string" ? input.customerIdentifier.trim() : "";
     if (!customerIdentifier) return { error: "Pick a recent chat, or enter a customer phone number." };
     // Nudges only ever sends via WhatsApp -- normalize freehand phone
     // entry to the same wa_<phone> shape conversations and nudge_sends
     // already use, so this order can actually be found by the cron
     // later. Only applies to this manual-phone-number fallback path --
     // a picked conversation identifier above is never touched here.
-    normalizedIdentifier = customerIdentifier.startsWith("wa_")
-      ? customerIdentifier
-      : `wa_${customerIdentifier.replace(/[^0-9]/g, "")}`;
+    const digits = customerIdentifier.replace(/^wa_/, "").replace(/[^0-9]/g, "");
+    if (!digits) return { error: "Enter a valid customer phone number." };
+    normalizedIdentifier = `wa_${digits}`;
   }
 
-  const validItems = input.items
-    .map((item) => ({
-      name: item.name.trim(),
-      quantity: Number(item.quantity) || 1,
-      unit_price: item.unitPrice.trim() ? Number(item.unitPrice) : null,
-    }))
-    .filter((item) => item.name);
+  const validItems: { name: string; quantity: number; unit_price: number | null }[] = [];
+  for (const item of input.items) {
+    const name = typeof item?.name === "string" ? item.name.trim() : "";
+    if (!name) continue;
+    if (name.length > MAX_ITEM_NAME_LENGTH) return { error: `Item names must be ${MAX_ITEM_NAME_LENGTH} characters or fewer.` };
+
+    const quantityText = String(item.quantity ?? "").trim();
+    const quantity = quantityText ? Number(quantityText) : 1;
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > MAX_ITEM_QUANTITY) {
+      return { error: `Quantity for "${name}" must be a whole number between 1 and ${MAX_ITEM_QUANTITY}.` };
+    }
+
+    const priceText = String(item.unitPrice ?? "").trim();
+    let unitPrice: number | null = null;
+    if (priceText) {
+      unitPrice = Number(priceText);
+      if (!Number.isFinite(unitPrice) || unitPrice < 0 || unitPrice > MAX_UNIT_PRICE) {
+        return { error: `Price for "${name}" must be between 0 and ${MAX_UNIT_PRICE}.` };
+      }
+    }
+
+    validItems.push({ name, quantity, unit_price: unitPrice });
+  }
 
   if (validItems.length === 0) return { error: "At least one item with a name is required." };
 
   const total = validItems.reduce((sum, item) => sum + (item.unit_price ?? 0) * item.quantity, 0);
 
-  const supabase = await createClient();
   const { data: order, error } = await supabase
     .from("orders")
     .insert({
@@ -110,6 +151,10 @@ export async function createOrder(input: {
 const EMAILABLE_STATUSES = new Set<OrderStatus>(["placed", "shipped", "delivered", "cancelled"]);
 
 export async function updateOrderStatus(businessId: string, orderId: string, status: OrderStatus): Promise<void> {
+  if (!ORDER_STATUSES.includes(status)) {
+    console.error("updateOrderStatus called with an invalid status");
+    return;
+  }
   if (!(await assertOwnsBusiness(businessId))) {
     console.error("updateOrderStatus called without owning this business");
     return;
