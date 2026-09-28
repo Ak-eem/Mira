@@ -8,7 +8,7 @@ const reference = searchParams.get("reference");
 const [state, setState] = useState("loading");
 const [error, setError] = useState("");
 useEffect(() => {
-
+if (!reference) return;
 fetch(`/api/paystack/verify?reference=${encodeURIComponent(reference)}`)
 .then(async (res) => {
 if (res.status === 401) {
