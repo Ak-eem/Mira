@@ -37,6 +37,11 @@ export async function GET(request: NextRequest) {
     }, { status: 402 });
   }
 
+  // SECURITY INVARIANT: there is no binding between a visitor and a session
+  // beyond knowing the (slug, visitorId) pair, and this endpoint is
+  // unauthenticated by design. That is only safe while visitorIds stay
+  // unguessable (client-generated random UUIDs). Never derive a visitorId from
+  // anything guessable (sequential ids, phone numbers, emails).
   const conversation = await client.from("conversations").select("id,needs_human").eq("business_id", business.data.id).eq("session_token", `web_${visitor}`).eq("status", "open").maybeSingle();
   if (conversation.error) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
   if (!conversation.data) return NextResponse.json({ needsHuman: false, messages: [] });

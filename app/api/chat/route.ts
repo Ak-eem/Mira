@@ -78,7 +78,12 @@ export async function POST(request: NextRequest) {
   }
 
   const businessId = business.data.id;
-  const session = `web_${visitor || randomUUID()}`;
+  // No client visitorId: reuse the session we previously issued in the
+  // mira_session cookie (server-set, httpOnly) rather than minting a new
+  // conversation for every message. Shape-checked before trusting it.
+  const cookieSession = request.cookies.get("mira_session")?.value ?? "";
+  const cookieVisitor = /^web_[A-Za-z0-9_-]{8,64}$/.test(cookieSession) ? cookieSession.slice(4) : "";
+  const session = `web_${visitor || cookieVisitor || randomUUID()}`;
   try {
     const result = await withConversationLease(client, `web:${businessId}:${session}`, () =>
       processIncomingMessage(client, businessId, session, message, "web"),
