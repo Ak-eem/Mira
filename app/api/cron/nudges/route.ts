@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 import { runNudgeCheck } from "@/lib/nudges/checkRules";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -50,7 +51,11 @@ export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;
   const authHeader = request.headers.get("authorization");
 
-  if (!secret || authHeader !== `Bearer ${secret}`) {
+  const expected = Buffer.from(`Bearer ${secret ?? ""}`);
+  const received = Buffer.from(authHeader ?? "");
+  const authorized = Boolean(secret) && received.length === expected.length && timingSafeEqual(received, expected);
+
+  if (!authorized) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });
   }
 

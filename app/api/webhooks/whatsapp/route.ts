@@ -1,6 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { processMessage } from "@/lib/chat/processMessage";
 import { processIncomingMessage } from "@/lib/chat/processIncomingMessage";
 import { withConversationLease } from "@/lib/chat/durable";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
