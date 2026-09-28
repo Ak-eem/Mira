@@ -24,6 +24,26 @@ type CachedContext = {
 };
 
 const contextCache = new Map<string, CachedContext>();
+// Bound the cache: on a long-lived Node process (not serverless) it would
+// otherwise grow by one entry per business ever seen. Map iterates in
+// insertion order, so dropping the first key evicts the oldest.
+const MAX_CACHED_CONTEXTS = 200;
+
+function cacheContext(businessId: string, value: BusinessContext): void {
+  contextCache.delete(businessId);
+  while (contextCache.size >= MAX_CACHED_CONTEXTS) {
+    const oldest = contextCache.keys().next().value;
+    if (oldest === undefined) break;
+    contextCache.delete(oldest);
+  }
+  contextCache.set(businessId, { expiresAt: Date.now() + CONTEXT_TTL_MS, value });
+}
+
+// Row caps per catalog table. Queries fetch one extra row so we can tell
+// "exactly at the cap" from "truncated" and say so in the prompt.
+const MAX_SERVICES = 30;
+const MAX_PRODUCTS = 50;
+const MAX_FAQS = 20;
 
 export type BusinessContext = {
   found: boolean;
@@ -133,12 +153,12 @@ export async function buildBusinessContext(
   // All queries below explicitly scope results to `businessId`
   const [
     { data: business },
-    { data: services },
-    { data: products },
+    { data: rawServices },
+    { data: rawProducts },
     { data: hours },
     { data: allPromotions },
     { data: allClosures },
-    { data: faqs },
+    { data: rawFaqs },
     { data: policies },
   ] = await Promise.all([
     supabase
@@ -151,14 +171,14 @@ export async function buildBusinessContext(
       .from("services")
       .select("name,description,price,is_available,availability_note")
       .eq("business_id", businessId)
-      .limit(30),
+      .limit(MAX_SERVICES + 1),
     supabase
       .from("products")
       .select(
         "id,name,description,price,stock_quantity,is_available,availability_note,image_url",
       )
       .eq("business_id", businessId)
-      .limit(50),
+      .limit(MAX_PRODUCTS + 1),
     supabase
       .from("business_hours")
       .select("day_of_week,opens_at,closes_at")
@@ -177,7 +197,7 @@ export async function buildBusinessContext(
       .select("question,answer")
       .eq("business_id", businessId)
       .eq("is_active", true)
-      .limit(20),
+      .limit(MAX_FAQS + 1),
     supabase
       .from("policies")
       .select("title,content")
@@ -187,9 +207,20 @@ export async function buildBusinessContext(
 
   if (!business) {
     const value: BusinessContext = { found: false, contextText: "", products: [] };
-    contextCache.set(businessId, { expiresAt: Date.now() + CONTEXT_TTL_MS, value });
+    cacheContext(businessId, value);
     return value;
   }
+
+  const servicesTruncated = (rawServices ?? []).length > MAX_SERVICES;
+  const productsTruncated = (rawProducts ?? []).length > MAX_PRODUCTS;
+  const faqsTruncated = (rawFaqs ?? []).length > MAX_FAQS;
+  const services = (rawServices ?? []).slice(0, MAX_SERVICES);
+  const products = (rawProducts ?? []).slice(0, MAX_PRODUCTS);
+  const faqs = (rawFaqs ?? []).slice(0, MAX_FAQS);
+  // Leading (not trailing) so the char-budget trimming can't cut it off. It
+  // also tells the model not to claim an unlisted item doesn't exist.
+  const truncationNote = (kind: string, cap: number) =>
+    `(Only the first ${cap} ${kind} are listed; more exist that you have no details on -- do not say an unlisted one doesn't exist.)`;
 
   const now = new Date();
   const activePromotions = (allPromotions ?? []).filter((promotion) => {
@@ -207,14 +238,14 @@ export async function buildBusinessContext(
   const sanitizedTone = sanitizeText(business.ai_tone);
   const sanitizedInstructions = sanitizeText(business.ai_instructions);
 
-  const serviceLines = (services ?? []).map((service) => {
+  const serviceLines = services.map((service) => {
     const price = service.price != null ? `${currency} ${service.price}` : "price on request";
     const availability = service.is_available
       ? "available"
       : `unavailable${service.availability_note ? ` — ${service.availability_note}` : ""}`;
     return `- ${service.name}: ${price} (${availability})${service.description ? ` — ${service.description}` : ""}`;
   });
-  const productLines = (products ?? []).map((product) => {
+  const productLines = products.map((product) => {
     const stock =
       product.stock_quantity == null
         ? ""
@@ -241,6 +272,7 @@ export async function buildBusinessContext(
   if (business.hours_note) hoursLines.push(`Note: ${business.hours_note}`);
 
   const contactLinks = buildContactLinks(business.social_links);
+  const policyLines = (policies ?? []).map((policy) => `${policy.title}:\n${policy.content}`);
 
   const sections = [
     section("Business", [
@@ -257,8 +289,8 @@ export async function buildBusinessContext(
       SECTION_LIMITS.contact,
     ),
     section("Hours", hoursLines, SECTION_LIMITS.hours),
-    section("Services", serviceLines.length > 0 ? serviceLines : ["(none listed)"], SECTION_LIMITS.services),
-    section("Products", productLines.length > 0 ? productLines : ["(none listed)"], SECTION_LIMITS.products),
+    section("Services", serviceLines.length > 0 ? [...(servicesTruncated ? [truncationNote("services", MAX_SERVICES)] : []), ...serviceLines] : ["(none listed)"], SECTION_LIMITS.services),
+    section("Products", productLines.length > 0 ? [...(productsTruncated ? [truncationNote("products", MAX_PRODUCTS)] : []), ...productLines] : ["(none listed)"], SECTION_LIMITS.products),
     section(
       "Active promotions",
       activePromotions.length > 0 ? activePromotions.map((promotion) => `- ${promotion.description}`) : ["(none)"],
@@ -271,14 +303,14 @@ export async function buildBusinessContext(
     ),
     section(
       "FAQs",
-      (faqs ?? []).length > 0 ? (faqs ?? []).map((faq) => `Q: ${faq.question}\nA: ${faq.answer}`) : ["(none)"],
+      faqs.length > 0
+        ? [...(faqsTruncated ? [truncationNote("FAQs", MAX_FAQS)] : []), ...faqs.map((faq) => `Q: ${faq.question}\nA: ${faq.answer}`)]
+        : ["(none)"],
       SECTION_LIMITS.faqs,
     ),
     section(
       "Policies",
-      (policies ?? []).map((policy) => `${policy.title}:\n${policy.content}`).length > 0
-        ? (policies ?? []).map((policy) => `${policy.title}:\n${policy.content}`)
-        : ["(none)"],
+      policyLines.length > 0 ? policyLines : ["(none)"],
       SECTION_LIMITS.policies,
     ),
   ];
@@ -292,9 +324,9 @@ export async function buildBusinessContext(
       ai_instructions: sanitizedInstructions || null,
     },
     contextText: fitContext(sections, businessId),
-    products: (products ?? []).map((p) => ({ id: p.id, name: p.name, image_url: p.image_url })),
+    products: products.map((p) => ({ id: p.id, name: p.name, image_url: p.image_url })),
   };
 
-  contextCache.set(businessId, { expiresAt: Date.now() + CONTEXT_TTL_MS, value });
+  cacheContext(businessId, value);
   return value;
 }
