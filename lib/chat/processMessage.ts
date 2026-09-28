@@ -284,6 +284,13 @@ export async function processMessage(
   }
 
   const intent = classifyIntent(trimmedMessage);
+  // Only human_handoff changes behavior today; injection attempts otherwise
+  // rely on the model refusing. Record hits (no message text -- it may hold
+  // personal data) so the false-positive rate of these patterns can be judged
+  // before anyone decides to block on them.
+  if (intent === "prompt_injection") {
+    console.warn("classifyIntent: prompt_injection pattern matched", { businessId, channel });
+  }
 
   // "Repeated confusion" half of the handoff trigger: either the customer
   // sounds frustrated right now, or Mira has already given the canned
