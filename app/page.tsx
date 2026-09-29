@@ -71,8 +71,8 @@ export default function Home() {
               <div className="absolute -inset-6 rounded-[2.5rem] bg-cyan-200/30 blur-3xl" />
               <div className="relative rounded-[2rem] border border-white/80 bg-white/60 p-5 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl">
                 <ChatWindow
-                  businessSlug="mira-demo-cafe"
-                  businessName="Mira Demo Cafe"
+                  businessSlug="mira"
+                  businessName="Mira for Mira"
                   openNow={true}
                   embedMode
                 />

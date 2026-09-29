@@ -7,6 +7,10 @@ import { CHAT_RATE_LIMIT_PER_MINUTE, checkRateLimit, getRequestIp } from "@/lib/
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { isLocked } from "@/lib/plans";
 
+// Public, unauthenticated landing-page widgets get a tighter per-IP cap on top of
+// the normal limits. "mira" is the "Mira for Mira" widget on the homepage.
+const PUBLIC_DEMO_SLUGS = new Set(["mira", "mira-demo-cafe"]);
+
 export const runtime = "nodejs";
 const MAX_MESSAGE_LENGTH = 4000;
 type Body = { businessSlug?: unknown; message?: unknown; visitorId?: unknown };
@@ -33,7 +37,7 @@ export async function POST(request: NextRequest) {
     checkRateLimit(client, `chat:${identity}`, CHAT_RATE_LIMIT_PER_MINUTE),
     checkRateLimit(client, `chat-ip:${ip}`, 120),
     checkRateLimit(client, "chat-global", 2000),
-    ...(slug === "mira-demo-cafe" ? [checkRateLimit(client, `demo:${ip}`, 10, 600)] : []),
+    ...(PUBLIC_DEMO_SLUGS.has(slug) ? [checkRateLimit(client, `demo:${ip}`, 10, 600)] : []),
   ]);
   const rejected = limits.find((item) => !item.allowed);
   if (rejected) {
