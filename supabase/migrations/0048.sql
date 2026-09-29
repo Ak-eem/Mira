@@ -1,8 +1,9 @@
 -- Active Mira Demo Cafe seed used by the public landing-page widget.
--- The fixed id plus slug upsert makes this safe to apply to an existing database.
+-- Upserts by slug only and lets the database pick the id. (It used to force a
+-- fixed id, which fails with a primary-key clash whenever a different business
+-- already owns that id.) Nothing in the app references the demo's id, only its slug.
 
 insert into businesses (
-  id,
   name,
   slug,
   description,
@@ -14,7 +15,6 @@ insert into businesses (
   is_active
 )
 values (
-  '00000000-0000-4000-8000-000000000001',
   'Mira Demo Cafe',
   'mira-demo-cafe',
   'A bright neighborhood cafe serving specialty coffee, fresh bakes, and relaxed brunches.',
@@ -30,7 +30,6 @@ This is a public demo. Never claim to place an order, take payment, make a reser
   true
 )
 on conflict (slug) do update set
-  id = excluded.id,
   name = excluded.name,
   description = excluded.description,
   currency = excluded.currency,
