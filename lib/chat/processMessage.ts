@@ -110,7 +110,7 @@ export async function processMessage(
 
   let { data: conversation, error: conversationLookupError } = await supabase
     .from("conversations")
-    .select("id, business_id, last_message_at, needs_human, claimed_by")
+    .select("id, business_id, last_message_at, needs_human, claimed_by, handoff_reason")
     .eq("business_id", businessId)
     .eq("session_token", sessionToken)
     .eq("status", "open")
@@ -150,14 +150,14 @@ export async function processMessage(
         channel,
         last_message_at: new Date().toISOString(),
       })
-      .select("id, business_id, last_message_at, needs_human, claimed_by")
+      .select("id, business_id, last_message_at, needs_human, claimed_by, handoff_reason")
       .single();
 
     if (convError?.code === "23505") {
       // Lost the race to open this conversation; pick up the winner's row.
       const { data: winner, error: reselectError } = await supabase
         .from("conversations")
-        .select("id, business_id, last_message_at, needs_human, claimed_by")
+        .select("id, business_id, last_message_at, needs_human, claimed_by, handoff_reason")
         .eq("business_id", businessId)
         .eq("session_token", sessionToken)
         .eq("status", "open")
@@ -268,7 +268,7 @@ export async function processMessage(
   // of replies happened to look like. Only resolving the handoff (an
   // operator marks it resolved) lifts this pause.
   if (conversation.needs_human) {
-    const waitingReply = getPausedReply(businessName);
+    const waitingReply = getPausedReply(businessName, conversation.handoff_reason);
 
     // Don't stack an identical canned notice under every customer message
     // while paused: if the last assistant message is already this notice,

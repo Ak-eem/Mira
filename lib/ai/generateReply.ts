@@ -211,7 +211,9 @@ export async function generateReplyWithMetadata(
 
   const result = await geminiFetchJsonWithMetadata(apiKey, {
     ...buildRequestBody(systemPrompt, messages),
-    tools: options.orderTool ? [URL_FETCH_TOOL, PLACE_ORDER_TOOL] : [URL_FETCH_TOOL],
+    tools: options.orderTool
+      ? [{ function_declarations: [...URL_FETCH_TOOL.function_declarations, ...PLACE_ORDER_TOOL.function_declarations] }]
+      : [URL_FETCH_TOOL],
   });
   const data = result.data as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];
