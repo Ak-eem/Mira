@@ -5,7 +5,7 @@ export async function getBusinessEntitlement(businessId: string) {
   const supabase = await createClient();
   const { data: subscription, error } = await supabase
     .from("business_subscriptions")
-    .select("owner_id, plan, status, trial_started_at, trial_ends_at")
+    .select("owner_id, plan, status, trial_started_at, trial_ends_at, expires_at")
     .eq("business_id", businessId)
     .maybeSingle();
 
