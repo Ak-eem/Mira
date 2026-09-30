@@ -96,17 +96,29 @@ export async function POST(request: Request) {
     return errorResponse("Business is not active", 410, "business_inactive");
   }
 
-  const { error: ownerError } = await service.from("business_owners").upsert(
-    {
+  // Never overwrite an existing membership: an upsert here would demote an
+  // owner who happens to accept an invite addressed to their own email down
+  // to staff (and could strand a business with no owner). Only add the row
+  // if this user isn't already on the team.
+  const { data: existingMember, error: existingError } = await service
+    .from("business_owners")
+    .select("id")
+    .eq("business_id", invite.business_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (existingError) {
+    return errorResponse("Unable to add team member", 500);
+  }
+
+  if (!existingMember) {
+    const { error: ownerError } = await service.from("business_owners").insert({
       business_id: invite.business_id,
       user_id: user.id,
       role: "staff",
-    },
-    { onConflict: "business_id,user_id" },
-  );
-
-  if (ownerError) {
-    return errorResponse("Unable to add team member", 500);
+    });
+    if (ownerError && ownerError.code !== "23505") {
+      return errorResponse("Unable to add team member", 500);
+    }
   }
 
   const acceptedAt = now.toISOString();
