@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateBusiness } from "./actions";
-import { EmailForwardingGuide } from "./EmailForwardingGuide";
+import { EmailForwardingGuide } from "@/components/EmailForwardingGuide";
 import type { Business, BusinessSocialLinks } from "@/lib/types";
 
 export function SettingsForm({ business }: { business: Business }) {
