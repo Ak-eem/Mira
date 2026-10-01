@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
 import { Nunito } from "next/font/google";
 import { linkifyContent } from "@/lib/linkify";
+import { CUSTOMER_REASON_LABELS, FEEDBACK_REASONS, type FeedbackReason } from "@/lib/feedback/reasons";
 
 function renderInlineMarkdown(text: string): ReactNode {
   const parts = text.split(/(\*\*[^\n]+?\*\*|\*[^\n]+?\*)/g);
@@ -80,6 +81,10 @@ type Message = {
   id?: string;
   productImages?: ProductImage[];
   feedback?: Feedback;
+  // Why the customer gave a thumbs-down (optional), and whether we're
+  // currently offering the reason chips for this message.
+  feedbackReason?: FeedbackReason;
+  askReason?: boolean;
 };
 
 function ThumbIcon({ direction, filled }: { direction: "up" | "down"; filled: boolean }) {
@@ -289,11 +294,24 @@ export function ChatWindow({
     }
   }
 
-  async function submitFeedback(index: number, messageId: string, rating: Feedback) {
+  async function submitFeedback(index: number, messageId: string, rating: Feedback, reason?: FeedbackReason) {
+    // A thumbs-down tapped again after a reason was chosen keeps that reason
+    // (the server would otherwise overwrite it with "none").
+    const reasonToSend = rating === "down" ? (reason ?? messages[index]?.feedbackReason) : undefined;
+
     setMessages((prev) => {
       const next = [...prev];
       const target = next[index];
-      if (target) next[index] = { ...target, feedback: rating };
+      if (target) {
+        next[index] = {
+          ...target,
+          feedback: rating,
+          feedbackReason: reasonToSend,
+          // Offer the chips right after a thumbs-down, once, and never push
+          // them on someone who already answered or gave a thumbs-up.
+          askReason: rating === "down" && !reasonToSend,
+        };
+      }
       return next;
     });
 
@@ -301,7 +319,7 @@ export function ChatWindow({
       await fetch("/api/feedback", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messageId, rating }),
+        body: JSON.stringify({ messageId, rating, reason: reasonToSend, businessSlug, visitorId }),
       });
     } catch {
       // Feedback is a nice-to-have, not core chat function -- fail silently
@@ -780,6 +798,25 @@ export function ChatWindow({
                   <ThumbIcon direction="down" filled={m.feedback === "down"} />
                 </button>
               </div>
+            )}
+
+            {m.role === "assistant" && m.id && m.feedback === "down" && m.askReason && (
+              <div className="mt-1 flex flex-wrap items-center gap-1 text-xs" role="group" aria-label="What went wrong?">
+                <span className="text-slate-400">What went wrong?</span>
+                {FEEDBACK_REASONS.map((code) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => submitFeedback(i, m.id!, "down", code)}
+                    className="rounded-full border border-slate-200 px-2 py-0.5 text-slate-500 hover:border-slate-400 hover:text-slate-700"
+                  >
+                    {CUSTOMER_REASON_LABELS[code]}
+                  </button>
+                ))}
+              </div>
+            )}
+            {m.role === "assistant" && m.feedback === "down" && m.feedbackReason && !m.askReason && (
+              <p className="mt-1 text-xs text-slate-400">Thanks, noted: {CUSTOMER_REASON_LABELS[m.feedbackReason].toLowerCase()}.</p>
             )}
           </div>
           )

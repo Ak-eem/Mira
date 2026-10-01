@@ -4,6 +4,7 @@ import { resolveHandoff, takeOverConversation, handBackToAI, endConversation } f
 import { linkifyContent } from "@/lib/linkify";
 import { ReplyForm } from "./ReplyForm";
 import { LiveRefresh } from "./LiveRefresh";
+import { ReplyReview } from "./ReplyReview";
 
 type MessageContextSnapshot = {
   productImages?: { name: string; imageUrl: string }[];
@@ -39,6 +40,22 @@ export default async function PortalConversationThreadPage({
     .select("id, role, content, context_snapshot, created_at")
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true });
+
+  // Customer thumbs and staff reviews for this conversation's messages (one
+  // row per message per source).
+  const messageIds = (messages ?? []).map((m) => m.id);
+  const { data: feedbackRows } = messageIds.length
+    ? await supabase
+        .from("message_feedback")
+        .select("message_id, source, rating, reason, note")
+        .in("message_id", messageIds)
+    : { data: [] as { message_id: string; source: string; rating: "up" | "down"; reason: string | null; note: string | null }[] };
+  const customerFeedback = new Map<string, { rating: "up" | "down"; reason: string | null }>();
+  const staffReviews = new Map<string, { rating: "up" | "down"; reason: string | null; note: string | null }>();
+  for (const row of feedbackRows ?? []) {
+    if (row.source === "staff") staffReviews.set(row.message_id, { rating: row.rating, reason: row.reason, note: row.note });
+    else customerFeedback.set(row.message_id, { rating: row.rating, reason: row.reason });
+  }
 
   const resolveHandoffForConversation = resolveHandoff.bind(null, businessId, conversationId);
   const takeOverForConversation = takeOverConversation.bind(null, businessId, conversationId);
@@ -176,6 +193,16 @@ export default async function PortalConversationThreadPage({
                 {isOperatorReply && <span className="mr-2 font-medium text-sky-600">You replied</span>}
                 {new Date(m.created_at).toLocaleTimeString()}
               </p>
+
+              {m.role === "assistant" && !isOperatorReply && (
+                <ReplyReview
+                  businessId={businessId}
+                  conversationId={conversationId}
+                  messageId={m.id}
+                  customer={customerFeedback.get(m.id) ?? null}
+                  staff={staffReviews.get(m.id) ?? null}
+                />
+              )}
             </div>
           );
         })}

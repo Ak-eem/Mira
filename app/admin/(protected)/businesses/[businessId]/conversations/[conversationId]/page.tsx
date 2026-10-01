@@ -60,10 +60,15 @@ export default async function ConversationThreadPage({
 
   const messageIds = (messages ?? []).map((m) => m.id);
   const { data: feedbackRows } = messageIds.length
-    ? await supabase.from("message_feedback").select("message_id, rating").in("message_id", messageIds)
-    : { data: [] as { message_id: string; rating: string }[] };
+    ? await supabase.from("message_feedback").select("message_id, source, rating, reason").in("message_id", messageIds)
+    : { data: [] as { message_id: string; source: string; rating: string; reason: string | null }[] };
 
-  const feedbackByMessage = new Map((feedbackRows ?? []).map((f) => [f.message_id, f.rating]));
+  // Up to two rows per message now: the customer's thumbs and a staff review.
+  const customerFeedbackByMessage = new Map<string, { rating: string; reason: string | null }>();
+  const staffReviewByMessage = new Map<string, { rating: string; reason: string | null }>();
+  for (const f of feedbackRows ?? []) {
+    (f.source === "staff" ? staffReviewByMessage : customerFeedbackByMessage).set(f.message_id, { rating: f.rating, reason: f.reason });
+  }
 
   const isClaimed = Boolean(conversation.claimed_by);
 
@@ -198,8 +203,18 @@ export default async function ConversationThreadPage({
               <p className="mt-0.5 text-xs text-slate-400">
                 {isOperatorReply && <span className="mr-2 font-medium text-sky-600">Team reply</span>}
                 {new Date(m.created_at).toLocaleTimeString()}
-                {feedbackByMessage.get(m.id) === "up" && <span className="ml-2 text-emerald-600">👍 helpful</span>}
-                {feedbackByMessage.get(m.id) === "down" && <span className="ml-2 text-red-500">👎 not helpful</span>}
+                {customerFeedbackByMessage.get(m.id)?.rating === "up" && <span className="ml-2 text-emerald-600">👍 helpful</span>}
+                {customerFeedbackByMessage.get(m.id)?.rating === "down" && (
+                  <span className="ml-2 text-red-500">
+                    👎 not helpful{customerFeedbackByMessage.get(m.id)?.reason ? ` (${customerFeedbackByMessage.get(m.id)?.reason})` : ""}
+                  </span>
+                )}
+                {staffReviewByMessage.has(m.id) && (
+                  <span className={staffReviewByMessage.get(m.id)?.rating === "down" ? "ml-2 text-red-500" : "ml-2 text-emerald-600"}>
+                    Staff: {staffReviewByMessage.get(m.id)?.rating === "down" ? "needs work" : "good"}
+                    {staffReviewByMessage.get(m.id)?.reason ? ` (${staffReviewByMessage.get(m.id)?.reason})` : ""}
+                  </span>
+                )}
               </p>
             </div>
           );
