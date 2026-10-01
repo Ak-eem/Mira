@@ -30,7 +30,7 @@ export default async function PortalBusinessLayout({ children, params }: { child
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{business.name}</h1>
         {owner.businesses.length > 1 && <Link href="/portal" className="text-sm text-slate-400 hover:text-slate-600">Switch business</Link>}
       </div>
-      <PortalNav businessId={businessId} />
+      <PortalNav businessId={businessId} isOwner={business.role === "owner"} />
       {children}
     </div>
   );

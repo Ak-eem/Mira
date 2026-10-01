@@ -21,7 +21,7 @@ function NavLink({ href, children }: { href: string; children: React.ReactNode }
   );
 }
 
-export function PortalNav({ businessId }: { businessId: string }) {
+export function PortalNav({ businessId, isOwner = false }: { businessId: string; isOwner?: boolean }) {
   return (
     <nav className="glass-panel-strong mb-6 flex gap-1 rounded-xl p-1.5">
       <NavLink href={`/portal/${businessId}`}>Dashboard</NavLink>
@@ -29,6 +29,7 @@ export function PortalNav({ businessId }: { businessId: string }) {
       <NavLink href={`/portal/${businessId}/nudges`}>Nudges</NavLink>
       <NavLink href={`/portal/${businessId}/orders`}>Orders</NavLink>
       <NavLink href={`/portal/${businessId}/inventory`}>Inventory assistant</NavLink>
+      {isOwner && <NavLink href={`/portal/${businessId}/team`}>Team</NavLink>}
       <NavLink href={`/portal/${businessId}/settings`}>Settings</NavLink>
     </nav>
   );

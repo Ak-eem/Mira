@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
+import { createClient } from "@/lib/supabase/server";
+import { EmailForwardingGuide } from "@/components/EmailForwardingGuide";
 import { getCurrentDraft, getActiveRelease, getPublishedHistory } from "@/lib/promptReleases";
 import { getAgentSettings } from "@/lib/agentSettings";
 import { PromptEditor } from "./PromptEditor";
@@ -20,13 +22,16 @@ export default async function PortalSettingsPage({ params }: PageProps) {
   const membership = owner?.businesses.find((b) => b.id === businessId);
   if (!owner || !membership) redirect("/portal/login");
 
-  const [draft, active, history, agentSettings, orderTakingEnabled] = await Promise.all([
+  const supabase = await createClient();
+  const [draft, active, history, agentSettings, orderTakingEnabled, { data: emailBusiness }] = await Promise.all([
     getCurrentDraft(businessId),
     getActiveRelease(businessId),
     getPublishedHistory(businessId),
     getAgentSettings(businessId),
     getOrderTakingEnabled(businessId),
+    supabase.from("businesses").select("email_inbound_address").eq("id", businessId).maybeSingle(),
   ]);
+  const inboundAddress: string | null = emailBusiness?.email_inbound_address ?? null;
 
   return (
     <div className="max-w-lg space-y-4">
@@ -50,6 +55,17 @@ export default async function PortalSettingsPage({ params }: PageProps) {
         initialEnabled={orderTakingEnabled}
         canEdit={membership.role === "owner"}
       />
+
+      {inboundAddress && (
+        <section className="space-y-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Email</p>
+          <h2 className="text-lg font-semibold">Let Mira answer your customer emails</h2>
+          <p className="text-sm text-slate-500">
+            Forward your support email to the address below and Mira will reply on your behalf.
+          </p>
+          <EmailForwardingGuide inboundAddress={inboundAddress} />
+        </section>
+      )}
 
       <PromptEditor
         businessId={businessId}
