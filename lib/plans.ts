@@ -13,6 +13,7 @@ export type BusinessSubscription = {
   status: SubscriptionStatus;
   trial_started_at: string | null;
   trial_ends_at: string | null;
+  expires_at?: string | null;
 };
 
 /** True only while the business_subscriptions row is an unexpired trial. */
@@ -24,7 +25,12 @@ export function isTrialActive(subscription: BusinessSubscription | null | undefi
 
 /** business_subscriptions is the billing source of truth; missing/expired states are locked. */
 export function isLocked(subscription: BusinessSubscription | null | undefined): boolean {
-  return !subscription || (subscription.status !== "active" && !isTrialActive(subscription));
+  if (!subscription) return true;
+  if (isTrialActive(subscription)) return false;
+  if (subscription.status !== "active") return true;
+  if (!subscription.expires_at) return false;
+  const expiresAt = new Date(subscription.expires_at).getTime();
+  return !Number.isFinite(expiresAt) || expiresAt <= Date.now();
 }
 
 export function hasEntitlement(subscription: BusinessSubscription | null | undefined): boolean {

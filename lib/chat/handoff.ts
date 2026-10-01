@@ -19,7 +19,12 @@ export function isFrustrationSignal(message: string): boolean {
 // case of losing a flagging race in the same request. This is the common
 // path: the AI is intentionally not re-engaging with the message content
 // at all here, so the copy must not imply otherwise.
-export function getPausedReply(businessName: string): string {
+export function getPausedReply(businessName: string, handoffReason?: string | null): string {
+  // An order waiting on staff confirmation is not a support escalation, so it
+  // gets its own wording instead of implying the customer is in a help queue.
+  if (handoffReason === "order") {
+    return `Thanks -- I've added that to your order for the ${businessName} team. They'll confirm it here shortly.`;
+  }
   return `Thanks for the extra info — I've added it to what the ${businessName} team can see, and they'll pick up the full conversation here shortly.`;
 }
 
