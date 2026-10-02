@@ -1,8 +1,9 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
-import { buildSystemPrompt, buildMessages, isFallbackReply } from "@/lib/ai/buildPrompt";
+import { isFallbackReply } from "@/lib/ai/buildPrompt";
+import { composeReply } from "@/lib/ai/composeReply";
+import { loadPriorMessages } from "@/lib/chat/history";
 import { classifyIntent } from "@/lib/ai/classifyIntent";
-import { generateReplyWithMetadata } from "@/lib/ai/generateReply";
 import { recordAiResponseTelemetry } from "@/lib/analytics/recordTelemetry";
 import { after } from "next/server";
 import { getOfflineGateReply } from "@/lib/chat/offlineReply";
@@ -188,12 +189,7 @@ export async function processMessage(
     throw new ProcessMessageError("Conversation does not belong to this business.", 403);
   }
 
-  const { data: allPriorMessages, error: priorMessagesError } = await supabase
-    .from("messages")
-    .select("role, content, inbound_key")
-    .eq("conversation_id", conversation.id)
-    .order("created_at", { ascending: true })
-    .limit(20);
+  const { data: allPriorMessages, error: priorMessagesError } = await loadPriorMessages(supabase, conversation.id);
 
   if (priorMessagesError) {
     console.error("Prior messages fetch failed:", priorMessagesError);
@@ -415,12 +411,10 @@ export async function processMessage(
   }
 
 
-  const systemPrompt = buildSystemPrompt(context);
   const history = (priorMessages ?? []).map((m) => ({
     role: m.role as "customer" | "assistant",
     content: m.content,
   }));
-  const llmMessages = buildMessages(history, trimmedMessage);
 
   // Mirrors the duplicated pipeline in app/api/chat/route.ts (the web
   // widget) apart from streaming -- see the comment there for why a
@@ -435,10 +429,13 @@ export async function processMessage(
   // above, so nothing is lost by keeping it out of the thrown message.
   let replyText: string;
   let aiMetadata;
-  let orderRequest: Awaited<ReturnType<typeof generateReplyWithMetadata>>["orderRequest"];
+  let orderRequest: Awaited<ReturnType<typeof composeReply>>["orderRequest"];
   const aiStartedAt = Date.now();
   try {
-    const result = await generateReplyWithMetadata(systemPrompt, llmMessages, {
+    const result = await composeReply({
+      context,
+      history,
+      message: trimmedMessage,
       orderTool: context.business?.ai_order_taking === true,
     });
     replyText = result.text;
