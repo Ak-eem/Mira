@@ -13,7 +13,9 @@ export async function GET(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("businessSlug");
   const visitor = request.nextUrl.searchParams.get("visitorId");
   if (!slug || !visitor) return NextResponse.json({ error: "businessSlug and visitorId are required." }, { status: 400 });
-
+if (!/^web_[A-Za-z0-9_-]{24,}$/.test(visitor)) {
+return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
+}
   const client = createServiceRoleClient();
   const ip = getRequestIp(request);
   const limits = await Promise.all([checkRateLimit(client, `poll:${visitor}`, 120), checkRateLimit(client, `poll-ip:${ip}`, 300)]);
