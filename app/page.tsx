@@ -70,12 +70,16 @@ export default function Home() {
             <ScrollReveal delay={180} className="relative mx-auto w-full max-w-md">
               <div className="absolute -inset-6 rounded-[2.5rem] bg-cyan-200/30 blur-3xl" />
               <div className="relative rounded-[2rem] border border-white/80 bg-white/60 p-5 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl">
-                <ChatWindow
-                  businessSlug="mira"
-                  businessName="Mira for Mira"
-                  openNow={true}
-                  embedMode
-                />
+                {/* ChatWindow's embedMode fills its parent (h-full), so the parent must have a
+                    fixed height; otherwise the message list never overflows and the card keeps growing. */}
+                <div className="h-[30rem] max-h-[75vh] overflow-hidden rounded-2xl">
+                  <ChatWindow
+                    businessSlug="mira"
+                    businessName="Mira for Mira"
+                    openNow={true}
+                    embedMode
+                  />
+                </div>
                 <div className="mt-6 flex items-center justify-center gap-4">
                   <Link
                     href="/signup"
