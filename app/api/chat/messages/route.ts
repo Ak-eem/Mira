@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("businessSlug");
   const visitor = request.nextUrl.searchParams.get("visitorId");
   if (!slug || !visitor) return NextResponse.json({ error: "businessSlug and visitorId are required." }, { status: 400 });
-if (!/^web_[A-Za-z0-9_-]{24,}$/.test(visitor)) {
+if (!/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d{13}-[a-z0-9]+)$/i.test(visitor)) {
 return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
 }
   const client = createServiceRoleClient();
