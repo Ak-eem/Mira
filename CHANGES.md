@@ -1,7 +1,7 @@
 # Changes in this update
 
 ## Billing correctness + inbound hardening (review fixes)
-**Run migration `0055` before deploying** (also adds the `paystack_payments` table and backfills it from current subscribers). It replaces `activate_paystack_subscription`
+**Run migration `0056` before deploying** (also adds the `paystack_payments` table and backfills it from current subscribers). It replaces `activate_paystack_subscription`
 (now takes `p_duration_days`), adds `revoke_paystack_subscription`, and updates the
 subscription trigger; deploy the code and migration together. `0048.sql` was renamed
 to `0048_demo_business.sql` (same version number). No new required env vars;

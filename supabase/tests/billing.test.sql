@@ -7,7 +7,7 @@
 \set ON_ERROR_STOP off
 do $$ begin create role anon nologin; exception when duplicate_object then null; end $$; do $$ begin create role authenticated nologin; exception when duplicate_object then null; end $$; do $$ begin create role service_role nologin; exception when duplicate_object then null; end $$;
 \i supabase/tests/billing_harness.sql
-\i supabase/migrations/0055_billing_expiry_and_renewal.sql
+\i supabase/migrations/0056_billing_expiry_and_renewal.sql
 create trigger t_products before insert or update or delete on products for each row execute function enforce_active_business_subscription();
 
 insert into auth.users values ('22222222-2222-2222-2222-222222222222');
