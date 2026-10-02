@@ -16,7 +16,9 @@ export async function GET(request: NextRequest) {
   if (!token) {
     return htmlResponse("This unsubscribe link is missing a token.", 400);
   }
-
+if (!/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d{13}-[a-z0-9]+)$/i.test(visitor)) {
+return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
+}
   const client = createServiceRoleClient();
   const { error } = await client
     .from("customer_notification_preferences")
