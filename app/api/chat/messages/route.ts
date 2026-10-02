@@ -4,6 +4,7 @@ import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { isLocked } from "@/lib/plans";
 import { CUSTOMER_DELIVERABLE_STATUSES } from "@/lib/orders/status";
 import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
+import { parseVisitorId } from "@/lib/chat/visitor";
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
@@ -11,11 +12,8 @@ function record(value: unknown): value is Record<string, unknown> {
 
 export async function GET(request: NextRequest) {
   const slug = request.nextUrl.searchParams.get("businessSlug");
-  const visitor = request.nextUrl.searchParams.get("visitorId");
+  const visitor = parseVisitorId(request.nextUrl.searchParams.get("visitorId"));
   if (!slug || !visitor) return NextResponse.json({ error: "businessSlug and visitorId are required." }, { status: 400 });
-if (!/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d{13}-[a-z0-9]+)$/i.test(visitor)) {
-return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
-}
   const client = createServiceRoleClient();
   const ip = getRequestIp(request);
   const limits = await Promise.all([checkRateLimit(client, `poll:${visitor}`, 120), checkRateLimit(client, `poll-ip:${ip}`, 300)]);
@@ -28,7 +26,7 @@ return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
 
   const { data: subscription, error: subscriptionError } = await client
     .from("business_subscriptions")
-    .select("owner_id,plan,status,trial_started_at,trial_ends_at")
+    .select("owner_id,plan,status,trial_started_at,trial_ends_at,expires_at")
     .eq("business_id", business.data.id)
     .maybeSingle();
   if (subscriptionError) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });

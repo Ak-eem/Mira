@@ -13,6 +13,8 @@ import {
   markInboundSent,
   saveInboundReply,
 } from "@/lib/email/inboundQueue";
+import { hasAutomatedHeaders, isAutomatedSenderAddress } from "@/lib/email/autoReply";
+import { isBusinessEntitled } from "@/lib/billing";
 import { extractReplyText } from "@/lib/email/parseInbound";
 import { sendEmailReply } from "@/lib/email/sendReply";
 
@@ -115,6 +117,11 @@ export async function POST(request: NextRequest) {
   const toAddress = item.to[0]?.trim().toLowerCase() ?? "";
   if (!sender || !toAddress || !item.email_id) return NextResponse.json({ error: "Incomplete email event." }, { status: 400 });
 
+  // Never answer bounces, no-reply senders or ourselves: that's how auto-reply loops start.
+  if (isAutomatedSenderAddress(sender, [process.env.RESEND_FROM_EMAIL ?? "", toAddress])) {
+    return NextResponse.json({ status: "ignored" }, { status: 200 });
+  }
+
   const client = createServiceRoleClient();
   let queueId: string | null = null;
   try {
@@ -168,15 +175,24 @@ export async function POST(request: NextRequest) {
       const resend = new Resend(apiKey);
       const received = await resend.emails.receiving.get(item.email_id);
       if (received.error || !received.data) throw received.error ?? new Error("Could not retrieve received email.");
+      if (hasAutomatedHeaders(received.data.headers)) {
+        await markInboundDone(client, queued.id);
+        return NextResponse.json({ status: "ignored" }, { status: 200 });
+      }
       const body = extractReplyText(received.data.text ?? "", received.data.html ?? undefined);
       if (!body) {
         await markInboundDone(client, queued.id);
         return NextResponse.json({ status: "received" }, { status: 200 });
       }
-      if (body.length > MAX_MESSAGE_LENGTH) throw new Error(`Email messages must be ${MAX_MESSAGE_LENGTH} characters or fewer.`);
+      if (body.length > MAX_MESSAGE_LENGTH) {
+        // Not retriable: retrying an over-long email can never succeed.
+        await markInboundFailed(client, queued.id, `Email longer than ${MAX_MESSAGE_LENGTH} characters.`);
+        return NextResponse.json({ status: "received" }, { status: 200 });
+      }
 
       const inboundKey = `email:${item.email_id}`;
       const processIncoming = async () => {
+        if (!(await isBusinessEntitled(client, routedBusiness.id))) return { reply: "", silent: true };
         if (!routedBusiness.email_responses_enabled) {
           await captureForHuman(client, routedBusiness.id, sender, body, inboundKey);
           return { reply: "", silent: true };

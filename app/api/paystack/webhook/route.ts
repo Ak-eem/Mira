@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
-import { getPlanConfig } from '@/lib/paystack';
+import { getPlanConfig, quotedAmountKobo } from '@/lib/paystack';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
 export const runtime = 'nodejs';
@@ -8,11 +8,12 @@ export const runtime = 'nodejs';
 // Paystack's published webhook source ranges (see
 // https://paystack.com/docs/payments/webhooks/#ip-whitelisting). Kept as an
 // env var, not hardcoded, since Paystack can change these; unset disables
-// the check rather than blocking delivery. This is defense in depth on top
+// the check rather than blocking delivery (opt-in: a stale hardcoded list
+// would silently 403 every real payment if Paystack changes ranges). This is defense in depth on top
 // of -- never instead of -- the HMAC signature check below, which is what
 // actually proves the payload is genuine.
 const ALLOWED_IPS = new Set(
-  (process.env.PAYSTACK_WEBHOOK_IPS ?? '52.31.139.75,52.49.173.169,52.214.14.220')
+  (process.env.PAYSTACK_WEBHOOK_IPS ?? '')
     .split(',')
     .map((ip) => ip.trim())
     .filter(Boolean),
@@ -30,6 +31,22 @@ function validSignature(raw: string, received: string | null, secret: string) {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
+async function handleRefund(data: Record<string, unknown>) {
+  const nested = data.transaction && typeof data.transaction === 'object' ? (data.transaction as Record<string, unknown>) : {};
+  const reference = [data.transaction_reference, nested.reference, data.reference].find((value): value is string => typeof value === 'string' && value.length > 0);
+  if (!reference) {
+    console.error('Paystack refund event without a transaction reference', data);
+    return NextResponse.json({ received: true });
+  }
+  const refundAmount = typeof data.amount === 'number' && Number.isSafeInteger(data.amount) ? data.amount : null;
+  const { error } = await createServiceRoleClient().rpc('revoke_paystack_subscription', { p_reference: reference, p_refund_amount: refundAmount });
+  if (error) {
+    console.error('Subscription revoke RPC failed', error);
+    return NextResponse.json({ error: 'Subscription revoke failed' }, { status: 500 });
+  }
+  return NextResponse.json({ received: true });
+}
+
 export async function POST(request: Request) {
   const ip = clientIp(request);
   if (ALLOWED_IPS.size > 0 && (!ip || !ALLOWED_IPS.has(ip))) {
@@ -42,6 +59,12 @@ export async function POST(request: Request) {
   if (!secret || !validSignature(rawBody, request.headers.get('x-paystack-signature'), secret)) return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
   let event: { event?: unknown; data?: Record<string, unknown> };
   try { event = JSON.parse(rawBody); } catch { return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 }); }
+  if (event.event === 'refund.processed') return handleRefund(event.data ?? {});
+  if (typeof event.event === 'string' && event.event.startsWith('charge.dispute.')) {
+    // Logged for manual review; access is not auto-revoked on a dispute.
+    console.warn('Paystack dispute event received', { event: event.event, data: event.data });
+    return NextResponse.json({ received: true });
+  }
   if (event.event !== 'charge.success') return NextResponse.json({ received: true });
   const data = event.data ?? {};
   if (data.status !== 'success' || String(data.currency).toUpperCase() !== 'NGN') return NextResponse.json({ error: 'Invalid successful NGN charge' }, { status: 400 });
@@ -54,15 +77,13 @@ export async function POST(request: Request) {
 
   let config;
   try { config = getPlanConfig('base', promo); } catch { return NextResponse.json({ error: 'Invalid plan configuration' }, { status: 400 }); }
-  if (data.amount !== config.amountKobo) {
-    // Paystack does not retry 4xx, so answering 400 here silently strands a
-    // legitimate customer whenever the plan price or promo flag changed
-    // between checkout and webhook: they paid, nothing activates, nobody
-    // retries. 500 keeps Paystack retrying (hourly for ~72h), which recovers
-    // config drift once fixed, while a genuine underpayment (the popup lets
-    // the payer set the amount) simply never activates. Logged loudly so it
-    // can be reconciled by hand.
-    console.error('Paystack webhook: amount mismatch, not activating', { reference, businessId, received: data.amount, expected: config.amountKobo, promo });
+  // Honor the price quoted at checkout (metadata.amount_kobo), not whatever the
+  // env vars say now. A residual mismatch (e.g. the payer changed the amount in
+  // the popup, or an older transaction without amount_kobo) answers 500, NOT 4xx:
+  // Paystack does not retry 4xx, which would silently strand a paid customer.
+  const expectedKobo = quotedAmountKobo(metadata, config.amountKobo);
+  if (data.amount !== expectedKobo) {
+    console.error('Paystack webhook: amount mismatch, not activating', { reference, businessId, received: data.amount, expected: expectedKobo, promo });
     return NextResponse.json({ error: 'Payment amount does not match plan' }, { status: 500 });
   }
 
@@ -83,8 +104,7 @@ export async function POST(request: Request) {
   if (already.error) console.error('Paystack webhook idempotency check failed (continuing to RPC)', already.error);
   if (already.data) return NextResponse.json({ received: true });
 
-  const expiresAt = new Date(Date.now() + config.durationDays * 24 * 60 * 60 * 1000).toISOString();
-  const { error } = await serviceRole.rpc('activate_paystack_subscription', { p_business_id: businessId, p_user_id: userId, p_reference: reference, p_amount: data.amount as number, p_expires_at: expiresAt, p_expected_amount_kobo: config.amountKobo, p_plan: 'base' });
+  const { error } = await serviceRole.rpc('activate_paystack_subscription', { p_business_id: businessId, p_user_id: userId, p_reference: reference, p_amount: data.amount as number, p_duration_days: config.durationDays, p_expected_amount_kobo: expectedKobo, p_plan: 'base' });
   if (error) {
     // "user is no longer associated" is an expected, non-retriable outcome
     // (membership changed after checkout began) -- ack it so Paystack

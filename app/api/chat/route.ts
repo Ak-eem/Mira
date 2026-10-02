@@ -6,6 +6,7 @@ import { withConversationLease } from "@/lib/chat/durable";
 import { CHAT_RATE_LIMIT_PER_MINUTE, checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { isLocked } from "@/lib/plans";
+import { parseVisitorId } from "@/lib/chat/visitor";
 
 // Public, unauthenticated landing-page widgets get a tighter per-IP cap on top of
 // the normal limits. "mira" is the "Mira for Mira" widget on the homepage.
@@ -19,7 +20,11 @@ export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Body | null;
   const slug = typeof body?.businessSlug === "string" ? body.businessSlug.trim() : "";
   const message = typeof body?.message === "string" ? body.message.trim() : "";
-  const visitor = typeof body?.visitorId === "string" ? body.visitorId.trim() : "";
+  const providedVisitor = typeof body?.visitorId === "string" ? body.visitorId.trim() : "";
+  const visitor = parseVisitorId(providedVisitor) ?? "";
+  if (providedVisitor && !visitor) {
+    return NextResponse.json({ error: "Invalid visitorId." }, { status: 400 });
+  }
   if (!slug || !message) {
     return NextResponse.json({ error: "businessSlug and message are required." }, { status: 400 });
   }
@@ -67,7 +72,7 @@ export async function POST(request: NextRequest) {
   // same way.
   const { data: subscription, error: subscriptionError } = await client
     .from("business_subscriptions")
-    .select("owner_id,plan,status,trial_started_at,trial_ends_at")
+    .select("owner_id,plan,status,trial_started_at,trial_ends_at,expires_at")
     .eq("business_id", business.data.id)
     .maybeSingle();
   if (subscriptionError) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });

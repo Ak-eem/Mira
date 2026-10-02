@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { isLocked } from "@/lib/plans";
+import { parseVisitorId } from "@/lib/chat/visitor";
 
 export const runtime = "nodejs";
 
@@ -27,7 +28,7 @@ type Body = { businessSlug?: unknown; visitorId?: unknown; conversationId?: unkn
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Body | null;
   const slug = typeof body?.businessSlug === "string" ? body.businessSlug.trim() : "";
-  const visitor = typeof body?.visitorId === "string" ? body.visitorId.trim() : "";
+  const visitor = parseVisitorId(body?.visitorId) ?? "";
   const conversationId = typeof body?.conversationId === "string" ? body.conversationId.trim() : "";
   const rating = typeof body?.rating === "number" ? body.rating : Number(body?.rating);
 
@@ -40,9 +41,6 @@ export async function POST(request: NextRequest) {
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
     return NextResponse.json({ error: "rating must be an integer from 1 to 5." }, { status: 400 });
   }
-if (!/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d{13}-[a-z0-9]+)$/i.test(visitor)) {
-return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
-}
   const client = createServiceRoleClient();
   const ip = getRequestIp(request);
   const limits = await Promise.all([
@@ -66,7 +64,7 @@ return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
   // but a locked business's data is meant to stay frozen as-is.
   const { data: subscription, error: subscriptionError } = await client
     .from("business_subscriptions")
-    .select("owner_id,plan,status,trial_started_at,trial_ends_at")
+    .select("owner_id,plan,status,trial_started_at,trial_ends_at,expires_at")
     .eq("business_id", business.data.id)
     .maybeSingle();
   if (subscriptionError) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });

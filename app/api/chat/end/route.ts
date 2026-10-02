@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { isLocked } from "@/lib/plans";
+import { parseVisitorId } from "@/lib/chat/visitor";
 
 export const runtime = "nodejs";
 
@@ -16,13 +17,10 @@ type Body = { businessSlug?: unknown; visitorId?: unknown };
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Body | null;
   const slug = typeof body?.businessSlug === "string" ? body.businessSlug.trim() : "";
-  const visitor = typeof body?.visitorId === "string" ? body.visitorId.trim() : "";
+  const visitor = parseVisitorId(body?.visitorId) ?? "";
   if (!slug || !visitor) {
     return NextResponse.json({ error: "businessSlug and visitorId are required." }, { status: 400 });
   }
-if (!/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d{13}-[a-z0-9]+)$/i.test(visitor)) {
-return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
-}
   const client = createServiceRoleClient();
   const ip = getRequestIp(request);
   const limits = await Promise.all([
@@ -46,7 +44,7 @@ return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
   // are frozen as-is, not actionable by the customer either.
   const { data: subscription, error: subscriptionError } = await client
     .from("business_subscriptions")
-    .select("owner_id,plan,status,trial_started_at,trial_ends_at")
+    .select("owner_id,plan,status,trial_started_at,trial_ends_at,expires_at")
     .eq("business_id", business.data.id)
     .maybeSingle();
   if (subscriptionError) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });

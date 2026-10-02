@@ -1,5 +1,25 @@
 # Changes in this update
 
+## Billing correctness + inbound hardening (review fixes)
+**Run migration `0053` before deploying** (also adds the `paystack_payments` table and backfills it from current subscribers). It replaces `activate_paystack_subscription`
+(now takes `p_duration_days`), adds `revoke_paystack_subscription`, and updates the
+subscription trigger; deploy the code and migration together. `0048.sql` was renamed
+to `0048_demo_business.sql` (same version number). No new required env vars;
+`PAYSTACK_WEBHOOK_IPS` is now opt-in.
+
+- **Paid access expires:** `active` only counts while `expires_at` is null/future (app + DB trigger). Renewals stack on remaining time. Platform admins bypass the trigger.
+- **Promo counts paid subscribers only** (trial rows no longer use it up); quoted price is stored in metadata so env price changes don't reject in-flight payments.
+- **Pay flow wired up:** upgrade page now renders `SubscribeButton`, checkout takes `business_id` (owner role only); `/subscribe` treats any non-final Paystack status as pending and keeps polling.
+- **Each Paystack reference applies once (security):** new `paystack_payments` ledger. Without it, revisiting `/subscribe?reference=<old ref>` (or a late webhook replay) re-applied an old payment and added another period every time; a refunded payment's late `charge.success` redelivery could also switch access back on. The RPC now treats any recorded reference as a permanent no-op.
+- **Refunds:** `refund.processed` cancels the subscription it bought; disputes are logged.
+- **Chat visitor ids: one shared rule** (`lib/chat/visitor.ts`: UUID or the legacy `<13-digit ms>-<base36>` id) now used by every chat route and the feedback endpoint, replacing the copy-pasted inline regexes; the widget's no-`randomUUID` fallback now generates a real v4 UUID (the old `Date.now()`/`Math.random()` fallback is guessable, and would be rejected by the stricter checks).
+- **Negative prices rejected** for services and the command agent (products already had a DB check).
+- **Email:** auto-reply/bounce/list/self senders are ignored (no reply loops); `ilike` address match is literal; over-long emails are closed, not retried.
+- **Locked businesses:** WhatsApp/email skip them before any write (no more trigger 500s + provider retries).
+- **WhatsApp:** one failing message no longer blocks the batch; empty (non-text) messages are closed.
+- **Invites:** invite is claimed before membership is granted, confirmed email required, redirects to `/portal` (303) instead of the missing `/inbox`.
+- **Scrape endpoint:** paid tier only, 5 imports/hour per business.
+
 ## Inbound reliability: idempotent processing + reply outbox
 **Run migrations `0042` then `0043` before deploying** (adds
 `messages.inbound_key`, reply outbox + send-tracking columns on the inbound

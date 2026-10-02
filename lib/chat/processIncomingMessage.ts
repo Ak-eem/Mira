@@ -1,3 +1,4 @@
+import { isBusinessEntitled } from "@/lib/billing";
 import { processMessage } from "@/lib/chat/processMessage";
 import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -21,6 +22,13 @@ export async function processIncomingMessage(
   channel: "web" | "whatsapp" | "email",
   inboundKey?: string,
 ): Promise<ChatResult> {
+  // Locked (expired trial / lapsed subscription) businesses get no writes and
+  // no AI reply on any channel; otherwise the DB trigger throws and the
+  // WhatsApp/email webhooks would 500 and be retried by the provider.
+  if (!(await isBusinessEntitled(client, businessId))) {
+    return { reply: "", messageId: "", productImages: [], silent: true };
+  }
+
   const conversation = await client
     .from("conversations")
     .select("id,claimed_by,last_message_at")

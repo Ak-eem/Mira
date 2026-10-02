@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
+import { parseVisitorId } from "@/lib/chat/visitor";
 
 export const runtime = "nodejs";
 
@@ -16,7 +17,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Body | null;
   const slug = typeof body?.businessSlug === "string" ? body.businessSlug.trim() : "";
-  const visitor = typeof body?.visitorId === "string" ? body.visitorId.trim() : "";
+  const visitor = parseVisitorId(body?.visitorId) ?? "";
   const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
 
   if (!slug || !visitor) {
@@ -25,9 +26,6 @@ export async function POST(request: NextRequest) {
   if (!email || email.length > 254 || !EMAIL_PATTERN.test(email)) {
     return NextResponse.json({ error: "A valid email address is required." }, { status: 400 });
   }
-if (!/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d{13}-[a-z0-9]+)$/i.test(visitor)) {
-return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
-}
   const client = createServiceRoleClient();
   const ip = getRequestIp(request);
   const limits = await Promise.all([

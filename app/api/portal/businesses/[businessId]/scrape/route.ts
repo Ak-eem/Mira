@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { extractBusinessInfo } from "@/lib/ai/extractBusinessInfo";
 import { fetchCrawlResource, scrapeBusinessWebsite } from "@/lib/ai/scrapeBusiness";
+import { isBusinessEntitled } from "@/lib/billing";
+import { checkRateLimit } from "@/lib/rateLimit";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -37,6 +39,20 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 export async function POST(request: NextRequest, { params }: { params: Promise<{ businessId: string }> }) {
   const { businessId } = await params;
   if (!(await authorize(businessId))) return NextResponse.json({ error: "Not authorized." }, { status: 403 });
+  // Every scrape is a site crawl plus an LLM call, so it is paid-tier only and
+  // capped per business (5 per hour) to stop cost abuse.
+  const serviceClient = createServiceRoleClient();
+  if (!(await isBusinessEntitled(serviceClient, businessId))) {
+    return NextResponse.json({ error: "Your plan has expired. Upgrade to import from a website." }, { status: 402 });
+  }
+  const limit = await checkRateLimit(serviceClient, `scrape:${businessId}`, 5, 3600);
+  if (!limit.allowed) {
+    return NextResponse.json(
+      { error: "Too many imports. Try again later." },
+      { status: limit.error ? 503 : 429, headers: { "Retry-After": String(limit.retryAfterSeconds ?? 60) } },
+    );
+  }
+
   const body = await request.json().catch(() => null);
   if (typeof body?.websiteUrl !== "string" || body.websiteUrl.trim().length > 2_000) {
     return NextResponse.json({ error: "Enter a valid website URL." }, { status: 400 });

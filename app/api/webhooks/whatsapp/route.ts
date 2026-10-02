@@ -91,6 +91,7 @@ export async function POST(request: NextRequest) {
 
   const client = createServiceRoleClient();
   const ip = getRequestIp(request);
+  let failedCount = 0;
   try {
     for (const item of messages) {
       // Dedup BEFORE the rate limit. A replayed copy of an already-processed
@@ -116,6 +117,13 @@ export async function POST(request: NextRequest) {
       }
 
       if (!(await claimInboundMessage(client, queued))) continue;
+
+      // Voice notes, images, reactions etc. arrive with no text; there's
+      // nothing for the AI to answer, so close them instead of processing "".
+      if (!item.text.trim()) {
+        await markInboundDone(client, queued.id);
+        continue;
+      }
 
       const business = await client
         .from("businesses")
@@ -177,8 +185,14 @@ export async function POST(request: NextRequest) {
           queued.id,
           error instanceof Error ? error.message : "processing failed",
         );
-        throw error;
+        // One bad message must not block the rest of the batch: record it and
+        // keep going; the provider retry below only re-runs what's not done.
+        console.error("WhatsApp message processing failed:", error);
+        failedCount += 1;
       }
+    }
+    if (failedCount > 0) {
+      return NextResponse.json({ error: "Temporary processing failure." }, { status: 500 });
     }
     return NextResponse.json({ status: "received" }, { status: 200 });
   } catch (error) {

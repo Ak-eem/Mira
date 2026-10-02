@@ -13,6 +13,7 @@ export type BusinessSubscription = {
   status: SubscriptionStatus;
   trial_started_at: string | null;
   trial_ends_at: string | null;
+  /** Paid-through date for Paystack subscriptions; null means a manual (non-expiring) grant. */
   expires_at?: string | null;
 };
 
@@ -21,6 +22,14 @@ export function isTrialActive(subscription: BusinessSubscription | null | undefi
   if (!subscription || subscription.status !== "trialing" || !subscription.trial_ends_at) return false;
   const trialEndsAt = new Date(subscription.trial_ends_at).getTime();
   return Number.isFinite(trialEndsAt) && trialEndsAt > Date.now();
+}
+
+/** True while an 'active' row is manually granted (no expiry) or paid through a future date. */
+export function isPaidActive(subscription: BusinessSubscription | null | undefined): boolean {
+  if (!subscription || subscription.status !== "active") return false;
+  if (!subscription.expires_at) return true;
+  const paidUntil = new Date(subscription.expires_at).getTime();
+  return Number.isFinite(paidUntil) && paidUntil > Date.now();
 }
 
 /** business_subscriptions is the billing source of truth; missing/expired states are locked. */
@@ -49,7 +58,7 @@ export function subscriptionLabel(subscription: BusinessSubscription | null | un
     const days = remainingTrialDays(subscription);
     return `${days} day${days === 1 ? "" : "s"} left in trial`;
   }
-  return subscription.status === "active" && subscription.plan in PLAN_DEFINITIONS
+  return isPaidActive(subscription) && subscription.plan in PLAN_DEFINITIONS
     ? `${PLAN_DEFINITIONS[subscription.plan].name} plan`
     : "Upgrade required";
 }

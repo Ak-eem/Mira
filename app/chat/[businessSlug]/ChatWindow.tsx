@@ -1,5 +1,6 @@
 "use client";
 
+import { uuidV4FromRandomValues } from "@/lib/chat/visitor";
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
 import { Nunito } from "next/font/google";
 import { linkifyContent } from "@/lib/linkify";
@@ -106,6 +107,13 @@ function ThumbIcon({ direction, filled }: { direction: "up" | "down"; filled: bo
   );
 }
 
+// crypto.randomUUID needs a secure context; getRandomValues works everywhere.
+// Never fall back to Date.now()/Math.random(): the visitor id is the only
+// secret protecting this visitor's transcript.
+function randomVisitorId(): string {
+  return uuidV4FromRandomValues((bytes) => crypto.getRandomValues(bytes));
+}
+
 export function ChatWindow({
   businessSlug,
   businessName,
@@ -127,7 +135,7 @@ export function ChatWindow({
         const generated =
           typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
             ? crypto.randomUUID()
-            : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+            : randomVisitorId();
         window.localStorage.setItem(storageKey, generated);
         return generated;
       }
@@ -137,7 +145,7 @@ export function ChatWindow({
     }
     return typeof crypto !== "undefined" && typeof crypto.randomUUID === "function"
       ? crypto.randomUUID()
-      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      : randomVisitorId();
   });
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");

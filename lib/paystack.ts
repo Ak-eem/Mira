@@ -1,7 +1,7 @@
 import 'server-only';
 
 export type PaystackPlan = 'base';
-export type PaystackMetadata = { user_id: string; business_id: string; plan: PaystackPlan; promo: boolean };
+export type PaystackMetadata = { user_id: string; business_id: string; plan: PaystackPlan; promo: boolean; amount_kobo?: number };
 export type PaystackTransactionData = { authorization_url?: string; access_code?: string; reference: string; status: string; amount: number; currency: string; metadata?: Record<string, unknown>; paid_at?: string; [key: string]: unknown };
 
 const API = 'https://api.paystack.co';
@@ -59,7 +59,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export async function initializePaystackTransaction(input: { email: string; userId: string; businessId: string; plan: PaystackPlan; promo: boolean; callbackUrl?: string }) {
   const config = getPlanConfig(input.plan, input.promo);
-  const data = await request<PaystackTransactionData>('/transaction/initialize', { method: 'POST', body: JSON.stringify({ email: input.email, amount: config.amountKobo, currency: 'NGN', ...(input.callbackUrl ? { callback_url: input.callbackUrl } : {}), metadata: { user_id: input.userId, business_id: input.businessId, plan: input.plan, promo: input.promo } }) });
+  const data = await request<PaystackTransactionData>('/transaction/initialize', { method: 'POST', body: JSON.stringify({ email: input.email, amount: config.amountKobo, currency: 'NGN', ...(input.callbackUrl ? { callback_url: input.callbackUrl } : {}), metadata: { user_id: input.userId, business_id: input.businessId, plan: input.plan, promo: input.promo, amount_kobo: config.amountKobo } }) });
   if (!data.authorization_url || !data.reference) throw new Error('Paystack returned an incomplete transaction');
   return { authorization_url: data.authorization_url, reference: data.reference };
 }
@@ -67,4 +67,15 @@ export async function initializePaystackTransaction(input: { email: string; user
 export async function verifyPaystackTransaction(reference: string) {
   const data = await request<PaystackTransactionData>(`/transaction/verify/${encodeURIComponent(reference)}`);
   return { success: data.status === 'success', status: data.status, data };
+}
+
+/**
+ * The price the customer was quoted at checkout. New transactions carry it in
+ * metadata.amount_kobo, so a later change to the PAYSTACK_* price env vars
+ * can't reject a payment that was already in flight. Older transactions
+ * (created before amount_kobo existed) fall back to the env-derived price.
+ */
+export function quotedAmountKobo(metadata: Record<string, unknown>, fallbackKobo: number): number {
+  const quoted = metadata.amount_kobo;
+  return typeof quoted === 'number' && Number.isSafeInteger(quoted) && quoted > 0 ? quoted : fallbackKobo;
 }
