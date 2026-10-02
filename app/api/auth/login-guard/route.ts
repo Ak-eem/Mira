@@ -9,8 +9,8 @@ if (!email) return NextResponse.json({ error: "email required" }, { status: 400 
 const client = createServiceRoleClient();
 const ip = getRequestIp(request);
 const limits = await Promise.all([
-checkRateLimit(client, login:${email}, 5),
-checkRateLimit(client, login-ip:${ip}, 20),
+checkRateLimit(client, `login:${email}`, 5),
+checkRateLimit(client, `login-ip:${ip}`, 20),
 ]);
 const rejected = limits.find((l) => !l.allowed);
 if (rejected) {
