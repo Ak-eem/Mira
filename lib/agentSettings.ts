@@ -26,10 +26,15 @@ export async function updateAgentSettings(
   provider: ProviderName,
 ): Promise<{ error: string | null }> {
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("businesses")
-    .update({ command_agent_enabled: enabled, command_agent_provider: provider })
-    .eq("id", businessId);
+  // Via update_business_settings (migration 0054), not a direct .update():
+  // owners have no UPDATE permission on businesses, so a direct write was
+  // silently ignored for them. The function authorises owners / platform
+  // admins itself and only touches these two columns.
+  const { error } = await supabase.rpc("update_business_settings", {
+    p_business_id: businessId,
+    p_command_agent_enabled: enabled,
+    p_command_agent_provider: provider,
+  });
 
   return { error: error?.message ?? null };
 }

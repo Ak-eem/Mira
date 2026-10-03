@@ -15,6 +15,7 @@ import { isDeliveryConfirmation } from "@/lib/orders/deliveryPhrase";
 import { assessGrounding } from "@/lib/grounding/assess";
 import { getGroundingSettings } from "@/lib/grounding/settings";
 import { recordGroundingAssessment } from "@/lib/grounding/record";
+import { loadPriorMessages } from "@/lib/chat/history";
 
 export class ProcessMessageError extends Error {
   status: number;
@@ -188,12 +189,7 @@ export async function processMessage(
     throw new ProcessMessageError("Conversation does not belong to this business.", 403);
   }
 
-  const { data: allPriorMessages, error: priorMessagesError } = await supabase
-    .from("messages")
-    .select("role, content, inbound_key")
-    .eq("conversation_id", conversation.id)
-    .order("created_at", { ascending: true })
-    .limit(20);
+  const { data: allPriorMessages, error: priorMessagesError } = await loadPriorMessages(supabase, conversation.id);
 
   if (priorMessagesError) {
     console.error("Prior messages fetch failed:", priorMessagesError);

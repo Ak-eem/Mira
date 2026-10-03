@@ -23,6 +23,17 @@ export default function LoginPage() {
     setError(null);
 
     const supabase = createClient();
+    const guard = await fetch("/api/auth/login-guard", {
+method: "POST",
+headers: { "Content-Type": "application/json" },
+body: JSON.stringify({ email }),
+});
+if (!guard.ok) {
+const data = await guard.json();
+setError(data.error ?? "Too many attempts, try again later");
+setSubmitting(false);
+return;
+}
     const { error } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
