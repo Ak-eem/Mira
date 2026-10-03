@@ -29,6 +29,7 @@ export function PortalNav({ businessId, isOwner = false }: { businessId: string;
       <NavLink href={`/portal/${businessId}/nudges`}>Nudges</NavLink>
       <NavLink href={`/portal/${businessId}/orders`}>Orders</NavLink>
       <NavLink href={`/portal/${businessId}/inventory`}>Inventory assistant</NavLink>
+      <NavLink href={`/portal/${businessId}/review`}>Review</NavLink>
       {isOwner && <NavLink href={`/portal/${businessId}/team`}>Team</NavLink>}
       <NavLink href={`/portal/${businessId}/settings`}>Settings</NavLink>
     </nav>

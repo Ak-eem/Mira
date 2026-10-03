@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { savePromptDraft, promotePromptRelease } from "./actions";
 import { diffLines, type DiffLine } from "@/lib/diffLines";
 import type { PromptRelease } from "@/lib/promptReleases";
+import { PromptPreview } from "@/components/PromptPreview";
 
 function formatDate(value: string | null) {
   if (!value) return "—";
@@ -196,6 +197,12 @@ export function PromptEditor({
           )}
         </section>
       )}
+
+      <PromptPreview
+        endpoint={`/api/portal/businesses/${businessId}/prompt-preview`}
+        draftId={draft?.id ?? null}
+        unsaved={draft ? aiTone !== (draft.ai_tone ?? "") || aiInstructions !== (draft.ai_instructions ?? "") : true}
+      />
 
       <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
         <div>

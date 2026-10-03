@@ -292,6 +292,7 @@ export async function saveReplyReview(
   }
 
   revalidatePath(`/portal/${input.businessId}/conversations/${input.conversationId}`);
+  revalidatePath(`/portal/${input.businessId}/review`);
   return { error: null };
 }
 
@@ -310,5 +311,6 @@ export async function clearReplyReview(target: ReviewTarget): Promise<{ error: s
   }
 
   revalidatePath(`/portal/${target.businessId}/conversations/${target.conversationId}`);
+  revalidatePath(`/portal/${target.businessId}/review`);
   return { error: null };
 }
