@@ -1,8 +1,9 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
-import { buildSystemPrompt, buildMessages, isFallbackReply } from "@/lib/ai/buildPrompt";
+import { isFallbackReply } from "@/lib/ai/buildPrompt";
+import { composeReply } from "@/lib/ai/composeReply";
+import { loadPriorMessages } from "@/lib/chat/history";
 import { classifyIntent } from "@/lib/ai/classifyIntent";
-import { generateReplyWithMetadata } from "@/lib/ai/generateReply";
 import { recordAiResponseTelemetry } from "@/lib/analytics/recordTelemetry";
 import { after } from "next/server";
 import { getOfflineGateReply } from "@/lib/chat/offlineReply";
@@ -15,7 +16,6 @@ import { isDeliveryConfirmation } from "@/lib/orders/deliveryPhrase";
 import { assessGrounding } from "@/lib/grounding/assess";
 import { getGroundingSettings } from "@/lib/grounding/settings";
 import { recordGroundingAssessment } from "@/lib/grounding/record";
-import { loadPriorMessages } from "@/lib/chat/history";
 
 export class ProcessMessageError extends Error {
   status: number;
@@ -411,12 +411,10 @@ export async function processMessage(
   }
 
 
-  const systemPrompt = buildSystemPrompt(context);
   const history = (priorMessages ?? []).map((m) => ({
     role: m.role as "customer" | "assistant",
     content: m.content,
   }));
-  const llmMessages = buildMessages(history, trimmedMessage);
 
   // Mirrors the duplicated pipeline in app/api/chat/route.ts (the web
   // widget) apart from streaming -- see the comment there for why a
@@ -431,10 +429,13 @@ export async function processMessage(
   // above, so nothing is lost by keeping it out of the thrown message.
   let replyText: string;
   let aiMetadata;
-  let orderRequest: Awaited<ReturnType<typeof generateReplyWithMetadata>>["orderRequest"];
+  let orderRequest: Awaited<ReturnType<typeof composeReply>>["orderRequest"];
   const aiStartedAt = Date.now();
   try {
-    const result = await generateReplyWithMetadata(systemPrompt, llmMessages, {
+    const result = await composeReply({
+      context,
+      history,
+      message: trimmedMessage,
       orderTool: context.business?.ai_order_taking === true,
     });
     replyText = result.text;

@@ -135,15 +135,24 @@ function fitContext(
  * All database queries are explicitly filtered at the query level by `.eq("business_id", businessId)`
  * or `.eq("id", businessId)`. No external parameter or customer message can alter these query filters.
  */
+export type PromptOverride = { ai_tone: string | null; ai_instructions: string | null };
+
 export async function buildBusinessContext(
   businessId: string,
+  options: {
+    // Preview-before-publish: build the context exactly as a live reply would,
+    // but with a DRAFT's tone and instructions. An override never reads from or
+    // writes to the shared cache, so a draft can never leak into live replies.
+    promptOverride?: PromptOverride;
+  } = {},
 ): Promise<BusinessContext> {
+  const { promptOverride } = options;
   // Validate UUID format to reject malformed identifiers before running queries
   if (!businessId || !UUID_REGEX.test(businessId)) {
     return { found: false, contextText: "", products: [] };
   }
 
-  const cached = contextCache.get(businessId);
+  const cached = promptOverride ? undefined : contextCache.get(businessId);
   if (cached) {
     if (cached.expiresAt > Date.now()) return cached.value;
     contextCache.delete(businessId);
@@ -208,7 +217,7 @@ export async function buildBusinessContext(
 
   if (!business) {
     const value: BusinessContext = { found: false, contextText: "", products: [] };
-    cacheContext(businessId, value);
+    if (!promptOverride) cacheContext(businessId, value);
     return value;
   }
 
@@ -236,8 +245,8 @@ export async function buildBusinessContext(
   const openNow = isOpenNow(hours ?? [], business.timezone);
   const currency = business.currency;
 
-  const sanitizedTone = sanitizeText(business.ai_tone);
-  const sanitizedInstructions = sanitizeText(business.ai_instructions);
+  const sanitizedTone = sanitizeText(promptOverride ? promptOverride.ai_tone : business.ai_tone);
+  const sanitizedInstructions = sanitizeText(promptOverride ? promptOverride.ai_instructions : business.ai_instructions);
 
   const serviceLines = services.map((service) => {
     const price = service.price != null ? `${currency} ${service.price}` : "price on request";
@@ -329,6 +338,6 @@ export async function buildBusinessContext(
     products: products.map((p) => ({ id: p.id, name: p.name, image_url: p.image_url })),
   };
 
-  cacheContext(businessId, value);
+  if (!promptOverride) cacheContext(businessId, value);
   return value;
 }
