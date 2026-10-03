@@ -5,6 +5,7 @@ import { linkifyContent } from "@/lib/linkify";
 import { ReplyForm } from "./ReplyForm";
 import { LiveRefresh } from "./LiveRefresh";
 import { ReplyReview } from "./ReplyReview";
+import { describeSignal, type GroundingSignal } from "@/lib/grounding/assess";
 
 type MessageContextSnapshot = {
   productImages?: { name: string; imageUrl: string }[];
@@ -50,6 +51,14 @@ export default async function PortalConversationThreadPage({
         .select("message_id, source, rating, reason, note")
         .in("message_id", messageIds)
     : { data: [] as { message_id: string; source: string; rating: "up" | "down"; reason: string | null; note: string | null }[] };
+  // Grounding verdicts (absent until migration 0055 is applied -- then the
+  // query just returns nothing and no badge is shown).
+  const { data: assessmentRows } = messageIds.length
+    ? await supabase.from("message_assessments").select("message_id, verdict, signals").in("message_id", messageIds)
+    : { data: [] as { message_id: string; verdict: string; signals: GroundingSignal[] }[] };
+  const assessments = new Map<string, { verdict: string; signals: GroundingSignal[] }>();
+  for (const row of assessmentRows ?? []) assessments.set(row.message_id, { verdict: row.verdict, signals: row.signals ?? [] });
+
   const customerFeedback = new Map<string, { rating: "up" | "down"; reason: string | null }>();
   const staffReviews = new Map<string, { rating: "up" | "down"; reason: string | null; note: string | null }>();
   for (const row of feedbackRows ?? []) {
@@ -193,6 +202,14 @@ export default async function PortalConversationThreadPage({
                 {isOperatorReply && <span className="mr-2 font-medium text-sky-600">You replied</span>}
                 {new Date(m.created_at).toLocaleTimeString()}
               </p>
+
+              {m.role === "assistant" && assessments.get(m.id) && ["low", "medium"].includes(assessments.get(m.id)!.verdict) && (
+                <p className={`mt-1 text-xs ${assessments.get(m.id)!.verdict === "low" ? "text-red-500" : "text-amber-600"}`}>
+                  Grounding: {assessments.get(m.id)!.verdict}
+                  {assessments.get(m.id)!.signals.filter((signal) => !signal.supported).length > 0 &&
+                    ` — ${assessments.get(m.id)!.signals.filter((signal) => !signal.supported).map(describeSignal).join("; ")}`}
+                </p>
+              )}
 
               {m.role === "assistant" && !isOperatorReply && (
                 <ReplyReview
