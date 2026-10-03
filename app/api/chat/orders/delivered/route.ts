@@ -23,7 +23,9 @@ export async function POST(request: NextRequest) {
   if (!slug || !visitor || !UUID_REGEX.test(orderId)) {
     return NextResponse.json({ error: "businessSlug, visitorId and a valid orderId are required." }, { status: 400 });
   }
-
+if (!/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d{13}-[a-z0-9]+)$/i.test(visitor)) {
+return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
+}
   const client = createServiceRoleClient();
   const ip = getRequestIp(request);
   const limits = await Promise.all([
