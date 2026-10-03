@@ -40,7 +40,9 @@ export async function POST(request: NextRequest) {
   if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
     return NextResponse.json({ error: "rating must be an integer from 1 to 5." }, { status: 400 });
   }
-
+if (!/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d{13}-[a-z0-9]+)$/i.test(visitor)) {
+return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
+}
   const client = createServiceRoleClient();
   const ip = getRequestIp(request);
   const limits = await Promise.all([
