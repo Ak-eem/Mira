@@ -12,6 +12,9 @@ import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
 import { replyKeyFor } from "@/lib/chat/inboundKey";
 import { processDeliveryConfirmation, processOrderRequest, type RecordReply } from "@/lib/chat/orderTaking";
 import { isDeliveryConfirmation } from "@/lib/orders/deliveryPhrase";
+import { assessGrounding } from "@/lib/grounding/assess";
+import { getGroundingSettings } from "@/lib/grounding/settings";
+import { recordGroundingAssessment } from "@/lib/grounding/record";
 import { loadPriorMessages } from "@/lib/chat/history";
 
 export class ProcessMessageError extends Error {
@@ -347,8 +350,35 @@ export async function processMessage(
   const repeatedFallback =
     recentAssistantReplies.length === 2 &&
     recentAssistantReplies.every((text) => isFallbackReply(text, businessName));
+
+  // Optional extension of the same idea (off by default, per-business): two
+  // weak replies in a row -- each either the "I don't know" fallback or a reply
+  // whose facts don't match the business info -- also count as the conversation
+  // going nowhere. Reuses the existing handoff path; it never interrupts on a
+  // single weak reply.
+  let repeatedWeakReplies = false;
+  if (!repeatedFallback && recentAssistantReplies.length === 2) {
+    const groundingSettings = await getGroundingSettings(supabase, businessId);
+    if (groundingSettings.escalateRepeat) {
+      const customerMessages = [
+        ...(priorMessages ?? []).filter((m) => m.role === "customer").map((m) => m.content),
+        trimmedMessage,
+      ];
+      repeatedWeakReplies = recentAssistantReplies.every(
+        (text) =>
+          isFallbackReply(text, businessName) ||
+          assessGrounding({
+            reply: text,
+            knowledge: context.contextText,
+            customerMessages,
+            businessName,
+            currency: context.business?.currency ?? "NGN",
+          }).verdict === "low",
+      );
+    }
+  }
   const needsHandoff =
-    intent === "human_handoff" || repeatedFallback || isFrustrationSignal(trimmedMessage);
+    intent === "human_handoff" || repeatedFallback || repeatedWeakReplies || isFrustrationSignal(trimmedMessage);
 
   if (needsHandoff) {
     // The needs_human flip, the handoff message and the last_message_at bump
@@ -491,6 +521,24 @@ export async function processMessage(
     success: true,
     latencyMs: Date.now() - aiStartedAt,
     metadata: aiMetadata,
+  }));
+
+  // Flag-only answer check: runs after the reply is already on its way, so it
+  // can add no delay and can't change what the customer sees.
+  after(() => recordGroundingAssessment(supabase, {
+    businessId,
+    messageId: savedAssistantMessage.messageId,
+    question: trimmedMessage,
+    input: {
+      reply: replyText,
+      knowledge: context.contextText,
+      customerMessages: [
+        ...(priorMessages ?? []).filter((m) => m.role === "customer").map((m) => m.content),
+        trimmedMessage,
+      ],
+      businessName,
+      currency: context.business?.currency ?? "NGN",
+    },
   }));
 
   return { reply: replyText, messageId: savedAssistantMessage.messageId, productImages };
