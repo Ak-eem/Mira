@@ -33,6 +33,15 @@ export function isLocked(subscription: BusinessSubscription | null | undefined):
   return !Number.isFinite(expiresAt) || expiresAt <= Date.now();
 }
 
+/**
+ * A cancelled business is switched off everywhere and treated as if it does not
+ * exist to the public (widget, WhatsApp, email). This is separate from isLocked:
+ * a lapsed or unpaid business still shows the "unavailable" paywall message.
+ */
+export function isCancelled(subscription: Pick<BusinessSubscription, "status"> | null | undefined): boolean {
+  return subscription?.status === "cancelled";
+}
+
 export function hasEntitlement(subscription: BusinessSubscription | null | undefined): boolean {
   return !isLocked(subscription);
 }
