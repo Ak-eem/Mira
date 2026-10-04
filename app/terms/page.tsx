@@ -110,7 +110,7 @@ export default function TermsOfServicePage() {
                   Upon cancellation:
                 </p>
                 <ul className="list-disc pl-5 space-y-1">
-                  <li>Your active access to AI response generation will terminate at the end of your current billing period.</li>
+                  <li>Cancellation takes effect immediately, with no notice or waiting period. Mira stops responding on every channel (website chat, WhatsApp and email) and the chat widget is removed from your website. Fees already paid are not refunded (see Section 3).</li>
                   <li>Subscribers may request an export of their customer conversation logs and knowledge base within 30 days of cancellation.</li>
                   <li>After the 30-day grace period, all business knowledge data, uploaded catalogs, and associated customer chat histories will be permanently deleted from active production systems.</li>
                 </ul>
