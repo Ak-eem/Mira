@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { isOpenNow } from "@/lib/hours";
+import { isCancelled } from "@/lib/plans";
+import { BusinessNotFound } from "./BusinessNotFound";
 import { ChatWindow } from "./ChatWindow";
 
 // This page never reads cookies, unlike every admin page (which reads
@@ -25,11 +27,18 @@ export async function generateMetadata({
   const supabase = createServiceRoleClient();
   const { data: business } = await supabase
     .from("businesses")
-    .select("name")
+    .select("id, name")
     .eq("slug", businessSlug)
     .maybeSingle();
 
-  const name = business?.name ?? "Mira";
+  const { data: subscription } = business
+    ? await supabase.from("business_subscriptions").select("status").eq("business_id", business.id).maybeSingle()
+    : { data: null };
+  if (!business || isCancelled(subscription)) {
+    return { title: "Business not found", robots: { index: false, follow: false } };
+  }
+
+  const name = business.name ?? "Mira";
 
   return {
     title: `Chat with ${name}`,
@@ -57,13 +66,16 @@ export default async function ChatPage({
     .eq("slug", businessSlug)
     .maybeSingle();
 
-  if (!business || !business.is_active) {
-    return (
-      <div className={embedMode ? "flex h-full items-center justify-center" : "flex min-h-screen items-center justify-center"}>
-        <p className="text-sm text-slate-500">This chat isn&apos;t available.</p>
-      </div>
-    );
-  }
+  if (!business || !business.is_active) return <BusinessNotFound embed={embedMode} />;
+
+  // A cancelled business is switched off everywhere, and looks the same as one
+  // that never existed.
+  const { data: subscription } = await supabase
+    .from("business_subscriptions")
+    .select("status")
+    .eq("business_id", business.id)
+    .maybeSingle();
+  if (isCancelled(subscription)) return <BusinessNotFound embed={embedMode} />;
 
   const { data: hours } = await supabase
     .from("business_hours")
