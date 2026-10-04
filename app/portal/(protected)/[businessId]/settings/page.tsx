@@ -7,6 +7,7 @@ import { getAgentSettings } from "@/lib/agentSettings";
 import { PromptEditor } from "./PromptEditor";
 import { AgentSettingsPanel } from "./AgentSettingsPanel";
 import { OrderTakingPanel } from "./OrderTakingPanel";
+import { CancelSubscriptionPanel } from "./CancelSubscriptionPanel";
 import { getOrderTakingEnabled } from "@/lib/orderSettings";
 
 export const dynamic = "force-dynamic";
@@ -31,6 +32,7 @@ export default async function PortalSettingsPage({ params }: PageProps) {
     getOrderTakingEnabled(businessId),
     supabase.from("businesses").select("email_inbound_address").eq("id", businessId).maybeSingle(),
   ]);
+  const businessName = membership.name ?? "your business";
   const inboundAddress: string | null = emailBusiness?.email_inbound_address ?? null;
 
   return (
@@ -74,6 +76,9 @@ export default async function PortalSettingsPage({ params }: PageProps) {
         history={history}
         canPublish={membership.role === "owner"}
       />
+
+      {/* Owners only. Staff never see the cancel option. */}
+      {membership.role === "owner" && <CancelSubscriptionPanel businessId={businessId} businessName={businessName} />}
     </div>
   );
 }

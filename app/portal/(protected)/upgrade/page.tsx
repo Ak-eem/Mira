@@ -1,8 +1,10 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getBusinessEntitlement } from "@/lib/billing";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
+import SubscribeButton from "@/app/components/SubscribeButton";
 
 export default async function PortalUpgradePage({
   searchParams,
@@ -33,6 +35,29 @@ export default async function PortalUpgradePage({
   const business = owner.businesses.find((item) => item.id === businessId);
   if (!business) redirect("/inbox");
   const access = await getBusinessEntitlement(business.id);
+
+  if (access.subscription?.status === "cancelled") {
+    return (
+      <main className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <p className="text-sm font-medium text-accent">{business.name}</p>
+        <h1 className="mt-2 text-2xl font-semibold text-slate-900">Your subscription is cancelled</h1>
+        <p className="mt-3 text-sm leading-6 text-slate-600">
+          Mira is switched off. It no longer answers on your website, WhatsApp or email, and the chat widget has
+          been removed from your site. Your data is kept for 30 days in case you change your mind.
+        </p>
+        <div className="mt-6 rounded-lg bg-slate-50 p-4 text-left text-sm text-slate-600">
+          Subscribe again to turn Mira back on. Your widget will reappear on your site automatically.
+        </div>
+        <div className="mt-4">
+          <Suspense fallback={null}>
+            <SubscribeButton plan="base" businessName={business.name} email={user.email ?? ""} />
+          </Suspense>
+        </div>
+        <Link href="/portal" className="mt-6 inline-flex rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">Back to businesses</Link>
+      </main>
+    );
+  }
+
   return (
     <main className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
       <p className="text-sm font-medium text-accent">{business.name}</p>
