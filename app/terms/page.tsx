@@ -69,7 +69,7 @@ export default function TermsOfServicePage() {
               <section className="space-y-3">
                 <h2 className="text-lg font-semibold text-slate-900">3. Subscriptions, Fees &amp; Renewals</h2>
                 <p>
-                  Mira is offered on a subscription basis (monthly or annual billing cycles). Subscriptions automatically renew at the end of each billing period unless cancelled prior to the renewal date via the business dashboard.
+                  Mira is offered on a prepaid basis: each payment covers one billing period. Subscriptions do not renew automatically and we never charge you again without your action. When your paid period ends, Mira pauses on every channel (website chat, WhatsApp and email) until you pay again, and resumes as soon as your payment is confirmed. Messages your customers send while Mira is paused are not answered and are not replayed later. Your data is kept while Mira is paused.
                 </p>
                 <p>
                   Fees are non-refundable except where required by applicable law or specifically agreed upon in writing. We reserve the right to adjust pricing or modify feature tiers upon providing reasonable advance notice.
