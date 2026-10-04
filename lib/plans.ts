@@ -42,6 +42,13 @@ export function isCancelled(subscription: Pick<BusinessSubscription, "status"> |
   return subscription?.status === "cancelled";
 }
 
+/** A paid plan whose end date has passed. Its status still says "active" until they pay again. */
+export function isPaidPeriodEnded(subscription: Pick<BusinessSubscription, "status" | "expires_at"> | null | undefined): boolean {
+  if (!subscription || subscription.status !== "active" || !subscription.expires_at) return false;
+  const expiresAt = new Date(subscription.expires_at).getTime();
+  return Number.isFinite(expiresAt) && expiresAt <= Date.now();
+}
+
 export function hasEntitlement(subscription: BusinessSubscription | null | undefined): boolean {
   return !isLocked(subscription);
 }

@@ -49,7 +49,9 @@ export async function runNudgeCheck(): Promise<NudgeCheckSummary> {
     .from("business_subscriptions")
     .select("business_id, max_nudges_per_customer_per_week")
     .eq("nudges_addon", true)
-    .eq("status", "active");
+    .eq("status", "active")
+    // status stays 'active' after the paid period ends, so check the date too.
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
 
   const capByBusiness = new Map((subs ?? []).map((s) => [s.business_id, s.max_nudges_per_customer_per_week]));
   if (capByBusiness.size === 0) return summary;

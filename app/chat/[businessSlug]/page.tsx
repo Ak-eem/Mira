@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { isOpenNow } from "@/lib/hours";
-import { isCancelled } from "@/lib/plans";
+import { isCancelled, isLocked } from "@/lib/plans";
 import { BusinessNotFound } from "./BusinessNotFound";
 import { ChatWindow } from "./ChatWindow";
 
@@ -72,10 +72,20 @@ export default async function ChatPage({
   // that never existed.
   const { data: subscription } = await supabase
     .from("business_subscriptions")
-    .select("status")
+    .select("owner_id,plan,status,trial_started_at,trial_ends_at,expires_at")
     .eq("business_id", business.id)
     .maybeSingle();
   if (isCancelled(subscription)) return <BusinessNotFound embed={embedMode} />;
+
+  // Paid period or trial ended: paused, not gone. No redirect, because this is
+  // temporary -- the chat comes back by itself as soon as the owner pays again.
+  if (isLocked(subscription)) {
+    return (
+      <div className={embedMode ? "flex h-full items-center justify-center p-6" : "flex min-h-screen items-center justify-center p-6"}>
+        <p className="text-center text-sm text-slate-500">This chat is temporarily unavailable. Please try again later.</p>
+      </div>
+    );
+  }
 
   const { data: hours } = await supabase
     .from("business_hours")

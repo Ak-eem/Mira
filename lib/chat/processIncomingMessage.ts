@@ -1,4 +1,4 @@
-import { isBusinessCancelled } from "@/lib/chat/businessStatus";
+import { isBusinessSwitchedOff } from "@/lib/chat/businessStatus";
 import { processMessage } from "@/lib/chat/processMessage";
 import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -22,10 +22,12 @@ export async function processIncomingMessage(
   channel: "web" | "whatsapp" | "email",
   inboundKey?: string,
 ): Promise<ChatResult> {
-  // A cancelled business is switched off on every channel: no reply, nothing
-  // stored, and "silent" tells the WhatsApp/email workers to close the queue row
-  // instead of failing and retrying. (The web chat route answers 404 earlier.)
-  if (await isBusinessCancelled(client, businessId)) {
+  // A business that is cancelled, past the end of its paid period or trial, or has
+  // no subscription is switched off on every channel: no reply, nothing stored, and
+  // "silent" tells the WhatsApp/email workers to close the queue row instead of
+  // failing and retrying. Messages received while paused are not replayed later.
+  // (The web chat route answers 404/402 earlier.)
+  if (await isBusinessSwitchedOff(client, businessId)) {
     return { reply: "", messageId: null, productImages: [], silent: true };
   }
 

@@ -6,10 +6,10 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 // Called by public/embed.js on every page load of a customer's website, from
 // that site's origin, hence the open CORS header. It only ever returns a boolean.
 //
-// available:false  = business missing, inactive or CANCELLED -> the widget must
-//                    not appear on the site at all.
-// available:true   = anything else (including a locked/unpaid business, which
-//                    keeps showing its existing "temporarily unavailable" message).
+// available:false  = business missing/inactive, or switched off (cancelled, paid
+//                    period or trial ended) -> the widget must not appear at all.
+//                    It reappears by itself once the business pays again.
+// available:true   = paid up or in a live trial.
 //
 // It fails OPEN: any error or rate-limit answers available:true and lets the
 // chat page itself decide, so an outage here can't hide a paying business's chat.

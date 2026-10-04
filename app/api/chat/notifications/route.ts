@@ -1,5 +1,5 @@
 import { businessNotFoundResponse } from "@/lib/chat/businessNotFound";
-import { isCancelled } from "@/lib/plans";
+import { isCancelled, isLocked } from "@/lib/plans";
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
@@ -50,10 +50,13 @@ return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
 
   const { data: subscription } = await client
     .from("business_subscriptions")
-    .select("status")
+    .select("owner_id,plan,status,trial_started_at,trial_ends_at,expires_at")
     .eq("business_id", business.data.id)
     .maybeSingle();
   if (isCancelled(subscription)) return businessNotFoundResponse();
+  if (isLocked(subscription)) {
+    return NextResponse.json({ locked: true, error: "This chat is temporarily unavailable." }, { status: 402 });
+  }
 
   // opted_out_at is reset to null here on purpose: re-submitting this
   // form is a fresh, explicit consent, so a prior opt-out shouldn't be
