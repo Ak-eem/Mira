@@ -43,20 +43,20 @@ export function NewServiceForm({ businessId }: { businessId: string }) {
       <h2 className="text-sm font-semibold">Add a service</h2>
 
       <input
-        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
         placeholder="Name (e.g. Haircut)"
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
       />
       <input
-        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
         placeholder="Description (optional)"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
       <input
-        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
         placeholder="Price (leave blank for 'price on request')"
         value={price}
         onChange={(e) => setPrice(e.target.value)}
@@ -68,7 +68,7 @@ export function NewServiceForm({ businessId }: { businessId: string }) {
       </label>
       {!isAvailable && (
         <input
-          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
           placeholder="Note (e.g. 'fully booked this week')"
           value={availabilityNote}
           onChange={(e) => setAvailabilityNote(e.target.value)}
@@ -80,7 +80,7 @@ export function NewServiceForm({ businessId }: { businessId: string }) {
       <button
         type="submit"
         disabled={submitting}
-        className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
       >
         {submitting ? "Adding…" : "Add service"}
       </button>

@@ -144,7 +144,7 @@ export default async function BusinessDetailPage({
               href={`/chat/${business.slug}`}
               target="_blank"
               rel="noreferrer"
-              className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-dark"
+              className="rounded-sm bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-dark"
             >
               Preview Mira →
             </a>
@@ -205,12 +205,12 @@ export default async function BusinessDetailPage({
             {recentActivity.map((a) => (
               <li
                 key={a.id}
-                className="flex items-center justify-between rounded border border-slate-200 bg-white px-3 py-2 text-sm"
+                className="flex items-center justify-between rounded-sm border border-slate-200 bg-white px-3 py-2 text-sm"
               >
                 <span>
                   {a.summary}
                   {a.source === "command_center" && (
-                    <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                    <span className="ml-2 rounded-sm bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
                       via Command Center
                     </span>
                   )}
@@ -242,11 +242,11 @@ export default async function BusinessDetailPage({
               <li key={c.id}>
                 <Link
                   href={`/admin/businesses/${businessId}/conversations/${c.id}`}
-                  className="flex items-center justify-between rounded border border-slate-200 bg-white px-3 py-2 text-sm hover:border-accent"
+                  className="flex items-center justify-between rounded-sm border border-slate-200 bg-white px-3 py-2 text-sm hover:border-accent"
                 >
                   <span className="flex items-center gap-2">
                     {c.needs_human && (
-                      <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                      <span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
                         Needs you
                       </span>
                     )}

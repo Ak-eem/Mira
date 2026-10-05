@@ -22,7 +22,7 @@ export default async function OrdersPage({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-xs">
         Orders appear here two ways: you log them manually, or Mira takes them in chat when AI order-taking is
         switched on in Settings. Orders Mira takes wait for your confirmation. This is also what Nudges (order
         shipped / abandoned cart) reads from.

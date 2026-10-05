@@ -21,9 +21,9 @@ export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden bg-slate-50 text-slate-900">
       <div className="relative isolate">
-        <div className="hero-ambient absolute inset-x-0 top-0 -z-10 h-[34rem] bg-[radial-gradient(circle_at_top_left,_rgba(125,211,252,0.42),_transparent_48%),radial-gradient(circle_at_top_right,_rgba(165,243,252,0.5),_transparent_42%)]" />
+        <div className="hero-ambient absolute inset-x-0 top-0 -z-10 h-136 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.42),transparent_48%),radial-gradient(circle_at_top_right,rgba(165,243,252,0.5),transparent_42%)]" />
         <div className="mx-auto max-w-6xl px-6 pb-20 pt-6 sm:px-8 lg:px-10">
-          <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/55 px-4 py-3 shadow-sm shadow-sky-100/70 backdrop-blur-xl sm:px-6">
+          <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/55 px-4 py-3 shadow-xs shadow-sky-100/70 backdrop-blur-xl sm:px-6">
             <Link href="/" className="text-lg font-semibold tracking-tight text-slate-900">
               Mira <span className="font-normal text-accent">for Business</span>
             </Link>
@@ -43,7 +43,7 @@ export default function Home() {
           <section className="grid items-center gap-12 pb-16 pt-20 lg:grid-cols-[1.08fr_0.92fr] lg:gap-16 lg:pt-28">
             <ScrollReveal delay={80}>
               <div>
-                <p className="mb-6 inline-flex rounded-full border border-cyan-200/80 bg-white/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent-dark shadow-sm backdrop-blur">
+                <p className="mb-6 inline-flex rounded-full border border-cyan-200/80 bg-white/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent-dark shadow-xs backdrop-blur-sm">
                   A calmer way to grow
                 </p>
                 <h1 className="max-w-3xl text-5xl font-semibold tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
@@ -69,7 +69,7 @@ export default function Home() {
 
             <ScrollReveal delay={180} className="relative mx-auto w-full max-w-md">
               <div className="absolute -inset-6 rounded-[2.5rem] bg-cyan-200/30 blur-3xl" />
-              <div className="relative rounded-[2rem] border border-white/80 bg-white/60 p-5 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl">
+              <div className="relative rounded-4xl border border-white/80 bg-white/60 p-5 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl">
                 <ChatWindow
                   businessSlug="mira"
                   businessName="Mira for Mira"
@@ -107,7 +107,7 @@ export default function Home() {
         </div>
 
         <ScrollReveal delay={120} className="mt-20">
-          <div className="overflow-hidden rounded-[2rem] border border-cyan-100 bg-gradient-to-br from-sky-100 via-white to-cyan-100 px-6 py-12 text-center shadow-xl shadow-sky-100/80 sm:px-12">
+          <div className="overflow-hidden rounded-4xl border border-cyan-100 bg-linear-to-br from-sky-100 via-white to-cyan-100 px-6 py-12 text-center shadow-xl shadow-sky-100/80 sm:px-12">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent-dark">Ready when you are</p>
             <h2 className="mx-auto mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
               Make every customer conversation feel effortless.

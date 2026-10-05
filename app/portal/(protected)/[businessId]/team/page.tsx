@@ -28,7 +28,7 @@ export default async function PortalTeamPage({ params }: PageProps) {
       {membership.role === "owner" ? (
         <TeamPanel businessId={businessId} />
       ) : (
-        <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
+        <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-xs">
           Only the business owner can manage the team.
         </p>
       )}

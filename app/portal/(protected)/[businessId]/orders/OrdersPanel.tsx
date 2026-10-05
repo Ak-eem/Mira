@@ -64,13 +64,13 @@ function NewOrderForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <form onSubmit={handleSubmit} className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
       <p className="font-medium text-slate-900">Log an order</p>
 
       <div>
         <label className="block text-xs font-medium text-slate-600">Customer</label>
         <select
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
           value={selectedConversation}
           onChange={(e) => setSelectedConversation(e.target.value)}
         >
@@ -89,7 +89,7 @@ function NewOrderForm({
             matters for a WhatsApp customer without a chat on record yet. */}
         {!selectedConversation && (
           <input
-            className="mt-2 w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm"
+            className="mt-2 w-full rounded-sm border border-slate-300 px-3 py-2 font-mono text-sm"
             placeholder="or enter a WhatsApp number, e.g. 2348012345678"
             value={customerIdentifier}
             onChange={(e) => setCustomerIdentifier(e.target.value)}
@@ -102,19 +102,19 @@ function NewOrderForm({
         {items.map((item, i) => (
           <div key={i} className="flex gap-2">
             <input
-              className="w-1/2 rounded border border-slate-300 px-2 py-1.5 text-sm"
+              className="w-1/2 rounded-sm border border-slate-300 px-2 py-1.5 text-sm"
               placeholder="Item name"
               value={item.name}
               onChange={(e) => updateItem(i, "name", e.target.value)}
             />
             <input
-              className="w-1/4 rounded border border-slate-300 px-2 py-1.5 text-sm"
+              className="w-1/4 rounded-sm border border-slate-300 px-2 py-1.5 text-sm"
               placeholder="Qty"
               value={item.quantity}
               onChange={(e) => updateItem(i, "quantity", e.target.value)}
             />
             <input
-              className="w-1/4 rounded border border-slate-300 px-2 py-1.5 text-sm"
+              className="w-1/4 rounded-sm border border-slate-300 px-2 py-1.5 text-sm"
               placeholder="Unit price"
               value={item.unitPrice}
               onChange={(e) => updateItem(i, "unitPrice", e.target.value)}
@@ -133,7 +133,7 @@ function NewOrderForm({
       <div>
         <label className="block text-xs font-medium text-slate-600">Status</label>
         <select
-          className="mt-1 rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
           value={status}
           onChange={(e) => setStatus(e.target.value as OrderStatus)}
         >
@@ -150,7 +150,7 @@ function NewOrderForm({
       <button
         type="submit"
         disabled={submitting}
-        className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
       >
         {submitting ? "Saving…" : "Log order"}
       </button>
@@ -180,7 +180,7 @@ function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
 
   return (
     <li
-      className={`rounded-xl border bg-white p-4 shadow-sm ${
+      className={`rounded-xl border bg-white p-4 shadow-xs ${
         awaitingConfirmation ? "border-amber-300 ring-1 ring-amber-200" : "border-slate-200"
       }`}
     >
@@ -188,7 +188,7 @@ function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
         <span className="font-mono text-xs text-slate-500">
           {order.customer_identifier.replace(/^(wa_|web_|email_)/, "")}
           {order.source === "ai" && (
-            <span className="ml-2 rounded bg-indigo-50 px-1.5 py-0.5 font-sans text-[10px] font-semibold uppercase text-indigo-600">
+            <span className="ml-2 rounded-sm bg-indigo-50 px-1.5 py-0.5 font-sans text-[10px] font-semibold uppercase text-indigo-600">
               Taken by Mira
             </span>
           )}
@@ -199,7 +199,7 @@ function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
               type="button"
               disabled={updating}
               onClick={() => handleStatusChange("confirmed")}
-              className="rounded bg-accent px-2.5 py-1 text-xs font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+              className="rounded-sm bg-accent px-2.5 py-1 text-xs font-medium text-white hover:bg-accent-dark disabled:opacity-50"
             >
               Confirm order
             </button>
@@ -208,7 +208,7 @@ function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
             value={status}
             disabled={updating}
             onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
-            className="rounded border border-slate-300 px-2 py-1 text-xs"
+            className="rounded-sm border border-slate-300 px-2 py-1 text-xs"
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
@@ -251,7 +251,7 @@ export function OrdersPanel({
       <div>
         <p className="mb-3 font-medium text-slate-900">Recent orders</p>
         {orders.length === 0 ? (
-          <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
+          <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-xs">
             No orders logged yet.
           </p>
         ) : (

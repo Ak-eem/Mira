@@ -136,7 +136,7 @@ export function PromptPreview({
   const better = rows.filter((row) => rankOf(row.result.draft) > rankOf(row.result.active)).length;
 
   return (
-    <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Preview</p>
         <h2 className="mt-1 text-lg font-semibold">See the impact before you publish</h2>
@@ -152,7 +152,7 @@ export function PromptPreview({
           type="button"
           onClick={start}
           disabled={running || !draftId || unsaved}
-          className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+          className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
         >
           {running ? "Replaying…" : "Preview impact"}
         </button>
@@ -191,7 +191,7 @@ export function PromptPreview({
               <li key={turn.assistantMessageId} className="space-y-2 rounded-xl border border-slate-200 p-3">
                 <p className="text-sm text-slate-600">
                   <span className="font-medium">Customer asked:</span> {result.question}
-                  {turn.flagged && <span className="ml-2 rounded bg-red-50 px-1.5 py-0.5 text-xs text-red-600">had been flagged</span>}
+                  {turn.flagged && <span className="ml-2 rounded-sm bg-red-50 px-1.5 py-0.5 text-xs text-red-600">had been flagged</span>}
                 </p>
                 <div className="grid gap-2 md:grid-cols-3">
                   <SideBlock label="Past reply" side={{ text: result.oldReply, grounding: { verdict: "unchecked", signals: [] } }} />

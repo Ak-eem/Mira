@@ -45,13 +45,13 @@ export default async function NudgesPage({
   return (
     <div className="space-y-6">
       {!subscription?.nudges_addon && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 shadow-sm">
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 shadow-xs">
           The Nudges add-on isn&apos;t active on your plan yet — rules can be set up below, but nothing sends until
           it&apos;s turned on.
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
         <p className="mb-4 font-medium text-slate-900">Last 30 days</p>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>

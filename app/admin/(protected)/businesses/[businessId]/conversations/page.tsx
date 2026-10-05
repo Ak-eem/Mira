@@ -49,24 +49,24 @@ export default async function ConversationsPage({
             <li key={c.id}>
             <Link
               href={`/admin/businesses/${businessId}/conversations/${c.id}`}
-              className="flex items-center justify-between rounded border border-slate-200 bg-white p-3 hover:border-accent"
+              className="flex items-center justify-between rounded-sm border border-slate-200 bg-white p-3 hover:border-accent"
             >
               <span className="flex items-center gap-2">
                 {isUnread && (
-                  <span className="h-2 w-2 flex-shrink-0 rounded-full bg-accent" title="Unread" aria-label="Unread" />
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-accent" title="Unread" aria-label="Unread" />
                 )}
                 {c.claimed_by ? (
-                  <span className="rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
+                  <span className="rounded-sm bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
                     {c.claimed_by}
                   </span>
                 ) : (
                   c.needs_human && (
-                    <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                    <span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
                       Needs you
                     </span>
                   )
                 )}
-                {isUnread && <span className="rounded bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Unread</span>}
+                {isUnread && <span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">Unread</span>}
                 <span className="font-mono text-xs text-slate-500">{c.session_token.slice(0, 8)}…</span>
                 <span className={`text-xs font-medium ${c.channel === "whatsapp" ? "text-emerald-600" : "text-slate-400"}`}>
                   {c.channel === "whatsapp" ? "WhatsApp" : "Web"}

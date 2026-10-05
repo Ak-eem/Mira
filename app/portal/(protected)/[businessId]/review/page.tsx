@@ -165,7 +165,7 @@ export default async function PortalReviewPage({ params }: PageProps) {
       </div>
 
       {list.length === 0 && (
-        <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-sm">
+        <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-xs">
           Nothing needs review right now.
         </p>
       )}
@@ -175,17 +175,17 @@ export default async function PortalReviewPage({ params }: PageProps) {
           const unsupported = item.signals.filter((signal) => !signal.supported);
           const customerReason = isFeedbackReason(item.customer?.reason) ? CUSTOMER_REASON_LABELS[item.customer.reason] : null;
           return (
-            <li key={item.messageId} className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <li key={item.messageId} className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 {item.verdict && (
                   <span
-                    className={`rounded px-1.5 py-0.5 font-semibold uppercase ${item.verdict === "low" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"}`}
+                    className={`rounded-sm px-1.5 py-0.5 font-semibold uppercase ${item.verdict === "low" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"}`}
                   >
                     Grounding: {item.verdict}
                   </span>
                 )}
                 {item.customer && (
-                  <span className="rounded bg-red-50 px-1.5 py-0.5 text-red-600">
+                  <span className="rounded-sm bg-red-50 px-1.5 py-0.5 text-red-600">
                     Customer 👎{customerReason ? ` ${customerReason}` : ""}
                   </span>
                 )}

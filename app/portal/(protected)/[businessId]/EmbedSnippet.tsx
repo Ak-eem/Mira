@@ -54,7 +54,7 @@ export function EmbedSnippet({ slug, businessName }: { slug: string; businessNam
     <section className="glass-panel rounded-xl p-5">
       <h2 className="mb-1 text-sm font-semibold text-slate-800">Add Mira to your website</h2>
       <p className="mb-3 text-xs text-slate-500">
-        Paste this one snippet just before the closing <code className="rounded bg-slate-100 px-1 py-0.5">&lt;/body&gt;</code> tag on your site. No account, no build step, works on any platform.
+        Paste this one snippet just before the closing <code className="rounded-sm bg-slate-100 px-1 py-0.5">&lt;/body&gt;</code> tag on your site. No account, no build step, works on any platform.
       </p>
       <pre className="overflow-x-auto rounded-lg bg-slate-900 p-3 text-xs leading-relaxed text-slate-100">
         <code>{snippet || "Loading…"}</code>

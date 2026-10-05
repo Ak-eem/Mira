@@ -45,7 +45,7 @@ export function NewPromotionForm({
       <h2 className="text-sm font-semibold">Add a promotion</h2>
 
       <input
-        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
         placeholder="Description (e.g. '20% off all haircuts this week')"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
@@ -54,7 +54,7 @@ export function NewPromotionForm({
 
       {services.length > 0 && (
         <select
-          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
           value={serviceId}
           onChange={(e) => setServiceId(e.target.value)}
         >
@@ -68,11 +68,11 @@ export function NewPromotionForm({
       <div className="flex gap-2">
         <div className="flex-1">
           <label className="block text-xs text-slate-500">Starts</label>
-          <input type="date" className="w-full rounded border border-slate-300 px-3 py-2 text-sm" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+          <input type="date" className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
         </div>
         <div className="flex-1">
           <label className="block text-xs text-slate-500">Ends</label>
-          <input type="date" className="w-full rounded border border-slate-300 px-3 py-2 text-sm" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+          <input type="date" className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
         </div>
       </div>
 
@@ -81,7 +81,7 @@ export function NewPromotionForm({
       <button
         type="submit"
         disabled={submitting}
-        className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
       >
         {submitting ? "Adding…" : "Add promotion"}
       </button>

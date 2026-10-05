@@ -34,7 +34,7 @@ setError("Could not reach the payment service. Please try again.");
 if (!reference) {
 return (
 <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-<div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
+<div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-xs">
 <h1 className="text-xl font-semibold text-slate-900">Payment not confirmed</h1>
 <p className="mt-2 text-sm text-slate-500">No payment reference found in the link.</p>
 <Link href="/" className="mt-6 inline-block rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-medium text-white">Back to Mira</Link>
@@ -45,7 +45,7 @@ return (
 if (state === "loading") {
 return (
 <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-<div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+<div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xs">
 <h1 className="text-xl font-semibold text-slate-900">Verifying your payment…</h1>
 <p className="mt-2 text-sm text-slate-500">Confirming your subscription with Paystack.</p>
 </div>
@@ -56,7 +56,7 @@ if (state === "unauthorized") {
 return (
 <main className="flex
 min-h-screen items-center justify-center bg-slate-50 px-4">
-<div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+<div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xs">
 <h1 className="text-xl font-semibold text-slate-900">Sign in to confirm</h1>
 <p className="mt-2 text-sm text-slate-500">You need to be signed in to verify your payment.</p>
 <Link href="/login" className="mt-6 inline-block rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-medium text-white">Sign in</Link>
@@ -68,7 +68,7 @@ min-h-screen items-center justify-center bg-slate-50 px-4">
 if (state === "success") {
 return (
 <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-<div className="w-full max-w-md rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-sm">
+<div className="w-full max-w-md rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-xs">
 <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl">✓</div>
 <h1 className="mt-4 text-xl font-semibold text-slate-900">Payment confirmed!</h1>
 <p className="mt-2 text-sm text-slate-500">Your subscription is active. You can now set up your business.</p>
@@ -81,7 +81,7 @@ return (
 if (state === "pending") {
 return (
 <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-<div className="w-full max-w-md rounded-2xl border border-amber-200 bg-white p-8 text-center shadow-sm">
+<div className="w-full max-w-md rounded-2xl border border-amber-200 bg-white p-8 text-center shadow-xs">
 <h1 className="text-xl font-semibold text-slate-900">Payment is being confirmed…</h1>
 <p className="mt-2 text-sm text-slate-500">Paystack is still processing. This usually takes a few
     seconds.</p>
@@ -93,7 +93,7 @@ return (
 
 return (
 <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-<div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-sm">
+<div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-xs">
 <h1 className="text-xl font-semibold text-slate-900">Payment not confirmed</h1>
 <p className="mt-2 text-sm text-slate-500">{error || "Something went wrong with your payment."}</p>
 <Link href="/" className="mt-6 inline-block rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-medium text-white">Back to Mira</Link>

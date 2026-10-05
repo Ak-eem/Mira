@@ -56,7 +56,7 @@ export default async function PlatformActivityPage() {
                 <span className="text-slate-400"> — </span>
                 {a.summary}
                 {a.source === "command_center" && (
-                  <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                  <span className="ml-2 rounded-sm bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
                     via Command Center
                   </span>
                 )}

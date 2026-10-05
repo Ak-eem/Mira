@@ -10,11 +10,11 @@ export default function TermsOfServicePage() {
     <main className="min-h-screen bg-slate-50 text-slate-900">
       {/* Background Gradient */}
       <div className="relative isolate">
-        <div className="hero-ambient absolute inset-x-0 top-0 -z-10 h-[28rem] bg-[radial-gradient(circle_at_top_left,_rgba(125,211,252,0.35),_transparent_48%),radial-gradient(circle_at_top_right,_rgba(165,243,252,0.4),_transparent_42%)]" />
+        <div className="hero-ambient absolute inset-x-0 top-0 -z-10 h-112 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_48%),radial-gradient(circle_at_top_right,rgba(165,243,252,0.4),transparent_42%)]" />
 
         <div className="mx-auto max-w-4xl px-6 pb-20 pt-6 sm:px-8">
           {/* Header Navigation */}
-          <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/55 px-4 py-3 shadow-sm shadow-sky-100/70 backdrop-blur-xl sm:px-6">
+          <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/55 px-4 py-3 shadow-xs shadow-sky-100/70 backdrop-blur-xl sm:px-6">
             <Link href="/" className="text-lg font-semibold tracking-tight text-slate-900">
               Mira <span className="font-normal text-accent">for Business</span>
             </Link>
@@ -26,7 +26,7 @@ export default function TermsOfServicePage() {
           </nav>
 
           {/* Legal Draft Notice */}
-          <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900 shadow-sm backdrop-blur">
+          <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900 shadow-xs backdrop-blur-sm">
             <p className="font-semibold">⚠️ Legal Disclaimer Notice</p>
             <p className="mt-1 text-xs leading-relaxed text-amber-800">
               This Terms of Service document is an initial draft designed for early-stage operational guidance. It must be formally reviewed and finalized by a licensed legal counsel before being relied upon as a legally binding contract.
@@ -34,7 +34,7 @@ export default function TermsOfServicePage() {
           </div>
 
           {/* Content Card */}
-          <article className="mt-8 rounded-[2rem] border border-white/80 bg-white/75 p-8 shadow-xl shadow-sky-100/60 backdrop-blur-2xl sm:p-12">
+          <article className="mt-8 rounded-4xl border border-white/80 bg-white/75 p-8 shadow-xl shadow-sky-100/60 backdrop-blur-2xl sm:p-12">
             <h1 className="text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
               Terms of Service
             </h1>

@@ -37,7 +37,7 @@ export function GroundingPanel({
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Answer check</p>
         <h2 className="mt-1 text-lg font-semibold">Flag replies that don&apos;t match your business info</h2>
@@ -70,7 +70,7 @@ export function GroundingPanel({
           checked={escalate}
           disabled={!canEdit}
           onChange={(e) => setEscalate(e.target.checked)}
-          className="mt-1 h-4 w-4 rounded border-slate-300"
+          className="mt-1 h-4 w-4 rounded-sm border-slate-300"
         />
         <span>
           Hand the chat to my team after two weak replies in a row
@@ -88,7 +88,7 @@ export function GroundingPanel({
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+          className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
         >
           {saving ? "Saving…" : saved ? "Saved" : "Save"}
         </button>

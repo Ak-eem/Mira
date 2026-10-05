@@ -35,14 +35,14 @@ export function NewPolicyForm({ businessId }: { businessId: string }) {
       <h2 className="text-sm font-semibold">Add a policy</h2>
 
       <input
-        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
         placeholder="Title (e.g. 'Cancellation Policy')"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
         required
       />
       <textarea
-        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
         placeholder="Content"
         rows={4}
         value={content}
@@ -55,7 +55,7 @@ export function NewPolicyForm({ businessId }: { businessId: string }) {
       <button
         type="submit"
         disabled={submitting}
-        className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
       >
         {submitting ? "Adding…" : "Add policy"}
       </button>

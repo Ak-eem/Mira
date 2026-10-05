@@ -161,7 +161,7 @@ export default async function SettingsPage({ params }: PageProps) {
         <SettingsForm business={business} />
       </div>
 
-      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
         <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Additional section</p>
         <h2 className="mt-1 text-lg font-semibold">AI prompt</h2>
         <p className="mt-1 text-sm text-slate-500">
@@ -170,7 +170,7 @@ export default async function SettingsPage({ params }: PageProps) {
         </p>
         <a
           href={`/admin/businesses/${businessId}/settings/prompt`}
-          className="mt-3 inline-block rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark"
+          className="mt-3 inline-block rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark"
         >
           Open prompt editor
         </a>
@@ -186,7 +186,7 @@ export default async function SettingsPage({ params }: PageProps) {
       <SubscriptionPanel businessId={businessId} subscription={subscription} />
       <DeleteBusinessPanel businessId={businessId} businessName={business.name} />
 
-      <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Additional section</p>
           <h2 className="mt-1 text-lg font-semibold">Team access</h2>

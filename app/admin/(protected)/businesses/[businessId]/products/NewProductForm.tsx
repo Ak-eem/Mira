@@ -63,21 +63,21 @@ export function NewProductForm({ businessId }: { businessId: string }) {
       <h2 className="text-sm font-semibold">Add a product</h2>
 
       <input
-        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
         placeholder="Name (e.g. Ankara Tote Bag)"
         value={name}
         onChange={(e) => setName(e.target.value)}
         required
       />
       <input
-        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
         placeholder="Description (optional)"
         value={description}
         onChange={(e) => setDescription(e.target.value)}
       />
       <div className="flex gap-2">
         <input
-          className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm"
+          className="flex-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
           placeholder="Price"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
@@ -85,7 +85,7 @@ export function NewProductForm({ businessId }: { businessId: string }) {
           required
         />
         <input
-          className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm"
+          className="flex-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
           placeholder="Stock (blank = untracked)"
           value={stockQuantity}
           onChange={(e) => setStockQuantity(e.target.value)}
@@ -98,7 +98,7 @@ export function NewProductForm({ businessId }: { businessId: string }) {
       </label>
       {!isAvailable && (
         <input
-          className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
           placeholder="Note (e.g. 'restocking next week')"
           value={availabilityNote}
           onChange={(e) => setAvailabilityNote(e.target.value)}
@@ -112,7 +112,7 @@ export function NewProductForm({ businessId }: { businessId: string }) {
           type="file"
           accept="image/jpeg,image/png,image/webp,image/gif"
           onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-          className="w-full text-sm text-slate-600 file:mr-3 file:rounded file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-slate-200"
+          className="w-full text-sm text-slate-600 file:mr-3 file:rounded-sm file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium hover:file:bg-slate-200"
         />
       </div>
 
@@ -121,7 +121,7 @@ export function NewProductForm({ businessId }: { businessId: string }) {
       <button
         type="submit"
         disabled={submitting}
-        className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
       >
         {submitting ? "Adding…" : "Add product"}
       </button>

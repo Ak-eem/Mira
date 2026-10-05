@@ -106,11 +106,11 @@ export default async function ConversationThreadPage({
           <p className="text-sm font-medium text-amber-800">
             🚩 This customer asked for a person (or Mira got stuck) — take over when you&apos;re ready.
           </p>
-          <div className="flex flex-shrink-0 gap-2">
+          <div className="flex shrink-0 gap-2">
             <form action={resolveHandoffForConversation}>
               <button
                 type="submit"
-                className="rounded border border-amber-400 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
+                className="rounded-sm border border-amber-400 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
               >
                 Dismiss
               </button>
@@ -118,7 +118,7 @@ export default async function ConversationThreadPage({
             <form action={takeOverForConversation}>
               <button
                 type="submit"
-                className="rounded bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700"
+                className="rounded-sm bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700"
               >
                 Take over
               </button>
@@ -132,11 +132,11 @@ export default async function ConversationThreadPage({
           <p className="text-sm font-medium text-sky-800">
             👤 {conversation.claimed_by} is handling this conversation — Mira is silent until it&apos;s handed back or ended.
           </p>
-          <div className="flex flex-shrink-0 gap-2">
+          <div className="flex shrink-0 gap-2">
             <form action={handBackForConversation}>
               <button
                 type="submit"
-                className="rounded border border-sky-400 bg-white px-3 py-1.5 text-xs font-medium text-sky-800 hover:bg-sky-100"
+                className="rounded-sm border border-sky-400 bg-white px-3 py-1.5 text-xs font-medium text-sky-800 hover:bg-sky-100"
               >
                 Hand back to Mira
               </button>
@@ -144,7 +144,7 @@ export default async function ConversationThreadPage({
             <form action={endForConversation}>
               <button
                 type="submit"
-                className="rounded bg-slate-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
+                className="rounded-sm bg-slate-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
               >
                 End conversation
               </button>

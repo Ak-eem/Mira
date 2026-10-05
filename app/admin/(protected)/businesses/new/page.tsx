@@ -37,7 +37,7 @@ export default function NewBusinessPage() {
         <div>
           <label className="block text-sm font-medium text-slate-700">Name</label>
           <input
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Fresh Cuts"
@@ -50,7 +50,7 @@ export default function NewBusinessPage() {
             Slug <span className="font-normal text-slate-400">— used in /chat/slug</span>
           </label>
           <input
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             placeholder="fresh-cuts"
@@ -63,7 +63,7 @@ export default function NewBusinessPage() {
         <div>
           <label className="block text-sm font-medium text-slate-700">Currency</label>
           <input
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
           />
@@ -74,7 +74,7 @@ export default function NewBusinessPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+          className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
         >
           {submitting ? "Creating…" : "Create business"}
         </button>

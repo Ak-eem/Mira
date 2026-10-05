@@ -33,7 +33,7 @@ export function AgentSettingsPanel({
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Additional section</p>
         <h2 className="mt-1 text-lg font-semibold">Inventory assistant</h2>
@@ -49,7 +49,7 @@ export function AgentSettingsPanel({
           type="checkbox"
           checked={enabled}
           onChange={(e) => setEnabled(e.target.checked)}
-          className="h-4 w-4 rounded border-slate-300"
+          className="h-4 w-4 rounded-sm border-slate-300"
         />
         Owner can use the inventory assistant
       </label>
@@ -57,7 +57,7 @@ export function AgentSettingsPanel({
       <div>
         <label className="block text-sm font-medium text-slate-700">Which AI agent</label>
         <select
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
           value={provider}
           onChange={(e) => setProvider(e.target.value as ProviderName)}
         >
@@ -72,7 +72,7 @@ export function AgentSettingsPanel({
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
       >
         {saving ? "Saving…" : "Save"}
       </button>
