@@ -1,3 +1,100 @@
-aW1wb3J0IHsgU3VzcGVuc2UsIHVzZUVmZmVjdCwgdXNlU3RhdGUgfSBmcm9tICJyZWFjdCI7CmltcG9ydCBMaW5rIGZyb20gIm5leHQvbGluayI7CmltcG9ydCB7IHVzZVNlYXJjaFBhcmFtcyB9IGZyb20gIm5leHQvbmF2aWdhdGlvbiI7CgpmdW5jdGlvbiBTdWJzY3JpYmVDb250ZW50KCkgewpjb25zdCBzZWFyY2hQYXJhbXMgPSB1c2VTZWFyY2hQYXJhbXMoKTsKY29uc3QgcmVmZXJlbmNlID0gc2VhcmNoUGFyYW1zLmdldCgicmVmZXJlbmNlIik7CmNvbnN0IFtzdGF0ZSwgc2V0U3RhdGVdID0gdXNlU3RhdGUocmVmZXJlbmNlID8gImxvYWRpbmciIDogImZhaWxlZCIpOwpjb25zdCBbZXJyb3IsIHNldEVycm9yXSA9IHVzZVN0YXRlKHJlZmVyZW5jZSA/ICIiIDogIk5vIHBheW1lbnQgcmVmZXJlbmNlIGZvdW5kIGluIHRoZSBsaW5rLiIpOwp1c2VFZmZlY3QoKCkgPT4gewoJ aWYgKCFyZWZlcmVuY2UpIHJldHVybjsK
-CjwvYW1p
-ZmV0Y2goYAvYXBpL3BheXN0YWNrL3ZlcmlmeT9yZWZlcmVuY2U9JHtlbmNvZGVVUklDb21wb25lbnQocmVmZXJlbmNlKX1gKQoudGhlbihhc3luYyAocmVzKSA9PiB7CmlmIChyZXMuc3RhdHVzID09PSA0MDEpIHsKc2V0U3RhdGUoInVuYXV0aG9yaXplZCIpOwpyZXR1cm47Cn0KY29uc3QgZGF0YSA9IGF3YWl0IHJlcy5qc29uKCkuY2F0Y2goKCkgPT4gbnVsbCk7CmlmIChkYXRhICYmIGRhdGEuc3VjY2VzcyA9PT0gdHJ1ZSkgewpzZXRTdGF0ZSgic3VjY2VzcyIpOwp9IGVsc2UgaWYgKGRhdGEgJiYgZGF0YS5zdGF0dXMgPT09ICJwZW5kaW5nIikgewpzZXRTdGF0ZSgicGVuZGluZyIpOwp9IGVsc2UgewpzZXRTdGF0ZSgiZmFpbGVkIik7CnNldEVycm9yKGRhdGE/LmVycm9yID8/ICJQYXltZW50IGNvdWxkIG5vdCBiZSB2ZXJpZmllZC4iKTsKfQp9KQouY2F0Y2goKCkgPT4gewpzZXRTdGF0ZSgiZmFpbGVkIik7CnNldEVycm9yKCJDb3VsZCBub3QgcmVhY2ggdGhlIHBheW1lbnQgc2VydmljZS4gUGxlYXNlIHRyeSBhZ2Fpbi4iKTsKfSk7Cn0sIFtyZWZlcmVuY2VdKTsKaWYgKHN0YXRlID09PSAibG9hZGluZyIpIHsKcmV0dXJuICgKPG1haW4gY2xhc3NOYW1lPSJmbGV4IG1pbi1oLXNjcmVlbiBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgYmctc2xhdGUtNTAgcHgtNCI+CjxkaXYgY2xhc3NOYW1lPSJ3LWZ1bGwgbWF4LXctbWQgcm91bmRlZC0yeGwgYm9yZGVyIGJvcmRlci1zbGF0ZS0yMDAgYmctd2hpdGUgcC04IHRleHQtY2VudGVyIHNoYWRvdy14cyI+CjxoMSBjbGFzc05hbWU9InRleHQteGwgZm9udC1zZW1pYm9sZCB0ZXh0LXNsYXRlLTkwMCI+VmVyaWZ5aW5nIHlvdXIgcGF5bWVudOKApjwvaDE+CjxwIGNsYXNzTmFtZT0ibXQtMiB0ZXh0LXNtIHRleHQtc2xhdGUtNTAwIj5Db25maXJtaW5nIHlvdXIgc3Vic2NyaXB0aW9uIHdpdGggUGF5c3RhY2suPC9wPgo8L2Rpdj4KPC9tYWluPgp9CmlmIChzdGF0ZSA9PT0gInVuYXV0aG9yaXplZCIpIHsKcmV0dXJuICgKPG1haW4gY2xhc3NOYW1lPSJmbGV4Cm1pbi1oLXNjcmVlbiBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgYmctc2xhdGUtNTAgcHgtNCI+CjxkaXYgY2xhc3NOYW1lPSJ3LWZ1bGwgbWF4LXctbWQgcm91bmRlZC0yeGwgYm9yZGVyIGJvcmRlci1zbGF0ZS0yMDAgYmctd2hpdGUgcC04IHRleHQtY2VudGVyIHNoYWRvdy14cyI+CjxoMSBjbGFzc05hbWU9InRleHQteGwgZm9udC1zZW1pYm9sZCB0ZXh0LXNsYXRlLTkwMCI+U2lnbiBpbiB0byBjb25maXJtPC9oMT4KPHAgY2xhc3NOYW1lPSJtdC0yIHRleHQtc20gdGV4dC1zbGF0ZS01MDAiPllvdSBuZWVkIHRvIGJlIHNpZ25lZCBpbiB0byB2ZXJpZnkgeW91ciBwYXltZW50LjwvcD4KPExpbmsgaHJlZj0iL2xvZ2luIiBjbGFzc05hbWU9Im10LTYgaW5saW5lLWJsb2NrIHJvdW5kZWQtbGcgYmctc2xhdGUtOTAwIHB4LTYgcHktMi41IHRleHQtc20gZm9udC1tZWRpdW0gdGV4dC13aGl0ZSI+U2lnbiBp bjwvTGluaz4KPC9kaXY+CjwvbWFpbj4KKTsKfQoKaWYgKHN0YXRlID09PSAic3VjY2VzcyIpIHsKcmV0dXJuICgKPG1haW4gY2xhc3NOYW1lPSJmbGV4IG1pbi1oLXNjcmVlbiBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgYmctc2xhdGUtNTAgcHgtNCI+CjxkaXYgY2xhc3NOYW1lPSJ3LWZ1bGwgbWF4LXctbWQgcm91bmRlZC0yeGwgYm9yZGVyIGJvcmRlci1lbWVyYWxkLTIwMCBiZy13aGl0ZSBwLTggdGV4dC1jZW50ZXIgc2hhZG93LXhzIj4KPGRpdiBjbGFzc05hbWU9Im14LWF1dG8gZmxleCBoLTEyIHctMTIgaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIHJvdW5kZWQtZnVsbCBiZy1lbWVyYWxkLTEwMCB0ZXh0LTJ4bCI+4pyTPC9kaXY+CjxoMSBjbGFzc05hbWU9Im10LTQgdGV4dC14bCBmb250LXNlbWlib2xkIHRleHQtc2xhdGUtOTAwIj5QYXltZW50IGNvbmZpcm1lZCE8L2gxPgo8cCBjbGFzc05hbWU9Im10LTIgdGV4dC1zbSB0ZXh0LXNsYXRlLTUwMCI+WW91ciBzdWJzY3JpcHRpb24gaXMgYWN0aXZlLiBZb3UgY2FuIG5vdyBzZXQgdXAgeW91ciBidXNpbmVzcy48L3A+CjxMaW5rIGhyZWY9Ii9wb3J0YWwiIGNsYXNzTmFtZT0ibXQtNiBpbmxpbmUtYmxvY2sgcm91bmRlZC1sZyBiZy1lbWVyYWxkLTYwMCBweC02IHB5LTIuNSB0ZXh0LXNtIGZvbnQtbWVkaXVtIHRleHQtd2hpdGUiPkdvIHRvIHlvdXIgYWRtaW48L0xpbms+CjwvZGl2Pgo8L21haW4+Cik7Cn0KCmlmIChzdGF0ZSA9PT0gInBlbmRpbmciKSB7CnJldHVybiAoCjxtYWluIGNsYXNzTmFtZT0iZmxleCBtaW4taC1zY3JlZW4gaXRlbXMtY2VudGVyIGp1c3RpZnktY2VudGVyIGJnLXNsYXRlLTUwIHB4LTQiPgo8ZGl2IGNsYXNzTmFtZT0idy1mdWxsIG1heC13LW1kIHJvdW5kZWQtMnhsIGJvcmRlciBib3JkZXItYW1iZXItMjAwIGJnLXdoaXRlIHAtOCB0ZXh0LWNlbnRlciBzaGFkb3cteHMiPgo8aDEgY2xhc3NOYW1lPSJ0ZXh0LXhsIGZvbnQtc2VtaWJvbGQgdGV4dC1zbGF0ZS05MDAiPlBheW1lbnQgaXMgYmVpbmcgY29uZmlybWVk4oCmPC9oMT4KPHAgY2xhc3NOYW1lPSJtdC0yIHRleHQtc20gdGV4dC1zbGF0ZS01MDAiPlBheXN0YWNrIGlzIHN0aWxsIHByb2Nlc3NpbmcuIFRoaXMgdXN1YWxseSB0YWtlcyBhIGZldwogICAgc2Vjb25kcy48L3A+CjxidXR0b24gb25DbGljaz17KCkgPT4gd2luZG93LmxvY2F0aW9uLnJlbG9hZCgpfSBjbGFzc05hbWU9Im10LTYgaW5saW5lLWJsb2NrIHJvdW5kZWQtbGcgYmctYW1iZXItNjAwIHB4LTYgcHktMi41IHRleHQtc20gZm9udC1tZWRpdW0gdGV4dC13aGl0ZSI+Q2hlY2sgYWdhaW48L2J1dHRvbj4KPC9kaXY+CjwvbWFpbj4KKTsKfQoKcmV0dXJuICgKPG1haW4gY2xhc3NOYW1lPSJmbGV4IG1pbi1oLXNjcmVlbiBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgYmctc2xhdGUtNTAgcHgtNCI+CjxkaXYgY2xhc3NOYW1lPSJ3LWZ1bGwgbWF4LXctbWQgcm91bmRlZC0yeGwgYm9yZGVyIGJvcmRlci1yZWQtMjAwIGJnLXdoaXRlIHAtOCB0ZXh0LWNlbnRlciBzaGFkb3cteHMiPgo8aDEgY2xhc3NOYW1lPSJ0ZXh0LXhsIGZvbnQtc2VtaWJvbGQgdGV4dC1zbGF0ZS05MDAiPlBheW1lbnQgbm90IGNvbmZpcm1lZDwvaDE+CjxwIGNsYXNzTmFtZT0ibXQtMiB0ZXh0LXNtIHRleHQtc2xhdGUtNTAwIj57ZXJyb3IgfHwgIlNvbWV0aGluZyB3ZW50IHdyb25nIHdpdGggeW91ciBwYXltZW50LiJ9PC9wPgo8TGluayBocmVmPSIvIiBjbGFzc05hbWU9Im10LTYgaW5saW5lLWJsb2NrIHJvdW5kZWQtbGcgYmctc2xhdGUtOTAwIHB4LTYgcHktMi41IHRleHQtc20gZm9udC1tZWRpdW0gdGV4dC13aGl0ZSI+QmFjayB0byBNaXJhPC9MaW5rPgo8L2Rpdj4KPC9tYWluPgp9CgpleHBvcnQgZGVmYXVsdCBmdW5jdGlvbiBTdWJzY3JpYmVQYWdlKCkgewpyZXR1cm4gKAo8U3VzcGVuc2UgZmFsbGJhY2s9ezxkaXYgY2xhc3NOYW1lPSJmbGV4IG1pbi1oLXNjcmVlbiBpdGVtcy1jZW50ZXIganVzdGlmeS1jZW50ZXIgYmctc2xhdGUtNTAgdGV4dC1zbSB0ZXh0LXNsYXRlLTUwMCI+TG9hZGluZ+KApjwvZGl2Pn0+CjxTdWJzY3JpYmVDb250ZW50IC8+CjwvU3VzcGVuc2U+Cik7Cn0=
+import { Suspense, useEffect, useState } from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
+
+function SubscribeContent() {
+const searchParams = useSearchParams();
+const reference = searchParams.get("reference");
+const [state, setState] = useState(reference ? "loading" : "failed");
+const [error, setError] = useState(reference ? "" : "No payment reference found in the link.");
+useEffect(() => {
+	
+if (reference === null) return;
+fetch(`/api/paystack/verify?reference=${encodeURIComponent(reference)}`)
+.then(async (res) => {
+if (res.status === 401) {
+setState("unauthorized");
+return;
+}
+const data = await res.json().catch(() => null);
+if (data && data.success === true) {
+setState("success");
+} else if (data && data.status === "pending") {
+setState("pending");
+} else {
+setState("failed");
+setError(data?.error ?? "Payment could not be verified.");
+}
+})
+.catch(() => {
+setState("failed");
+setError("Could not reach the payment service. Please try again.");
+});
+}, [reference]);
+if (state === "loading") {
+return (
+<main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+<div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xs">
+<h1 className="text-xl font-semibold text-slate-900">Verifying your payment…</h1>
+<p className="mt-2 text-sm text-slate-500">Confirming your subscription with Paystack.</p>
+</div>
+</main>
+);
+}
+if (state === "unauthorized") {
+return (
+<main className="flex
+min-h-screen items-center justify-center bg-slate-50 px-4">
+<div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-xs">
+<h1 className="text-xl font-semibold text-slate-900">Sign in to confirm</h1>
+<p className="mt-2 text-sm text-slate-500">You need to be signed in to verify your payment.</p>
+<Link href="/login" className="mt-6 inline-block rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-medium text-white">Sign in</Link>
+</div>
+</main>
+);
+}
+
+if (state === "success") {
+return (
+<main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+<div className="w-full max-w-md rounded-2xl border border-emerald-200 bg-white p-8 text-center shadow-xs">
+<div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-2xl">✓</div>
+<h1 className="mt-4 text-xl font-semibold text-slate-900">Payment confirmed!</h1>
+<p className="mt-2 text-sm text-slate-500">Your subscription is active. You can now set up your business.</p>
+<Link href="/portal" className="mt-6 inline-block rounded-lg bg-emerald-600 px-6 py-2.5 text-sm font-medium text-white">Go to your admin</Link>
+</div>
+</main>
+);
+}
+
+if (state === "pending") {
+return (
+<main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+<div className="w-full max-w-md rounded-2xl border border-amber-200 bg-white p-8 text-center shadow-xs">
+<h1 className="text-xl font-semibold text-slate-900">Payment is being confirmed…</h1>
+<p className="mt-2 text-sm text-slate-500">Paystack is still processing. This usually takes a few
+    seconds.</p>
+<button onClick={() => window.location.reload()} className="mt-6 inline-block rounded-lg bg-amber-600 px-6 py-2.5 text-sm font-medium text-white">Check again</button>
+</div>
+</main>
+);
+}
+
+return (
+<main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
+<div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-xs">
+<h1 className="text-xl font-semibold text-slate-900">Payment not confirmed</h1>
+<p className="mt-2 text-sm text-slate-500">{error || "Something went wrong with your payment."}</p>
+<Link href="/" className="mt-6 inline-block rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-medium text-white">Back to Mira</Link>
+</div>
+</main>
+);
+}
+
+export default function SubscribePage() {
+return (
+<Suspense fallback={<div className="flex min-h-screen items-center justify-center bg-slate-50 text-sm text-slate-500">Loading…</div>}>
+<SubscribeContent />
+</Suspense>
+);
+}
