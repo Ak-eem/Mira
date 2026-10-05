@@ -1,8 +1,35 @@
 @import 'tailwindcss';
 
+/*
+  Brand reskin: warm cream, deep ink green, one marigold accent.
+  Overriding the default Tailwind slate and cyan scales restyles every
+  existing page at once. Revert by deleting the slate-*, cyan-* and
+  marigold lines below.
+*/
 @theme {
-  --color-accent: #0f766e;
-  --color-accent-dark: #115e59;
+  --color-accent: #0f2a22;
+  --color-accent-dark: #08170f;
+  --color-marigold: #f2a900;
+
+  --color-slate-50: #f7f2e7;
+  --color-slate-100: #f0e9d9;
+  --color-slate-200: #e4dbc8;
+  --color-slate-300: #d3c8ae;
+  --color-slate-400: #97a39b;
+  --color-slate-500: #6b7a72;
+  --color-slate-600: #4d6058;
+  --color-slate-700: #2f4a41;
+  --color-slate-800: #1b3a2f;
+  --color-slate-900: #0f2a22;
+  --color-slate-950: #08170f;
+
+  --color-cyan-50: #fff9e5;
+  --color-cyan-100: #fbf0cc;
+  --color-cyan-200: #f6d56b;
+  --color-cyan-300: #f2c33a;
+  --color-cyan-400: #f2b51c;
+  --color-cyan-500: #f2a900;
+  --color-cyan-600: #cf8f00;
 }
 
 /*
