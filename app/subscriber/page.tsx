@@ -1,3 +1,5 @@
+"use client";
+
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -8,7 +10,7 @@ const reference = searchParams.get("reference");
 const [state, setState] = useState(reference ? "loading" : "failed");
 const [error, setError] = useState(reference ? "" : "No payment reference found in the link.");
 useEffect(() => {
-	
+if (!reference) return;
 fetch(`/api/paystack/verify?reference=${encodeURIComponent(reference)}`)
 .then(async (res) => {
 if (res.status === 401) {
