@@ -67,7 +67,7 @@
     "  display: flex; align-items: center; justify-content: space-between;",
     "  padding: 12px 14px; background: " + primaryColor + "; color: white;",
     "  font: 600 14px/1.3 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;",
-    "  shrink: 0;",
+    "  flex-shrink: 0;",
     "}",
     ".mira-panel-close {",
     "  background: transparent; border: none; color: white; cursor: pointer;",
