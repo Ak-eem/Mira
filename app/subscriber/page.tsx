@@ -10,6 +10,7 @@ const [state, setState] = useState(reference ? "loading" : "failed");
 const [error, setError] = useState(reference ? "" : "No payment reference found in the link.");
 useEffect(() => {
 	
+if (reference === null) return;
 fetch(`/api/paystack/verify?reference=${encodeURIComponent(reference)}`)
 .then(async (res) => {
 if (res.status === 401) {
