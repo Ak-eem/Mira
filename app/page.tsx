@@ -4,16 +4,16 @@ import { ScrollReveal } from "./components/scroll-reveal";
 
 const features = [
   {
-    title: "Answer every customer",
-    description: "Give people fast, helpful answers across the channels where they already reach you.",
+    title: "Answers from your own data",
+    description: "Prices, stock, delivery and opening hours, answered in seconds. Mira only says what your business has told it.",
   },
   {
-    title: "Teach Mira your business",
-    description: "Keep products, services, policies, FAQs, and hours in one calm, editable knowledge base.",
+    title: "Hands off to you",
+    description: "When a customer needs a person, Mira flags the chat and you step in. Hand it back whenever you like.",
   },
   {
-    title: "Follow up with confidence",
-    description: "Spot conversations that need a human touch and turn customer interest into the next step.",
+    title: "Orders and follow-ups",
+    description: "Take orders in chat and follow up with people who showed interest, so fewer sales slip away.",
   },
 ];
 
@@ -21,11 +21,11 @@ export default function Home() {
   return (
     <main className="min-h-screen overflow-hidden bg-slate-50 text-slate-900">
       <div className="relative isolate">
-        <div className="hero-ambient absolute inset-x-0 top-0 -z-10 h-136 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.42),transparent_48%),radial-gradient(circle_at_top_right,rgba(165,243,252,0.5),transparent_42%)]" />
+        <div className="hero-ambient absolute inset-x-0 top-0 -z-10 h-136 bg-[radial-gradient(circle_at_top_left,rgba(246,213,107,0.38),transparent_48%),radial-gradient(circle_at_top_right,rgba(207,220,203,0.55),transparent_42%)]" />
         <div className="mx-auto max-w-6xl px-6 pb-20 pt-6 sm:px-8 lg:px-10">
-          <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/55 px-4 py-3 shadow-xs shadow-sky-100/70 backdrop-blur-xl sm:px-6">
+          <nav className="flex items-center justify-between rounded-full border border-white/70 bg-white/55 px-4 py-3 shadow-xs shadow-slate-900/5 backdrop-blur-xl sm:px-6">
             <Link href="/" className="text-lg font-semibold tracking-tight text-slate-900">
-              Mira <span className="font-normal text-accent">for Business</span>
+              Mira<span className="text-marigold">.</span>
             </Link>
             <div className="flex items-center gap-4 text-sm">
               <Link href="/login" className="font-medium text-slate-600 transition hover:text-accent">
@@ -33,7 +33,7 @@ export default function Home() {
               </Link>
               <Link
                 href="/signup"
-                className="hidden rounded-full bg-accent px-4 py-2 font-medium text-white shadow-lg shadow-cyan-200/60 transition hover:bg-accent-dark sm:inline-flex"
+                className="hidden rounded-full bg-accent px-4 py-2 font-medium text-white shadow-lg shadow-slate-900/15 transition hover:bg-accent-dark sm:inline-flex"
               >
                 Get started
               </Link>
@@ -44,18 +44,18 @@ export default function Home() {
             <ScrollReveal delay={80}>
               <div>
                 <p className="mb-6 inline-flex rounded-full border border-cyan-200/80 bg-white/60 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-accent-dark shadow-xs backdrop-blur-sm">
-                  A calmer way to grow
+                  Customer service, always on
                 </p>
                 <h1 className="max-w-3xl text-5xl font-semibold tracking-tight text-slate-950 sm:text-6xl lg:text-7xl">
-                  Your business, always ready to help.
+                  Your front desk that never sleeps.
                 </h1>
                 <p className="mt-6 max-w-2xl text-lg leading-8 text-slate-600 sm:text-xl">
-                  Mira helps businesses turn customer questions into clear answers, thoughtful follow-ups, and better everyday operations.
+                  Mira answers your customers on WhatsApp, email and your website, using your own products, prices and policies, and hands the conversation to you when it should.
                 </p>
                 <div className="mt-9 flex flex-wrap items-center gap-4">
                   <Link
                     href="/signup"
-                    className="cta-glow inline-flex items-center rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-cyan-200/70 transition hover:bg-accent-dark"
+                    className="cta-glow inline-flex items-center rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-xl shadow-slate-900/15 transition hover:bg-accent-dark"
                   >
                     Get started
                     <span aria-hidden="true" className="ml-2">→</span>
@@ -69,17 +69,17 @@ export default function Home() {
 
             <ScrollReveal delay={180} className="relative mx-auto w-full max-w-md">
               <div className="absolute -inset-6 rounded-[2.5rem] bg-cyan-200/30 blur-3xl" />
-              <div className="relative rounded-4xl border border-white/80 bg-white/60 p-5 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl">
+              <div className="relative rounded-4xl border border-white/80 bg-white/60 p-5 shadow-2xl shadow-slate-900/10 backdrop-blur-2xl">
                 <ChatWindow
                   businessSlug="mira"
-                  businessName="Mira for Mira"
+                  businessName="Mira"
                   openNow={true}
                   embedMode
                 />
                 <div className="mt-6 flex items-center justify-center gap-4">
                   <Link
                     href="/signup"
-                    className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-cyan-200/70 transition hover:bg-accent-dark"
+                    className="rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:bg-accent-dark"
                   >
                     Get started
                   </Link>
@@ -95,7 +95,7 @@ export default function Home() {
         <div className="grid gap-5 md:grid-cols-3">
           {features.map((feature, index) => (
             <ScrollReveal key={feature.title} delay={index * 90} className="h-full">
-              <article className="feature-card h-full rounded-3xl border border-white/80 bg-white/65 p-6 shadow-lg shadow-sky-100/80 backdrop-blur-xl">
+              <article className="feature-card h-full rounded-3xl border border-white/80 bg-white/65 p-6 shadow-lg shadow-slate-900/5 backdrop-blur-xl">
                 <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-cyan-100 text-sm font-bold text-accent-dark">
                   {index + 1}
                 </span>
@@ -107,14 +107,14 @@ export default function Home() {
         </div>
 
         <ScrollReveal delay={120} className="mt-20">
-          <div className="overflow-hidden rounded-4xl border border-cyan-100 bg-linear-to-br from-sky-100 via-white to-cyan-100 px-6 py-12 text-center shadow-xl shadow-sky-100/80 sm:px-12">
+          <div className="overflow-hidden rounded-4xl border border-cyan-100 bg-linear-to-br from-cyan-100 via-white to-slate-100 px-6 py-12 text-center shadow-xl shadow-slate-900/5 sm:px-12">
             <p className="text-sm font-semibold uppercase tracking-[0.2em] text-accent-dark">Ready when you are</p>
             <h2 className="mx-auto mt-4 max-w-2xl text-3xl font-semibold tracking-tight text-slate-950 sm:text-4xl">
-              Make every customer conversation feel effortless.
+              Let every customer feel looked after, day and night.
             </h2>
             <Link
               href="/signup"
-              className="cta-glow mt-8 inline-flex rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-200/70 transition hover:bg-accent-dark"
+              className="cta-glow mt-8 inline-flex rounded-full bg-accent px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:bg-accent-dark"
             >
               Get started
             </Link>
@@ -124,7 +124,7 @@ export default function Home() {
 
       <footer className="mx-auto max-w-6xl border-t border-slate-200/80 px-6 py-8 text-xs text-slate-500 sm:px-8 lg:px-10">
         <div className="flex flex-col items-center justify-between gap-4 sm:flex-row">
-          <p>© {new Date().getFullYear()} Mira for Business. All rights reserved.</p>
+          <p>© {new Date().getFullYear()} Mira. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="/privacy" className="font-medium text-slate-600 transition hover:text-accent">
               Privacy Policy
