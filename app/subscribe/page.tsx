@@ -6,10 +6,11 @@ import { useSearchParams } from "next/navigation";
 function SubscribeContent() {
 const searchParams = useSearchParams();
 const reference = searchParams.get("reference");
-const [state, setState] = useState("loading");
-const [error, setError] = useState("");
+const [state, setState] = useState(reference ? "loading" : "failed");
+const [error, setError] = useState(reference ? "" : "No payment reference found in the link.");
 useEffect(() => {
-if (!reference) return;
+	
+if (reference === null) return;
 fetch(`/api/paystack/verify?reference=${encodeURIComponent(reference)}`)
 .then(async (res) => {
 if (res.status === 401) {
@@ -31,17 +32,6 @@ setState("failed");
 setError("Could not reach the payment service. Please try again.");
 });
 }, [reference]);
-if (!reference) {
-return (
-<main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-<div className="w-full max-w-md rounded-2xl border border-red-200 bg-white p-8 text-center shadow-xs">
-<h1 className="text-xl font-semibold text-slate-900">Payment not confirmed</h1>
-<p className="mt-2 text-sm text-slate-500">No payment reference found in the link.</p>
-<Link href="/" className="mt-6 inline-block rounded-lg bg-slate-900 px-6 py-2.5 text-sm font-medium text-white">Back to Mira</Link>
-</div>
-</main>
-);
-}
 if (state === "loading") {
 return (
 <main className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
