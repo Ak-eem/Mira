@@ -160,7 +160,7 @@ function IconDot({ name, dark }: { name: IconName; dark?: boolean }) {
 
 /* ---------- Hero ---------- */
 
-const WORDS = ['Every', 'customer', 'answered', '#icons', 'day', 'and', 'night.']
+const WORDS = ['Every', 'customer', 'question,', '#icons', 'answered', 'with', 'confidence.']
 
 export function Hero() {
   const stage = useRef<HTMLDivElement>(null)
@@ -229,7 +229,7 @@ export function Hero() {
         </h1>
 
         <p className="mt-6 max-w-[560px] text-[17px] leading-relaxed text-ink-2 animate-rise sm:text-[19px]" style={{ animationDelay: '420ms' }}>
-          Mira puts a 24/7 assistant on your website that answers from your own catalog, prices, policies and orders, then hands you the insights.
+          Mira gives businesses instant answers, smoother hand-offs, and a calmer daily workflow — without making customers wait.
         </p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-2.5 animate-rise" style={{ animationDelay: '480ms' }}>
           <Button size="lg" href="/signup" icon="arrow">
