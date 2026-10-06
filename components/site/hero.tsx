@@ -18,10 +18,10 @@ export function Aurora({ className = '', intensity = 1, fade = true }: { classNa
       className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       style={{ opacity: intensity, maskImage: mask, WebkitMaskImage: mask }}
     >
-      {blob({ width: '62vw', height: '62vw', left: '-14vw', top: '-18vw', background: 'radial-gradient(closest-side, rgb(229 241 134 / 0.75), rgb(229 241 134 / 0) 100%)' }, 'aurora-a')}
-      {blob({ width: '56vw', height: '56vw', right: '-16vw', top: '-6vw', background: 'radial-gradient(closest-side, rgb(214 220 236 / 0.9), rgb(214 220 236 / 0) 100%)' }, 'aurora-b')}
-      {blob({ width: '48vw', height: '48vw', left: '24vw', top: '30vw', background: 'radial-gradient(closest-side, rgb(244 249 207 / 0.95), rgb(244 249 207 / 0) 100%)' }, 'aurora-c')}
-      {blob({ width: '40vw', height: '40vw', right: '4vw', top: '46vw', background: 'radial-gradient(closest-side, rgb(236 226 210 / 0.8), rgb(236 226 210 / 0) 100%)' }, 'aurora-a')}
+      {blob({ width: '62vw', height: '62vw', left: '-14vw', top: '-18vw', background: 'radial-gradient(closest-side, rgb(246 213 107 / 0.75), rgb(246 213 107 / 0) 100%)' }, 'aurora-a')}
+      {blob({ width: '56vw', height: '56vw', right: '-16vw', top: '-6vw', background: 'radial-gradient(closest-side, rgb(207 220 203 / 0.9), rgb(207 220 203 / 0) 100%)' }, 'aurora-b')}
+      {blob({ width: '48vw', height: '48vw', left: '24vw', top: '30vw', background: 'radial-gradient(closest-side, rgb(251 240 204 / 0.95), rgb(251 240 204 / 0) 100%)' }, 'aurora-c')}
+      {blob({ width: '40vw', height: '40vw', right: '4vw', top: '46vw', background: 'radial-gradient(closest-side, rgb(228 219 200 / 0.8), rgb(228 219 200 / 0) 100%)' }, 'aurora-a')}
     </div>
   )
 }

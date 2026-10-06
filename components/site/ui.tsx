@@ -113,7 +113,7 @@ export function Orb({ className, children }: { className?: string; children?: Re
         boxShadow: 'inset -14px -18px 40px rgb(17 17 18 / 0.08), inset 10px 12px 28px rgb(255 255 255 / 0.9), 0 40px 80px -30px rgb(17 17 18 / 0.35)',
       }}
     >
-      <span className="pointer-events-none absolute inset-[6%] rounded-full" style={{ background: 'radial-gradient(circle at 70% 78%, rgb(229 241 134 / 0.45), transparent 55%)' }} />
+      <span className="pointer-events-none absolute inset-[6%] rounded-full" style={{ background: 'radial-gradient(circle at 70% 78%, rgb(246 213 107 / 0.45), transparent 55%)' }} />
       {children}
     </div>
   )
