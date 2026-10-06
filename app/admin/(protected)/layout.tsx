@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { AdminSidebar } from "./AdminSidebar";
@@ -21,9 +22,9 @@ export default async function AdminLayout({
   return (
     <div className="mira-wash min-h-screen">
       <header className="glass-panel-strong sticky top-0 z-10 px-6 py-4">
-        <span className="font-semibold text-slate-900">
+        <Link href="/" className="font-semibold text-slate-900" aria-label="Mira home">
           Mira <span className="font-normal text-accent">Admin</span>
-        </span>
+        </Link>
         <span className="ml-4 text-sm text-slate-400">{admin.email}</span>
       </header>
       <div className="mx-auto flex max-w-6xl gap-6 px-6 py-8">

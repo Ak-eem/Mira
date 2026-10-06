@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { SignOutButton } from "./SignOutButton";
@@ -23,9 +24,9 @@ export default async function PortalLayout({
     <div className="mira-wash min-h-screen">
       <header className="glass-panel-strong sticky top-0 z-10">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <span className="text-base font-semibold tracking-tight text-slate-900">
+          <Link href="/" className="text-base font-semibold tracking-tight text-slate-900" aria-label="Mira home">
             Mira <span className="font-normal text-accent">for Business</span>
-          </span>
+          </Link>
           <div className="flex items-center gap-4">
             <span className="hidden text-sm text-slate-400 sm:inline">{user.email}</span>
             <SignOutButton />
