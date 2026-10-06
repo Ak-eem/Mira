@@ -203,7 +203,7 @@ export function Hero() {
       <Aurora fade={false} />
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-surface" />
 
-      <div className="relative mx-auto flex max-w-[1100px] flex-col items-center px-5 text-center">
+      <div className="relative mx-3 flex max-w-[1100px] flex-col items-center rounded-[36px] glass-strong px-5 py-12 text-center sm:mx-auto sm:px-10 sm:py-16">
 
         <h1 className="mt-4 text-[clamp(46px,8.6vw,112px)] leading-[0.98] font-medium tracking-[-0.045em] text-balance">
           {WORDS.map((w, i) =>
