@@ -1,6 +1,10 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
+
+export const viewport: Viewport = {
+  themeColor: "#f3ecdd",
+};
 
 export const metadata: Metadata = {
   title: "Mira | Customer service for your business, day and night",

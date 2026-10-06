@@ -171,7 +171,7 @@ export function Hero() {
     const el = tilt.current
     const st = stage.current
     if (!el || !st) return
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches || window.matchMedia('(max-width: 767px)').matches
     let raf = 0
     const update = () => {
       raf = 0
@@ -201,9 +201,11 @@ export function Hero() {
   return (
     <section id="top" className="relative isolate overflow-hidden pt-28 pb-10 sm:pt-32">
       <Aurora fade={false} />
+      <div aria-hidden="true" className="pointer-events-none absolute -top-24 -left-28 size-[460px] rounded-full bg-[radial-gradient(closest-side,rgb(246_213_107/0.75),transparent)] sm:size-[680px]" />
+      <div aria-hidden="true" className="pointer-events-none absolute top-8 -right-28 size-[400px] rounded-full bg-[radial-gradient(closest-side,rgb(170_198_176/0.7),transparent)] sm:size-[600px]" />
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-surface" />
 
-      <div className="relative mx-3 flex max-w-[1100px] flex-col items-center rounded-[36px] glass-strong px-5 py-12 text-center sm:mx-auto sm:px-10 sm:py-16">
+      <div className="relative mx-3 flex max-w-[1100px] flex-col items-center rounded-[36px] glass-hero px-5 py-12 text-center sm:mx-auto sm:px-10 sm:py-16">
 
         <h1 className="mt-4 text-[clamp(46px,8.6vw,112px)] leading-[0.98] font-medium tracking-[-0.045em] text-balance">
           {WORDS.map((w, i) =>
