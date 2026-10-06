@@ -17,7 +17,7 @@ export default function Home() {
         {/* Frosted glass band across the top, so the page blurs softly beneath the nav */}
         <div
           aria-hidden="true"
-          className="pointer-events-none fixed inset-x-0 top-0 z-30 h-28 bg-gradient-to-b from-white/80 via-white/45 to-transparent backdrop-blur-2xl backdrop-saturate-150"
+          className="pointer-events-none fixed inset-x-0 top-0 z-30 h-28 bg-gradient-to-b from-white/65 via-white/35 to-transparent backdrop-blur-xl backdrop-saturate-150 max-sm:backdrop-blur-lg"
           style={{ maskImage: "linear-gradient(#000 60%, transparent)", WebkitMaskImage: "linear-gradient(#000 60%, transparent)" }}
         />
         <Nav />
