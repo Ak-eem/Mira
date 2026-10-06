@@ -1,8 +1,35 @@
 @import 'tailwindcss';
 
+/*
+  Brand reskin: warm cream, deep ink green, one marigold accent.
+  Overriding the default Tailwind slate and cyan scales restyles every
+  existing page at once. Revert by deleting the slate-*, cyan-* and
+  marigold lines below.
+*/
 @theme {
-  --color-accent: #0f766e;
-  --color-accent-dark: #115e59;
+  --color-accent: #0f2a22;
+  --color-accent-dark: #08170f;
+  --color-marigold: #f2a900;
+
+  --color-slate-50: #f7f2e7;
+  --color-slate-100: #f0e9d9;
+  --color-slate-200: #e4dbc8;
+  --color-slate-300: #d3c8ae;
+  --color-slate-400: #97a39b;
+  --color-slate-500: #6b7a72;
+  --color-slate-600: #4d6058;
+  --color-slate-700: #2f4a41;
+  --color-slate-800: #1b3a2f;
+  --color-slate-900: #0f2a22;
+  --color-slate-950: #08170f;
+
+  --color-cyan-50: #fff9e5;
+  --color-cyan-100: #fbf0cc;
+  --color-cyan-200: #f6d56b;
+  --color-cyan-300: #f2c33a;
+  --color-cyan-400: #f2b51c;
+  --color-cyan-500: #f2a900;
+  --color-cyan-600: #cf8f00;
 }
 
 /*
@@ -208,5 +235,175 @@ html {
 
   .glass-hover {
     transition: none;
+  }
+}
+
+/* ===== Site design system (landing page) ===== */
+
+/*
+ * Mira design tokens. Every colour, radius, shadow and timing in the product
+ * comes from here — change a value once and the landing page, dashboard and
+ * widget all follow.
+ */
+@theme {
+  /* Colour: warm cream, deep ink green and one marigold accent (tokens still named lime). */
+  --color-canvas: #f3ecdd;
+  --color-surface: #fffdf8;
+  --color-mist: #f8f2e5;
+  --color-line: #e4dbc8;
+  --color-ink: #0f2a22;
+  --color-ink-2: #2f4a41;
+  --color-muted: #6b7a72;
+  --color-lime: #fbf0cc;
+  --color-lime-2: #f6d56b;
+  --color-lime-3: #f2a900;
+  --color-danger: #c9472f;
+
+  --radius-pill: 999px;
+  --radius-card: 28px;
+  --radius-panel: 40px;
+
+  --shadow-soft: 0 1px 2px rgb(15 42 34 / 0.04), 0 8px 24px -12px rgb(15 42 34 / 0.12);
+  --shadow-float: 0 2px 6px rgb(15 42 34 / 0.06), 0 24px 48px -20px rgb(15 42 34 / 0.25);
+
+  /* Motion: everything settles in under 300ms. */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-fast: 160ms;
+  --duration-base: 240ms;
+
+  --animate-rise: rise 280ms var(--ease-out) both;
+  --animate-fade: fade 220ms var(--ease-out) both;
+  --animate-pop: pop 260ms var(--ease-out) both;
+
+  @keyframes rise {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+  @keyframes fade {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: translateY(10px) scale(0.96); }
+    to { opacity: 1; transform: none; }
+  }
+}
+
+
+/* Frosted glass. Browsers without backdrop-filter (and very old phones) get a
+   solid translucent white instead of a blur. */
+@utility glass {
+  background: rgb(255 255 255 / 0.86);
+  border: 1px solid rgb(255 255 255 / 0.8);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), var(--shadow-soft);
+  @supports (backdrop-filter: blur(1px)) {
+    background: linear-gradient(135deg, rgb(255 255 255 / 0.66), rgb(255 255 255 / 0.34));
+    backdrop-filter: blur(20px) saturate(1.6);
+  }
+}
+@utility glass-strong {
+  background: rgb(255 255 255 / 0.9);
+  border: 1px solid rgb(255 255 255 / 0.85);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.95), inset 0 -1px 0 rgb(255 255 255 / 0.25), var(--shadow-float);
+  @supports (backdrop-filter: blur(1px)) {
+    background: linear-gradient(150deg, rgb(255 255 255 / 0.72), rgb(255 255 255 / 0.42));
+    backdrop-filter: blur(28px) saturate(1.8);
+  }
+}
+/* Tinted glass panels for the feature stack. */
+@utility glass-lime {
+  background: rgb(251 240 204 / 0.92);
+  border: 1px solid rgb(255 255 255 / 0.7);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.9), var(--shadow-float);
+  @supports (backdrop-filter: blur(1px)) {
+    background: linear-gradient(140deg, rgb(251 240 204 / 0.78), rgb(246 213 107 / 0.36));
+    backdrop-filter: blur(26px) saturate(1.5);
+  }
+}
+
+/* Dashboard cards: lighter blur than the floating glass, so a page full of
+   them stays smooth on low-end phones. */
+@utility glass-card {
+  background: rgb(255 255 255 / 0.9);
+  border: 1px solid rgb(255 255 255 / 0.85);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.95), var(--shadow-soft);
+  @supports (backdrop-filter: blur(1px)) {
+    background: linear-gradient(160deg, rgb(255 255 255 / 0.78), rgb(255 255 255 / 0.5));
+    backdrop-filter: blur(16px) saturate(1.5);
+  }
+}
+
+/* Bars and lines that draw themselves in. */
+@utility grow-x {
+  transform-origin: left;
+  animation: grow-x 700ms var(--ease-out) both;
+}
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+}
+@utility reveal-x {
+  animation: reveal-x 1100ms var(--ease-out) 120ms both;
+}
+@keyframes reveal-x {
+  from { clip-path: inset(0 100% 0 0); }
+  to { clip-path: inset(0 0 0 0); }
+}
+@utility pulse-ring {
+  animation: pulse-ring 2.4s var(--ease-out) infinite;
+}
+@keyframes pulse-ring {
+  from { transform: scale(0.85); opacity: 0.7; }
+  to { transform: scale(1.6); opacity: 0; }
+}
+
+/* Slow colour drift behind the glass (transform only). */
+@utility aurora-a {
+  animation: drift-a 18s ease-in-out infinite alternate;
+}
+@utility aurora-b {
+  animation: drift-b 22s ease-in-out infinite alternate;
+}
+@utility aurora-c {
+  animation: drift-c 26s ease-in-out infinite alternate;
+}
+@keyframes drift-a {
+  to { transform: translate3d(8vw, 6vw, 0) scale(1.1); }
+}
+@keyframes drift-b {
+  to { transform: translate3d(-10vw, 8vw, 0) scale(0.92); }
+}
+@keyframes drift-c {
+  to { transform: translate3d(6vw, -8vw, 0) scale(1.15); }
+}
+
+/* Gentle hover for floating cards. */
+@utility float-bob {
+  animation: bob 6s ease-in-out infinite;
+}
+@keyframes bob {
+  50% { transform: translateY(-8px); }
+}
+
+/* Typing indicator dots. */
+@utility dot-bounce {
+  animation: dot 1s infinite ease-in-out;
+}
+@keyframes dot {
+  0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+  40% { transform: translateY(-3px); opacity: 1; }
+}
+
+@utility marquee {
+  animation: marquee 32s linear infinite;
+}
+@keyframes marquee {
+  to { transform: translateX(-50%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
   }
 }
