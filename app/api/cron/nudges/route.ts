@@ -1,5 +1,5 @@
-import { timingSafeEqual } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthorizedCron } from "@/lib/cron/auth";
 import { runNudgeCheck } from "@/lib/nudges/checkRules";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
@@ -48,12 +48,7 @@ async function acquireNudgesCronLock(client: ServiceRoleClient): Promise<boolean
 // pg_cron calling this over http, an external uptime-style pinger) at
 // this same URL with the same header; nothing else here is Vercel-specific.
 export async function GET(request: NextRequest) {
-  const secret = process.env.CRON_SECRET;
-  const authHeader = request.headers.get("authorization");
-
-  const expected = Buffer.from(`Bearer ${secret ?? ""}`);
-  const received = Buffer.from(authHeader ?? "");
-  const authorized = Boolean(secret) && received.length === expected.length && timingSafeEqual(received, expected);
+  const authorized = isAuthorizedCron(request);
 
   if (!authorized) {
     return NextResponse.json({ error: "Forbidden." }, { status: 403 });

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { INBOUND_QUEUE_RETENTION_DAYS } from "@/lib/retention";
 
 export const metadata = {
   title: "Terms of Service | Mira for Business",
@@ -39,7 +40,7 @@ export default function TermsOfServicePage() {
               Terms of Service
             </h1>
             <p className="mt-2 text-xs font-medium uppercase tracking-wider text-slate-400">
-              Last updated: September 2026
+              Last updated: October 2026
             </p>
 
             <div className="mt-8 space-y-8 text-sm leading-7 text-slate-600">
@@ -113,6 +114,9 @@ export default function TermsOfServicePage() {
                   <li>Subscribers may request an export of their customer conversation logs and knowledge base within 30 days of cancellation.</li>
                   <li>After the 30-day grace period, all business knowledge data, uploaded catalogs, and associated customer chat histories will be permanently deleted from active production systems.</li>
                 </ul>
+                <p>
+                  Independently of cancellation, temporary processing records of incoming WhatsApp and email messages are deleted automatically {INBOUND_QUEUE_RETENTION_DAYS} days after receipt, whether or not your account is active.
+                </p>
               </section>
 
               <section className="space-y-3">

@@ -7,7 +7,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint app lib components middleware.ts",
-    "test": "tsx lib/ai/classifyIntent.test.ts && tsx lib/chat/matchProductImages.test.ts && tsx lib/email/parseInbound.test.ts && tsx lib/chat/inboundQueue.test.ts && tsx lib/whatsapp/sendTracking.test.ts && tsx lib/paystack.test.ts && tsx lib/orders/orders.test.ts && tsx lib/feedback/feedback.test.ts && tsx lib/grounding/grounding.test.ts && tsx lib/ai/previewReplay.test.ts && tsx lib/chat/history.test.ts && tsx lib/embed/embed.test.ts"
+    "test": "tsx lib/ai/classifyIntent.test.ts && tsx lib/chat/matchProductImages.test.ts && tsx lib/email/parseInbound.test.ts && tsx lib/chat/inboundQueue.test.ts && tsx lib/whatsapp/sendTracking.test.ts && tsx lib/paystack.test.ts && tsx lib/cron/purgeInboundQueues.test.ts && tsx lib/orders/orders.test.ts && tsx lib/feedback/feedback.test.ts && tsx lib/grounding/grounding.test.ts && tsx lib/ai/previewReplay.test.ts && tsx lib/chat/history.test.ts && tsx lib/embed/embed.test.ts"
   },
   "dependencies": {
     "@supabase/ssr": "^0.7.0",
