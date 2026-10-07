@@ -419,6 +419,8 @@ export function Pricing() {
 export function Footer() {
   const router = useRouter()
   const [sent, setSent] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [contactError, setContactError] = useState('')
   return (
     <footer className="mt-6 bg-mist">
       <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-16 sm:px-8 lg:grid-cols-2 lg:py-20">
@@ -446,9 +448,25 @@ export function Footer() {
 
         <form
           className="flex flex-col gap-3 rounded-card bg-surface p-6 shadow-soft"
-          onSubmit={(e) => {
+          onSubmit={async (e) => {
             e.preventDefault()
-            setSent(true)
+            const form = e.currentTarget
+            const f = Object.fromEntries(new FormData(form)) as Record<string, string>
+            if (!f.contact?.trim() || !f.message?.trim()) {
+              setContactError('Add a phone or email and a short message.')
+              return
+            }
+            setSending(true)
+            setContactError('')
+            try {
+              const res = await fetch('/api/contact', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(f) })
+              if (!res.ok) throw new Error('failed')
+              setSent(true)
+            } catch {
+              setContactError('Could not send that. Please try again, or email us directly.')
+            } finally {
+              setSending(false)
+            }
           }}
         >
           <p className="text-lg font-medium">Talk to the team</p>
@@ -470,8 +488,10 @@ export function Footer() {
                 What do you need help with?
                 <textarea name="message" rows={3} className="resize-none rounded-[16px] bg-mist px-4 py-3 text-[15px] text-ink outline-none focus:bg-line/60" />
               </label>
-              <Button type="submit" className="mt-1 self-start">
-                Send message
+              <input name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" className="hidden" />
+              {contactError && <p className="text-[13px] text-red-600">{contactError}</p>}
+              <Button type="submit" className="mt-1 self-start" disabled={sending}>
+                {sending ? 'Sending…' : 'Send message'}
               </Button>
             </>
           )}
@@ -483,9 +503,6 @@ export function Footer() {
         <span className="flex gap-4">
           <a href="/login" className="hover:text-ink">
             Log in
-          </a>
-          <a href="/design" className="hover:text-ink">
-            Design notes
           </a>
         </span>
       </div>

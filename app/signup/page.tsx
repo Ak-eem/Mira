@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -30,6 +30,12 @@ export default function SignupPage() {
   const [verificationBusy, setVerificationBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // The landing page footer passes ?email= so the visitor does not retype it.
+  useEffect(() => {
+    const prefill = new URLSearchParams(window.location.search).get("email");
+    if (prefill) setEmail(prefill);
+  }, []);
 
   async function sendVerification() {
     setError(null);
