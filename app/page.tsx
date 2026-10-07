@@ -28,7 +28,9 @@ export default function Home() {
           <Industries />
           <Features />
           <Steps />
-          <Pricing price={price} />
+          <div className="scroll-expand">
+            <Pricing price={price} />
+          </div>
         </main>
         <Footer />
       </div>

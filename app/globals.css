@@ -428,3 +428,26 @@ html {
   }
   .aurora-a, .aurora-b, .aurora-c { animation: none; }
 }
+
+/* ===== Scroll polish ===== */
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+}
+
+/* A section "expands" into place as it scrolls into view. Runs on the compositor via CSS
+   scroll-driven animations (Chrome, Edge, newer Safari), so it stays smooth; browsers
+   without support just show the section normally. Desktop only, to keep phones light. */
+@media (min-width: 768px) and (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    @keyframes expand-in {
+      from { transform: scale(0.9); opacity: 0.55; border-radius: 56px; }
+      to { transform: scale(1); opacity: 1; border-radius: 0; }
+    }
+    .scroll-expand {
+      transform-origin: 50% 0;
+      animation: expand-in linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 70%;
+    }
+  }
+}
