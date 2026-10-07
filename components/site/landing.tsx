@@ -61,6 +61,13 @@ const NAV = [
 export function Nav() {
   const [open, setOpen] = useState(false)
   return (
+    <>
+      {/* Frosted glass band across the top, so the page blurs softly beneath the nav */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-x-0 top-0 z-30 h-24 bg-gradient-to-b from-white/70 via-white/35 to-transparent backdrop-blur-xl backdrop-saturate-150"
+        style={{ maskImage: 'linear-gradient(#000 60%, transparent)', WebkitMaskImage: 'linear-gradient(#000 60%, transparent)' }}
+      />
     <header className="fixed inset-x-0 top-3 z-40 mx-auto flex w-full max-w-[1240px] items-center justify-between gap-4 px-3 sm:px-5">
       <div className="glass flex h-14 w-full items-center justify-between rounded-pill pr-2 pl-5">
         <a href="#top" aria-label="Mira home">
@@ -100,6 +107,7 @@ export function Nav() {
         </div>
       )}
     </header>
+    </>
   )
 }
 
