@@ -373,7 +373,7 @@ const INCLUDED = [
   'Unlimited conversations',
 ]
 
-export function Pricing() {
+export function Pricing({ price = 50000 }: { price?: number }) {
   return (
     <section id="pricing" className="relative isolate scroll-mt-24 py-14 lg:py-20">
       <Aurora className="-z-10" intensity={0.9} />
@@ -387,7 +387,7 @@ export function Pricing() {
           </div>
           <div className="relative">
             <p className="flex items-end gap-2">
-              <span className="text-[56px] leading-none font-medium tracking-[-0.04em] tabular-nums sm:text-[72px]">{naira(50000)}</span>
+              <span className="text-[56px] leading-none font-medium tracking-[-0.04em] tabular-nums sm:text-[72px]">{naira(price)}</span>
               <span className="pb-2 text-white/60">/month</span>
             </p>
             <div className="mt-6 flex flex-wrap gap-2.5">
