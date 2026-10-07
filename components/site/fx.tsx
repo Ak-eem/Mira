@@ -149,7 +149,7 @@ export function LivePulse({ className }: { className?: string }) {
       <span
         className="relative size-full rounded-full"
         style={{
-          background: 'radial-gradient(circle at 32% 28%, #fff 0%, #f7fbd9 40%, #f6d56b 80%, #c5dc45 100%)',
+          background: 'radial-gradient(circle at 32% 28%, #fff 0%, #f7fbd9 40%, #f1dfa0 80%, #c5dc45 100%)',
           boxShadow: 'inset -8px -10px 22px rgb(120 140 20 / 0.25), inset 6px 8px 16px rgb(255 255 255 / 0.9), 0 18px 40px -16px rgb(150 170 30 / 0.7)',
         }}
       />
