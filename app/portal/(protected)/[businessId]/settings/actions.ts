@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
+import { createClient } from "@/lib/supabase/server";
+import { CANCEL_CONFIRMATION_WORD } from "@/lib/cancelSubscription";
 import { saveDraft, publishRelease } from "@/lib/promptReleases";
 import { updateAgentSettings } from "@/lib/agentSettings";
 import { updateOrderTakingEnabled } from "@/lib/orderSettings";
@@ -98,6 +100,30 @@ export async function saveOrderTaking(businessId: string, enabled: boolean) {
   if (error) return { error };
 
   revalidatePath(`/portal/${businessId}/settings`);
+  return { error: null };
+}
+
+// Cancels the subscription. Takes effect immediately on every channel.
+//
+// Owner only (role = 'owner', not staff). The real permission check is inside
+// cancel_business_subscription (migration 0056), which RLS cannot express because
+// owners can only read their subscription row. This check just gives a clear
+// message first. The typed confirmation is re-checked here, not only in the UI.
+export async function cancelSubscription(businessId: string, confirmation: string): Promise<{ error: string | null }> {
+  const { owner, role } = await requireMembership(businessId);
+  if (!owner || role !== "owner") return { error: "Only the business owner can cancel the subscription." };
+  if (confirmation.trim() !== CANCEL_CONFIRMATION_WORD) {
+    return { error: `Type ${CANCEL_CONFIRMATION_WORD} exactly to confirm.` };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("cancel_business_subscription", { p_business_id: businessId });
+  if (error) {
+    console.error("cancel_business_subscription failed:", error);
+    return { error: "Could not cancel right now. Please try again, or contact support." };
+  }
+
+  revalidatePath(`/portal/${businessId}`, "layout");
   return { error: null };
 }
 

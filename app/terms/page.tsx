@@ -69,7 +69,7 @@ export default function TermsOfServicePage() {
               <section className="space-y-3">
                 <h2 className="text-lg font-semibold text-slate-900">3. Subscriptions, Fees &amp; Renewals</h2>
                 <p>
-                  Mira is offered on a subscription basis (monthly or annual billing cycles). Subscriptions automatically renew at the end of each billing period unless cancelled prior to the renewal date via the business dashboard.
+                  Mira is offered on a prepaid basis: each payment covers one billing period. Subscriptions do not renew automatically and we never charge you again without your action. When your paid period ends, Mira pauses on every channel (website chat, WhatsApp and email) until you pay again, and resumes as soon as your payment is confirmed. Messages your customers send while Mira is paused are not answered and are not replayed later. Your data is kept while Mira is paused.
                 </p>
                 <p>
                   Fees are non-refundable except where required by applicable law or specifically agreed upon in writing. We reserve the right to adjust pricing or modify feature tiers upon providing reasonable advance notice.
@@ -110,7 +110,7 @@ export default function TermsOfServicePage() {
                   Upon cancellation:
                 </p>
                 <ul className="list-disc pl-5 space-y-1">
-                  <li>Your active access to AI response generation will terminate at the end of your current billing period.</li>
+                  <li>Cancellation takes effect immediately, with no notice or waiting period. Mira stops responding on every channel (website chat, WhatsApp and email) and the chat widget is removed from your website. Fees already paid are not refunded (see Section 3).</li>
                   <li>Subscribers may request an export of their customer conversation logs and knowledge base within 30 days of cancellation.</li>
                   <li>After the 30-day grace period, all business knowledge data, uploaded catalogs, and associated customer chat histories will be permanently deleted from active production systems.</li>
                 </ul>

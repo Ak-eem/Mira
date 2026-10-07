@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
-import { isLocked } from "@/lib/plans";
+import { isCancelled, isLocked } from "@/lib/plans";
+import { businessNotFoundResponse } from "@/lib/chat/businessNotFound";
 import { CUSTOMER_DELIVERABLE_STATUSES } from "@/lib/orders/status";
 import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
 
@@ -24,7 +25,7 @@ return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
 
   const business = await client.from("businesses").select("id").eq("slug", slug).maybeSingle();
   if (business.error) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
-  if (!business.data) return NextResponse.json({ error: "Not found." }, { status: 404 });
+  if (!business.data) return businessNotFoundResponse();
 
   const { data: subscription, error: subscriptionError } = await client
     .from("business_subscriptions")
@@ -32,6 +33,8 @@ return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
     .eq("business_id", business.data.id)
     .maybeSingle();
   if (subscriptionError) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+  // Cancelled = the business no longer exists as far as the public is concerned.
+  if (isCancelled(subscription)) return businessNotFoundResponse();
   if (isLocked(subscription)) {
     return NextResponse.json({
       locked: true,

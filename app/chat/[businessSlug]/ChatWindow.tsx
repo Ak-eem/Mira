@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
+import { BusinessNotFound } from "./BusinessNotFound";
 import { Nunito } from "next/font/google";
 import { linkifyContent } from "@/lib/linkify";
 import { CUSTOMER_REASON_LABELS, FEEDBACK_REASONS, type FeedbackReason } from "@/lib/feedback/reasons";
@@ -157,6 +158,8 @@ export function ChatWindow({
   const [conversationEnded, setConversationEnded] = useState(false);
   const [ratingState, setRatingState] = useState<"pending" | "submitting" | "done" | "skipped">("pending");
   const [locked, setLocked] = useState(false);
+  // Set when any endpoint says this business no longer exists (e.g. it was cancelled while the chat was open).
+  const [unavailable, setUnavailable] = useState(false);
   const [expandedImage, setExpandedImage] = useState<{ url: string; name: string } | null>(null);
   const [notificationEmail, setNotificationEmail] = useState("");
   const [notificationSaving, setNotificationSaving] = useState(false);
@@ -223,6 +226,14 @@ export function ChatWindow({
           setLocked(true);
           clearInterval(interval);
           return;
+        }
+        if (res.status === 404) {
+          const body = (await res.json().catch(() => null)) as { code?: string } | null;
+          if (body?.code === "business_not_found") {
+            setUnavailable(true);
+            clearInterval(interval);
+            return;
+          }
         }
         if (!res.ok) return;
 
@@ -394,8 +405,10 @@ export function ChatWindow({
       });
 
       if (!res.ok) {
-        const data = (await res.json().catch(() => null)) as { locked?: boolean; error?: string } | null;
-        if (res.status === 402 || data?.locked) {
+        const data = (await res.json().catch(() => null)) as { locked?: boolean; error?: string; code?: string } | null;
+        if (res.status === 404 && data?.code === "business_not_found") {
+          setUnavailable(true);
+        } else if (res.status === 402 || data?.locked) {
           setLocked(true);
         } else {
           setError(GENERIC_ERROR_MESSAGE);
@@ -582,6 +595,8 @@ export function ChatWindow({
   // prompt. This mirrors the initial-load check in page.tsx for a
   // business that's inactive from the start; this is the same outcome
   // reached mid-session instead of at first render.
+  if (unavailable) return <BusinessNotFound embed={embedMode} />;
+
   if (locked) {
     return (
       <div

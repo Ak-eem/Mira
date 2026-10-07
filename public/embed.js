@@ -121,7 +121,6 @@
   shadow.appendChild(style);
   shadow.appendChild(panel);
   shadow.appendChild(bubble);
-  document.body.appendChild(host);
 
   bubble.addEventListener("click", toggle);
   document.addEventListener("keydown", function (e) {
@@ -157,5 +156,55 @@
     else open();
   }
 
-  window.MiraChat = { open: open, close: close, toggle: toggle };
+  var removed = false;
+
+  // Take the widget off the page entirely (cancelled or missing business).
+  // Idempotent. The host page's own script may still call MiraChat.open(), so
+  // the API stays defined and simply does nothing.
+  function removeWidget() {
+    removed = true;
+    isOpen = false;
+    if (host.parentNode) host.parentNode.removeChild(host);
+  }
+
+  // The chat page inside the iframe tells us when it has shown "Business not
+  // found" so the bubble disappears from the owner's site. Only our own origin
+  // is trusted, and the iframe is the only thing that can send this.
+  window.addEventListener("message", function (event) {
+    if (event.origin !== origin) return;
+    if (event.data && event.data.type === "mira:unavailable") removeWidget();
+  });
+
+  function mount() {
+    if (removed || host.parentNode) return;
+    document.body.appendChild(host);
+  }
+
+  // Ask Mira whether this business is switched on BEFORE showing anything, so a
+  // cancelled business never gets a bubble at all. Fails open: if the check
+  // can't complete (offline, blocked, slow), show the widget and let the chat
+  // page decide.
+  function checkThenMount() {
+    if (typeof fetch !== "function") return mount();
+    var done = false;
+    function finish(available) {
+      if (done) return;
+      done = true;
+      if (available) mount();
+      else removeWidget();
+    }
+    var timer = setTimeout(function () { finish(true); }, 4000);
+    fetch(origin + "/api/embed/status?slug=" + encodeURIComponent(businessSlug), { cache: "no-store" })
+      .then(function (res) { return res.json(); })
+      .then(function (data) { clearTimeout(timer); finish(!(data && data.available === false)); })
+      .catch(function () { clearTimeout(timer); finish(true); });
+  }
+
+  window.MiraChat = {
+    open: function () { if (!removed) open(); },
+    close: close,
+    toggle: function () { if (!removed) toggle(); },
+  };
+
+  checkThenMount();
 })();
