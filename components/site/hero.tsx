@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, type CSSProperties, type ReactNode } from 'react'
+import GlassSurface from './GlassSurface'
 import { naira } from '@/lib/site/format'
 import { ChatPanel, useChat } from './chat'
 import { Icon, type IconName } from './icons'
@@ -205,7 +206,20 @@ export function Hero() {
       <div aria-hidden="true" className="pointer-events-none absolute top-8 -right-28 size-[400px] rounded-full bg-[radial-gradient(closest-side,rgb(170_198_176/0.7),transparent)] sm:size-[600px]" />
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-surface" />
 
-      <div className="relative mx-3 flex max-w-[1100px] flex-col items-center rounded-[36px] glass-hero px-5 py-12 text-center sm:mx-auto sm:px-10 sm:py-16">
+      <GlassSurface
+        width="auto"
+        height="auto"
+        borderRadius={36}
+        backgroundOpacity={0.12}
+        saturation={1.4}
+        brightness={55}
+        opacity={0.9}
+        blur={14}
+        displace={0.5}
+        distortionScale={-150}
+        className="relative mx-3 max-w-[1100px] sm:mx-auto"
+      >
+        <div className="flex flex-col items-center px-3 py-10 text-center sm:px-10 sm:py-14">
 
         <h1 className="mt-4 text-[clamp(46px,8.6vw,112px)] leading-[0.98] font-medium tracking-[-0.045em] text-balance">
           {WORDS.map((w, i) =>
@@ -242,7 +256,8 @@ export function Hero() {
         <p className="mt-5 text-[13px] text-muted animate-rise" style={{ animationDelay: '520ms' }}>
           One plan, {naira(50000)}/month · Works on any website
         </p>
-      </div>
+        </div>
+      </GlassSurface>
 
       {/* The phone, standing up as you scroll, with the live chat inside */}
       <div id="demo" ref={stage} className="relative mx-auto mt-14 flex max-w-[1100px] scroll-mt-6 justify-center px-5 [perspective:1600px] sm:mt-16">
