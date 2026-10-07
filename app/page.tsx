@@ -1,6 +1,6 @@
 import { ChatWidget } from "@/components/site/chat";
 import { Hero } from "@/components/site/hero";
-import { Features, Footer, Industries, Nav, Preloader, Pricing, Steps } from "@/components/site/landing";
+import { Features, Footer, Industries, Nav, Pricing, Steps } from "@/components/site/landing";
 
 export default function Home() {
   // Same price the checkout charges (set in Vercel), so the page never drifts from billing.
@@ -14,7 +14,6 @@ export default function Home() {
         fontFamily: "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif",
       }}
     >
-      <Preloader />
       <div className="relative min-h-dvh overflow-x-clip bg-surface sm:m-3 sm:rounded-[32px]">
         {/* Frosted glass band across the top, so the page blurs softly beneath the nav */}
         <div

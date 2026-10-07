@@ -7,49 +7,6 @@ import { Aurora, InlineIcon } from './hero'
 import { Icon } from './icons'
 import { Badge, Button, Chip, Logo, Orb, ProductImage, Toggle } from './ui'
 
-/* ---------- Preloader: the frosted orb counting up, once per visit ---------- */
-
-export function Preloader() {
-  const [n, setN] = useState(0)
-  const [gone, setGone] = useState(false)
-  const [skip, setSkip] = useState(true)
-
-  useEffect(() => {
-    try {
-      if (sessionStorage.getItem('mira-seen')) return
-      sessionStorage.setItem('mira-seen', '1')
-    } catch {}
-    const start = performance.now()
-    let raf = 0
-    const tick = (t: number) => {
-      const p = Math.min(1, (t - start) / 900)
-      setN(Math.round((1 - Math.pow(1 - p, 3)) * 100))
-      if (p < 1) raf = requestAnimationFrame(tick)
-      else setTimeout(() => setGone(true), 180)
-    }
-    raf = requestAnimationFrame(() => {
-      setSkip(false)
-      raf = requestAnimationFrame(tick)
-    })
-    return () => cancelAnimationFrame(raf)
-  }, [])
-
-  if (skip) return null
-  return (
-    <div
-      aria-hidden="true"
-      className={cx('fixed inset-0 z-[100] grid place-items-center bg-[#f2f2f4] transition-opacity duration-300', gone && 'pointer-events-none opacity-0')}
-    >
-      <div className="flex flex-col items-center gap-8">
-        <Orb className="size-[min(56vw,300px)]">
-          <span className="text-3xl tracking-tight text-ink-2">Mira</span>
-        </Orb>
-        <span className="font-mono text-xs text-muted tabular-nums">{n}%</span>
-      </div>
-    </div>
-  )
-}
-
 /* ---------- Nav ---------- */
 
 const NAV = [
