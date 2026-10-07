@@ -3,6 +3,8 @@ import { Hero } from "@/components/site/hero";
 import { Features, Footer, Industries, Nav, Preloader, Pricing, Steps } from "@/components/site/landing";
 
 export default function Home() {
+  // Same price the checkout charges (set in Vercel), so the page never drifts from billing.
+  const price = Number(process.env.PAYSTACK_BASE_AMOUNT_NGN) || 50000;
   return (
     <div
       className="min-h-dvh"
@@ -22,11 +24,11 @@ export default function Home() {
         />
         <Nav />
         <main className="relative">
-          <Hero />
+          <Hero price={price} />
           <Industries />
           <Features />
           <Steps />
-          <Pricing />
+          <Pricing price={price} />
         </main>
         <Footer />
       </div>

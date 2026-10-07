@@ -163,7 +163,7 @@ function IconDot({ name, dark }: { name: IconName; dark?: boolean }) {
 
 const WORDS = ['Every', 'customer', 'question,', '#icons', 'answered', 'with', 'confidence.']
 
-export function Hero() {
+export function Hero({ price = 50000 }: { price?: number }) {
   const stage = useRef<HTMLDivElement>(null)
   const tilt = useRef<HTMLDivElement>(null)
 
@@ -254,7 +254,7 @@ export function Hero() {
           </a>
         </div>
         <p className="mt-5 text-[13px] text-muted animate-rise" style={{ animationDelay: '520ms' }}>
-          One plan, {naira(50000)}/month · Works on any website
+          One plan, {naira(price)}/month · Works on any website
         </p>
         </div>
       </GlassSurface>
