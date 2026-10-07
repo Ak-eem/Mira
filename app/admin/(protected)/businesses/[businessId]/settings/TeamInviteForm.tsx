@@ -62,7 +62,7 @@ export function TeamInviteForm({ businessId }: TeamInviteFormProps) {
         onChange={(event) => setEmail(event.target.value)}
         placeholder="teammate@example.com"
         aria-label="Teammate email address"
-        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-none ring-indigo-500 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2"
+        className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-sm outline-hidden ring-indigo-500 placeholder:text-slate-400 focus:border-indigo-500 focus:ring-2"
       />
       <button
         type="submit"

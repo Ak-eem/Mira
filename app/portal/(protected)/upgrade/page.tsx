@@ -60,7 +60,7 @@ export default async function PortalUpgradePage({
           };
 
   return (
-    <main className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+    <main className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white p-8 text-center shadow-xs">
       <p className="text-sm font-medium text-accent">{business.name}</p>
       <h1 className="mt-2 text-2xl font-semibold text-slate-900">{copy.title}</h1>
       <p className="mt-3 text-sm leading-6 text-slate-600">{copy.body}</p>
@@ -70,7 +70,7 @@ export default async function PortalUpgradePage({
           <SubscribeButton plan="base" businessName={business.name} email={user.email ?? ""} />
         </Suspense>
       </div>
-      <Link href="/portal" className="mt-6 inline-flex rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">Back to businesses</Link>
+      <Link href="/portal" className="mt-6 inline-flex rounded-sm border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">Back to businesses</Link>
     </main>
   );
 }

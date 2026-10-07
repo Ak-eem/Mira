@@ -109,7 +109,7 @@ export async function AnalyticsPanel({ snapshot, baseHref, businessName }: { sna
                 {snapshot.popularProducts.map((p) => (
                   <li key={p.productName} className="flex items-center justify-between gap-3">
                     <span className="truncate text-slate-700">{p.productName}</span>
-                    <span className="flex-shrink-0 font-semibold text-slate-900">{p.mentionCount}</span>
+                    <span className="shrink-0 font-semibold text-slate-900">{p.mentionCount}</span>
                   </li>
                 ))}
               </ul>

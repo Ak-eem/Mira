@@ -7,6 +7,7 @@ import { CANCEL_CONFIRMATION_WORD } from "@/lib/cancelSubscription";
 import { saveDraft, publishRelease } from "@/lib/promptReleases";
 import { updateAgentSettings } from "@/lib/agentSettings";
 import { updateOrderTakingEnabled } from "@/lib/orderSettings";
+import { updateGroundingSettings } from "@/lib/groundingSettings";
 import type { ProviderName } from "@/lib/ai/geminiFetch";
 
 // Both actions require the caller to actually be linked to this business
@@ -123,5 +124,22 @@ export async function cancelSubscription(businessId: string, confirmation: strin
   }
 
   revalidatePath(`/portal/${businessId}`, "layout");
+  return { error: null };
+}
+
+// Thresholds for the answer-quality review. Owner-only, like the other AI
+// behaviour switches: it decides what lands on the team's review list and
+// whether weak replies can hand a chat to a person.
+export async function saveGroundingSettings(businessId: string, reviewLevel: string, escalateRepeat: boolean) {
+  const { owner, role } = await requireMembership(businessId);
+  if (!owner || !role) return { error: "Not authorized." };
+  if (role !== "owner") return { error: "Only the business owner can change this." };
+  if (reviewLevel !== "low" && reviewLevel !== "medium") return { error: "Invalid review level." };
+
+  const { error } = await updateGroundingSettings(businessId, reviewLevel, escalateRepeat === true);
+  if (error) return { error };
+
+  revalidatePath(`/portal/${businessId}/settings`);
+  revalidatePath(`/portal/${businessId}/review`);
   return { error: null };
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -30,6 +30,12 @@ export default function SignupPage() {
   const [verificationBusy, setVerificationBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  // The landing page footer passes ?email= so the visitor does not retype it.
+  useEffect(() => {
+    const prefill = new URLSearchParams(window.location.search).get("email");
+    if (prefill) setEmail(prefill);
+  }, []);
 
   async function sendVerification() {
     setError(null);
@@ -149,7 +155,7 @@ export default function SignupPage() {
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-12 text-slate-900">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(125,211,252,0.35),_transparent_45%),radial-gradient(circle_at_bottom_right,_rgba(165,243,252,0.4),_transparent_42%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(165,243,252,0.4),transparent_42%)]" />
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">
           <Link href="/" className="text-2xl font-semibold tracking-tight text-slate-900">
@@ -158,7 +164,7 @@ export default function SignupPage() {
           <p className="mt-3 text-sm text-slate-600">Create your account and get your business ready for what’s next.</p>
         </div>
 
-        <div className="space-y-5 rounded-[2rem] border border-white/80 bg-white/65 p-7 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl sm:p-8">
+        <div className="space-y-5 rounded-4xl border border-white/80 bg-white/65 p-7 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl sm:p-8">
           <GoogleAuthButton next="/portal/signup/complete" label="Sign up with Google" />
 
           <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-400">
@@ -172,7 +178,7 @@ export default function SignupPage() {
             <label className="block text-sm font-medium text-slate-700">Email</label>
             <input
               type="email"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
               value={email}
               onChange={(e) => { setEmail(e.target.value); setEmailVerified(false); }}
               required
@@ -198,7 +204,7 @@ export default function SignupPage() {
                   inputMode="numeric"
                   pattern="[0-9]{6}"
                   maxLength={6}
-                  className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm tracking-[0.3em] outline-none transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
+                  className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm tracking-[0.3em] outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
                   value={otp}
                   onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
                   required
@@ -221,7 +227,7 @@ export default function SignupPage() {
             <label className="block text-sm font-medium text-slate-700">Password</label>
             <input
               type="password"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               minLength={6}
@@ -233,7 +239,7 @@ export default function SignupPage() {
             <label className="block text-sm font-medium text-slate-700">Confirm password</label>
             <input
               type="password"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-none transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
+              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               minLength={6}

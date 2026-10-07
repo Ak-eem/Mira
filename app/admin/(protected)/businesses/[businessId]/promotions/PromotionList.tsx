@@ -54,7 +54,7 @@ export function PromotionList({
             onCancel={() => setEditingId(null)}
           />
         ) : (
-          <li key={p.id} className="rounded border border-slate-200 bg-white p-3">
+          <li key={p.id} className="rounded-sm border border-slate-200 bg-white p-3">
             <p className="text-sm">{p.description}</p>
             <p className="mt-1 text-xs text-slate-400">
               {p.starts_at ? new Date(p.starts_at).toLocaleDateString(undefined, { timeZone: businessTimezone }) : "no start date"} –{" "}
@@ -119,10 +119,10 @@ function EditPromotionRow({
   }
 
   return (
-    <li className="space-y-2 rounded border border-accent bg-white p-3">
-      <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={description} onChange={(e) => setDescription(e.target.value)} />
+    <li className="space-y-2 rounded-sm border border-accent bg-white p-3">
+      <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={description} onChange={(e) => setDescription(e.target.value)} />
       {services.length > 0 && (
-        <select className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
+        <select className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
           <option value="">Applies to all services</option>
           {services.map((s) => (
             <option key={s.id} value={s.id}>{s.name} only</option>
@@ -130,8 +130,8 @@ function EditPromotionRow({
         </select>
       )}
       <div className="flex gap-2">
-        <input type="date" className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
-        <input type="date" className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+        <input type="date" className="flex-1 rounded-sm border border-slate-300 px-2 py-1 text-sm" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+        <input type="date" className="flex-1 rounded-sm border border-slate-300 px-2 py-1 text-sm" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
       </div>
       <label className="flex items-center gap-2 text-xs">
         <input type="checkbox" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
@@ -139,10 +139,10 @@ function EditPromotionRow({
       </label>
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button onClick={handleSave} disabled={saving} className="rounded bg-accent px-3 py-1 text-xs font-medium text-white disabled:opacity-50">
+        <button onClick={handleSave} disabled={saving} className="rounded-sm bg-accent px-3 py-1 text-xs font-medium text-white disabled:opacity-50">
           {saving ? "Saving…" : "Save"}
         </button>
-        <button onClick={onCancel} className="rounded border border-slate-300 px-3 py-1 text-xs">
+        <button onClick={onCancel} className="rounded-sm border border-slate-300 px-3 py-1 text-xs">
           Cancel
         </button>
       </div>

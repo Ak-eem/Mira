@@ -41,7 +41,7 @@ export function DeleteBusinessPanel({ businessId, businessName }: { businessId: 
         Type <span className="font-mono">{businessName}</span> to confirm
       </label>
       <input
-        className="mt-1 w-full rounded border border-red-300 bg-white px-3 py-2 text-sm focus:border-red-500 focus:outline-none focus:ring-1 focus:ring-red-500"
+        className="mt-1 w-full rounded-sm border border-red-300 bg-white px-3 py-2 text-sm focus:border-red-500 focus:outline-hidden focus:ring-1 focus:ring-red-500"
         value={confirmText}
         onChange={(e) => setConfirmText(e.target.value)}
       />
@@ -51,7 +51,7 @@ export function DeleteBusinessPanel({ businessId, businessName }: { businessId: 
       <button
         onClick={handleDelete}
         disabled={!matches || deleting}
-        className="mt-3 rounded bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
+        className="mt-3 rounded-sm bg-red-600 px-4 py-2 text-sm font-medium text-white hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-40"
       >
         {deleting ? "Deleting…" : "Delete business permanently"}
       </button>

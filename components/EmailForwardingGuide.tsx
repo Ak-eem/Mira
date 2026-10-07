@@ -27,7 +27,7 @@ export function EmailForwardingGuide({ inboundAddress }: { inboundAddress: strin
         </p>
         <p className="mt-1">
           Once configured, the address will look something like{" "}
-          <code className="rounded bg-slate-100 px-1 py-0.5 font-mono">anything@yourbusiness.resend.app</code>.
+          <code className="rounded-sm bg-slate-100 px-1 py-0.5 font-mono">anything@yourbusiness.resend.app</code>.
         </p>
       </div>
     );
@@ -43,7 +43,7 @@ export function EmailForwardingGuide({ inboundAddress }: { inboundAddress: strin
         <button
           type="button"
           onClick={copyAddress}
-          className="flex-shrink-0 self-start rounded border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 sm:self-auto"
+          className="shrink-0 self-start rounded-sm border border-slate-300 bg-white px-2 py-1 text-xs font-medium text-slate-700 transition hover:bg-slate-50 sm:self-auto"
         >
           {copied ? "Copied!" : "Copy address"}
         </button>

@@ -20,7 +20,7 @@ export default function Error({
         <button
           type="button"
           onClick={() => reset()}
-          className="rounded-xl border border-cyan-200/30 bg-cyan-400/20 px-5 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/30 focus:outline-none focus:ring-2 focus:ring-cyan-300/70"
+          className="rounded-xl border border-cyan-200/30 bg-cyan-400/20 px-5 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/30 focus:outline-hidden focus:ring-2 focus:ring-cyan-300/70"
         >
           Try again
         </button>

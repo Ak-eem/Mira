@@ -43,7 +43,7 @@ export function ClosureList({ closures, businessTimezone }: { closures: Closure[
             onCancel={() => setEditingId(null)}
           />
         ) : (
-          <li key={c.id} className="rounded border border-slate-200 bg-white p-3">
+          <li key={c.id} className="rounded-sm border border-slate-200 bg-white p-3">
             <p className="text-sm">{c.reason ?? "Temporarily closed"}</p>
             <p className="mt-1 text-xs text-slate-400">
               {new Date(c.starts_at).toLocaleString(undefined, { timeZone: businessTimezone })} –{" "}
@@ -101,18 +101,18 @@ function EditClosureRow({
   }
 
   return (
-    <li className="space-y-2 rounded border border-accent bg-white p-3">
+    <li className="space-y-2 rounded-sm border border-accent bg-white p-3">
       <div className="flex gap-2">
-        <input type="datetime-local" className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
-        <input type="datetime-local" className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
+        <input type="datetime-local" className="flex-1 rounded-sm border border-slate-300 px-2 py-1 text-sm" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
+        <input type="datetime-local" className="flex-1 rounded-sm border border-slate-300 px-2 py-1 text-sm" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} />
       </div>
-      <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason" />
+      <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={reason} onChange={(e) => setReason(e.target.value)} placeholder="Reason" />
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button onClick={handleSave} disabled={saving} className="rounded bg-accent px-3 py-1 text-xs font-medium text-white disabled:opacity-50">
+        <button onClick={handleSave} disabled={saving} className="rounded-sm bg-accent px-3 py-1 text-xs font-medium text-white disabled:opacity-50">
           {saving ? "Saving…" : "Save"}
         </button>
-        <button onClick={onCancel} className="rounded border border-slate-300 px-3 py-1 text-xs">
+        <button onClick={onCancel} className="rounded-sm border border-slate-300 px-3 py-1 text-xs">
           Cancel
         </button>
       </div>

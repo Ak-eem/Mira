@@ -34,7 +34,7 @@ export function OrderTakingPanel({
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Order taking</p>
         <h2 className="mt-1 text-lg font-semibold">Let Mira take orders in chat</h2>
@@ -52,7 +52,7 @@ export function OrderTakingPanel({
           checked={enabled}
           disabled={!canEdit}
           onChange={(e) => setEnabled(e.target.checked)}
-          className="h-4 w-4 rounded border-slate-300"
+          className="h-4 w-4 rounded-sm border-slate-300"
         />
         Allow Mira to take orders from customers
       </label>
@@ -66,7 +66,7 @@ export function OrderTakingPanel({
           type="button"
           onClick={handleSave}
           disabled={saving}
-          className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+          className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
         >
           {saving ? "Saving…" : saved ? "Saved" : "Save"}
         </button>

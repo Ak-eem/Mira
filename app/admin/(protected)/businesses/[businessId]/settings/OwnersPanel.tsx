@@ -59,7 +59,7 @@ export function OwnersPanel({ businessId, owners }: { businessId: string; owners
       <form onSubmit={handleInvite} className="flex gap-2">
         <input
           type="email"
-          className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm"
+          className="flex-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
           placeholder="owner@business.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -68,7 +68,7 @@ export function OwnersPanel({ businessId, owners }: { businessId: string; owners
         <button
           type="submit"
           disabled={submitting}
-          className="rounded bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+          className="rounded-sm bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
         >
           {submitting ? "Inviting…" : "Invite"}
         </button>

@@ -7,6 +7,8 @@ import { getAgentSettings } from "@/lib/agentSettings";
 import { PromptEditor } from "./PromptEditor";
 import { AgentSettingsPanel } from "./AgentSettingsPanel";
 import { OrderTakingPanel } from "./OrderTakingPanel";
+import { GroundingPanel } from "./GroundingPanel";
+import { getGroundingSettings } from "@/lib/grounding/settings";
 import { CancelSubscriptionPanel } from "./CancelSubscriptionPanel";
 import { getOrderTakingEnabled } from "@/lib/orderSettings";
 
@@ -24,13 +26,14 @@ export default async function PortalSettingsPage({ params }: PageProps) {
   if (!owner || !membership) redirect("/portal/login");
 
   const supabase = await createClient();
-  const [draft, active, history, agentSettings, orderTakingEnabled, { data: emailBusiness }] = await Promise.all([
+  const [draft, active, history, agentSettings, orderTakingEnabled, { data: emailBusiness }, groundingSettings] = await Promise.all([
     getCurrentDraft(businessId),
     getActiveRelease(businessId),
     getPublishedHistory(businessId),
     getAgentSettings(businessId),
     getOrderTakingEnabled(businessId),
     supabase.from("businesses").select("email_inbound_address").eq("id", businessId).maybeSingle(),
+    getGroundingSettings(supabase, businessId),
   ]);
   const businessName = membership.name ?? "your business";
   const inboundAddress: string | null = emailBusiness?.email_inbound_address ?? null;
@@ -58,8 +61,15 @@ export default async function PortalSettingsPage({ params }: PageProps) {
         canEdit={membership.role === "owner"}
       />
 
+      <GroundingPanel
+        businessId={businessId}
+        initialLevel={groundingSettings.reviewLevel}
+        initialEscalate={groundingSettings.escalateRepeat}
+        canEdit={membership.role === "owner"}
+      />
+
       {inboundAddress && (
-        <section className="space-y-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="space-y-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
           <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Email</p>
           <h2 className="text-lg font-semibold">Let Mira answer your customer emails</h2>
           <p className="text-sm text-slate-500">

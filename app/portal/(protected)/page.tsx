@@ -7,7 +7,7 @@ export default async function PortalHomePage() {
 
   if (!owner) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+      <div className="rounded-xl border border-slate-200 bg-white p-8 text-center shadow-xs">
         <h1 className="text-2xl font-semibold tracking-tight text-slate-900">
           No business linked yet
         </h1>
@@ -16,7 +16,7 @@ export default async function PortalHomePage() {
         </p>
         <Link
           href="/portal/login"
-          className="mt-6 inline-flex rounded bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark"
+          className="mt-6 inline-flex rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark"
         >
           Use a different account
         </Link>
@@ -36,7 +36,7 @@ export default async function PortalHomePage() {
           <li key={business.id}>
             <Link
               href={`/portal/${business.id}`}
-              className="block rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-sm transition hover:border-accent"
+              className="block rounded-xl border border-slate-200 bg-white px-4 py-3 shadow-xs transition hover:border-accent"
             >
               {business.name}
             </Link>

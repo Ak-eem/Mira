@@ -196,7 +196,7 @@ export async function generateReply(
 export async function generateReplyWithMetadata(
   systemPrompt: string,
   messages: LlmMessage[],
-  options: { orderTool?: boolean } = {},
+  options: { orderTool?: boolean; disableTools?: boolean } = {},
 ): Promise<{ text: string; metadata: JsonFetchMetadata; orderRequest?: OrderRequest }> {
   const provider = getProvider();
   const apiKey = getApiKey(provider);
@@ -211,9 +211,15 @@ export async function generateReplyWithMetadata(
 
   const result = await geminiFetchJsonWithMetadata(apiKey, {
     ...buildRequestBody(systemPrompt, messages),
-    tools: options.orderTool
-      ? [{ function_declarations: [...URL_FETCH_TOOL.function_declarations, ...PLACE_ORDER_TOOL.function_declarations] }]
-      : [URL_FETCH_TOOL],
+    // disableTools is for previews: no outbound URL fetches and no order tool,
+    // so replaying a past conversation can't reach out to the world.
+    ...(options.disableTools
+      ? {}
+      : {
+          tools: options.orderTool
+            ? [{ function_declarations: [...URL_FETCH_TOOL.function_declarations, ...PLACE_ORDER_TOOL.function_declarations] }]
+            : [URL_FETCH_TOOL],
+        }),
   });
   const data = result.data as {
     candidates?: { content?: { parts?: { text?: string }[] } }[];

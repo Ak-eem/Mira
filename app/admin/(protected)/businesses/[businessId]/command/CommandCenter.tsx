@@ -122,14 +122,14 @@ export function CommandCenter({ businessId }: { businessId: string }) {
               <button
                 onClick={() => handleConfirm(pending.action, pending.payload)}
                 disabled={executing}
-                className="rounded bg-accent px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                className="rounded-sm bg-accent px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
               >
                 {executing ? "Working…" : "Confirm"}
               </button>
               <button
                 onClick={handleCancel}
                 disabled={executing}
-                className="rounded border border-slate-300 px-3 py-1.5 text-xs"
+                className="rounded-sm border border-slate-300 px-3 py-1.5 text-xs"
               >
                 Cancel
               </button>
@@ -147,7 +147,7 @@ export function CommandCenter({ businessId }: { businessId: string }) {
                   onClick={() =>
                     setPending({ kind: "confirm", action: pending.action, summary: opt.summary, payload: opt.payload })
                   }
-                  className="block w-full rounded border border-slate-300 px-3 py-2 text-left text-sm hover:border-accent"
+                  className="block w-full rounded-sm border border-slate-300 px-3 py-2 text-left text-sm hover:border-accent"
                 >
                   {opt.label}
                 </button>
@@ -162,7 +162,7 @@ export function CommandCenter({ businessId }: { businessId: string }) {
 
       <form onSubmit={handleSend} className="flex gap-2 border-t border-slate-200 p-3">
         <input
-          className="flex-1 rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+          className="flex-1 rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Tell Mira what to change…"
@@ -171,7 +171,7 @@ export function CommandCenter({ businessId }: { businessId: string }) {
         <button
           type="submit"
           disabled={thinking || !!pending || !input.trim()}
-          className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+          className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
         >
           Send
         </button>

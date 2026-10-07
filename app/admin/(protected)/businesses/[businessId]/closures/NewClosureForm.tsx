@@ -39,16 +39,16 @@ export function NewClosureForm({ businessId }: { businessId: string }) {
       <div className="flex gap-2">
         <div className="flex-1">
           <label className="block text-xs text-slate-500">From</label>
-          <input type="datetime-local" className="w-full rounded border border-slate-300 px-3 py-2 text-sm" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required />
+          <input type="datetime-local" className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required />
         </div>
         <div className="flex-1">
           <label className="block text-xs text-slate-500">Until</label>
-          <input type="datetime-local" className="w-full rounded border border-slate-300 px-3 py-2 text-sm" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} required />
+          <input type="datetime-local" className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} required />
         </div>
       </div>
 
       <input
-        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
         placeholder="Reason (optional, e.g. 'Closed for renovation')"
         value={reason}
         onChange={(e) => setReason(e.target.value)}
@@ -59,7 +59,7 @@ export function NewClosureForm({ businessId }: { businessId: string }) {
       <button
         type="submit"
         disabled={submitting}
-        className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
       >
         {submitting ? "Adding…" : "Add closure"}
       </button>
