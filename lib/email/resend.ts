@@ -4,6 +4,7 @@ type ResendEmailInput = {
   to: string;
   subject: string;
   html: string;
+  replyTo?: string;
 };
 
 type ResendResponse = {
@@ -14,6 +15,7 @@ export async function sendEmailWithResend({
   to,
   subject,
   html,
+  replyTo,
 }: ResendEmailInput): Promise<{ id: string | null }> {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.RESEND_FROM_EMAIL;
@@ -28,7 +30,7 @@ export async function sendEmailWithResend({
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ from, to: [to], subject, html }),
+    body: JSON.stringify({ from, to: [to], subject, html, ...(replyTo ? { reply_to: replyTo } : {}) }),
     cache: "no-store",
   });
 
