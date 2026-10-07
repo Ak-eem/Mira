@@ -95,21 +95,21 @@ function StoreScreen() {
       {/* The store's site underneath */}
       <div className="absolute inset-0 bg-[#f6f3ec]">
         <div className="flex items-center justify-between px-5 pt-[56px] text-[13px]">
-          <span className="font-semibold tracking-[0.18em] uppercase">Adire Lane</span>
+          <span className="font-semibold tracking-[0.18em] uppercase">Mira</span>
           <Icon name="menu" size={18} />
         </div>
         <div className="relative mx-4 mt-4 h-[46%] overflow-hidden rounded-[24px]">
-          <ProductImage name="New in" tint="lime" className="absolute inset-0" />
+          <ProductImage name="Mira" tint="lime" className="absolute inset-0" />
           <span className="absolute -right-6 -bottom-10 size-48 rounded-full bg-[radial-gradient(circle_at_30%_30%,#fff,#e8e2d4_60%,#d7cfbd)] shadow-[inset_-10px_-14px_30px_rgb(0_0_0/0.08)]" />
           <span className="absolute top-5 left-5 text-[22px] leading-tight font-medium tracking-tight">
-            New in:
+            Always on:
             <br />
-            indigo adire
+            every customer answered
           </span>
         </div>
         <div className="mx-4 mt-3 grid grid-cols-2 gap-2.5">
-          <ProductImage name="Kaftan" tint="sand" className="h-24 rounded-[18px]" />
-          <ProductImage name="Wrap dress" tint="mist" className="h-24 rounded-[18px]" />
+          <ProductImage name="WhatsApp" tint="sand" className="h-24 rounded-[18px]" />
+          <ProductImage name="Website chat" tint="mist" className="h-24 rounded-[18px]" />
         </div>
       </div>
       {/* Mira, as a frosted sheet over the store */}
