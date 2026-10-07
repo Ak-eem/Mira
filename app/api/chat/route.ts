@@ -5,7 +5,8 @@ import { processIncomingMessage } from "@/lib/chat/processIncomingMessage";
 import { withConversationLease } from "@/lib/chat/durable";
 import { CHAT_RATE_LIMIT_PER_MINUTE, checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { isLocked } from "@/lib/plans";
+import { isCancelled, isLocked } from "@/lib/plans";
+import { businessNotFoundResponse } from "@/lib/chat/businessNotFound";
 
 // Public, unauthenticated landing-page widgets get a tighter per-IP cap on top of
 // the normal limits. "mira" is the "Mira for Mira" widget on the homepage.
@@ -56,9 +57,7 @@ export async function POST(request: NextRequest) {
 
   const business = await client.from("businesses").select("id,is_active").eq("slug", slug).maybeSingle();
   if (business.error) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
-  if (!business.data || !business.data.is_active) {
-    return NextResponse.json({ error: "Business not found." }, { status: 404 });
-  }
+  if (!business.data || !business.data.is_active) return businessNotFoundResponse();
 
   // Checked before leasing the conversation or touching processMessage --
   // a locked business shouldn't get a customer message written at all,
@@ -71,6 +70,8 @@ export async function POST(request: NextRequest) {
     .eq("business_id", business.data.id)
     .maybeSingle();
   if (subscriptionError) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
+  // Cancelled = the business no longer exists as far as the public is concerned.
+  if (isCancelled(subscription)) return businessNotFoundResponse();
   if (isLocked(subscription)) {
     return NextResponse.json(
       {

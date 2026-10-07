@@ -8,17 +8,17 @@ import type { ChatMessage, Product } from '@/lib/site/types'
 import { Icon } from './icons'
 import { Badge, Logo, ProductImage } from './ui'
 
-const BUSINESS_NAME = 'Mira Demo Cafe'
-const BUSINESS_SLUG = 'mira-demo-cafe'
+const BUSINESS_NAME = 'Mira'
+const BUSINESS_SLUG = 'mira'
 const VISITOR_ID_KEY = 'mira-demo-visitor-id'
-const SUGGESTIONS = ['Show me the coffee menu', 'Do you have brunch?', 'What time do you close?', 'Can I order takeaway?']
+const SUGGESTIONS = ['What can Mira do?', 'How much does it cost?', 'Does it work on WhatsApp?', 'How do I get started?']
 
 const now = () => new Date().toISOString()
 
 const greeting = (): ChatMessage => ({
   id: 'hello',
   from: 'assistant',
-  text: `Hi! I'm ${BUSINESS_NAME}'s assistant. Ask me about our menu or opening hours.`,
+  text: `Hi! I'm Mira. Ask me what Mira can do for your business, what it costs, or how to get started.`,
   at: now(),
 })
 
@@ -326,7 +326,7 @@ export function ChatPanel({ chat, compact = false, onClose }: { chat: ReturnType
           <Icon name="send" size={17} />
         </button>
       </form>
-      <p className="pb-2 text-center text-[11px] text-muted">Answers come only from {BUSINESS_NAME}&apos;s own info · Powered by Mira</p>
+      <p className="pb-2 text-center text-[11px] text-muted">This is Mira answering about itself</p>
 
       {preview && <Preview p={preview} onClose={() => setPreview(null)} />}
     </div>

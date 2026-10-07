@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { INBOUND_QUEUE_RETENTION_DAYS } from "@/lib/retention";
 
 export const metadata = {
   title: "Privacy Policy | Mira for Business",
@@ -39,7 +40,7 @@ export default function PrivacyPolicyPage() {
               Privacy Policy
             </h1>
             <p className="mt-2 text-xs font-medium uppercase tracking-wider text-slate-400">
-              Last updated: September 2026
+              Last updated: October 2026
             </p>
 
             <div className="mt-8 space-y-8 text-sm leading-7 text-slate-600">
@@ -75,6 +76,9 @@ export default function PrivacyPolicyPage() {
                     <strong>Order &amp; Inquiry Data:</strong> Details regarding product inquiries, appointment bookings, price checks, or order requests submitted through the chat interface.
                   </li>
                   <li>
+                    <strong>Feedback &amp; Review Data:</strong> Thumbs-up or thumbs-down ratings on AI replies, an optional reason a customer gives for a thumbs-down, and review notes that a business&apos;s own staff add about a reply.
+                  </li>
+                  <li>
                     <strong>Business Account Information:</strong> Account credentials, business profiles, knowledge base uploads (FAQs, product catalogs, service lists), and billing contact details for subscribing business owners.
                   </li>
                 </ul>
@@ -98,19 +102,49 @@ export default function PrivacyPolicyPage() {
                   Data is stored securely using cloud infrastructure provider Supabase, employing row-level security (RLS) policies to ensure complete multi-tenant data isolation between subscribing businesses.
                 </p>
                 <p>
+                  Separately from conversation history, when a WhatsApp or email message arrives we keep a temporary processing record of it (the message content and the sender&apos;s identifier) so it can be handled reliably and so duplicate deliveries are ignored. These processing records are deleted automatically {INBOUND_QUEUE_RETENTION_DAYS} days after the message was received, whether or not the business&apos;s account is still active.
+                </p>
+                <p>
                   We retain conversation history and customer interactions for as long as the subscribing business maintains an active account with Mira. If a business cancels its subscription or requests account deletion, data is retained for a brief grace period (up to 30 days) before permanent deletion from active databases, unless longer retention is required by applicable law.
                 </p>
               </section>
 
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold text-slate-900">5. NDPR Rights &amp; Data Protection Principles</h2>
+                <h2 className="text-lg font-semibold text-slate-900">5. Service Providers &amp; Data Sharing</h2>
+                <p>
+                  We use the following categories of third-party providers to run Mira. Each processes data on our behalf, under its own terms, only as needed to provide its part of the service:
+                </p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>
+                    <strong>Database &amp; file storage:</strong> Supabase.
+                  </li>
+                  <li>
+                    <strong>Application hosting:</strong> Vercel.
+                  </li>
+                  <li>
+                    <strong>AI language models:</strong> Google (Gemini) and Groq. The content of a conversation, together with the business&apos;s knowledge base, is sent to these providers so they can generate replies.
+                  </li>
+                  <li>
+                    <strong>Messaging:</strong> Meta (WhatsApp Business Platform) delivers WhatsApp messages, and Resend sends and receives email.
+                  </li>
+                  <li>
+                    <strong>Payments:</strong> Paystack processes subscription payments for subscribing businesses.
+                  </li>
+                </ul>
+                <p>
+                  Some of these providers process data outside Nigeria; for example, our database is hosted in Ireland. We do not sell end-customer data.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <h2 className="text-lg font-semibold text-slate-900">6. NDPR Rights &amp; Data Protection Principles</h2>
                 <p>
                   We adhere to key NDPR data protection principles including lawfulness, transparency, purpose limitation, and data minimization. End-customers wishing to access, correct, or request deletion of personal information stored within a business&apos;s Mira assistant should direct their requests to the relevant subscribing business (the Data Controller). Mira will assist the business in fulfilling valid data subject requests.
                 </p>
               </section>
 
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold text-slate-900">6. Contact Information</h2>
+                <h2 className="text-lg font-semibold text-slate-900">7. Contact Information</h2>
                 <p>
                   If you have questions regarding this Privacy Policy or Mira&apos;s data processing practices, please contact us through your business dashboard or by emailing privacy@mira.ng.
                 </p>

@@ -19,7 +19,7 @@ export function Aurora({ className = '', intensity = 1, fade = true }: { classNa
       className={`pointer-events-none absolute inset-0 overflow-hidden ${className}`}
       style={{ opacity: intensity, maskImage: mask, WebkitMaskImage: mask }}
     >
-      {blob({ width: '62vw', height: '62vw', left: '-14vw', top: '-18vw', background: 'radial-gradient(closest-side, rgb(246 213 107 / 0.75), rgb(246 213 107 / 0) 100%)' }, 'aurora-a')}
+      {blob({ width: '62vw', height: '62vw', left: '-14vw', top: '-18vw', background: 'radial-gradient(closest-side, rgb(241 223 160 / 0.75), rgb(241 223 160 / 0) 100%)' }, 'aurora-a')}
       {blob({ width: '56vw', height: '56vw', right: '-16vw', top: '-6vw', background: 'radial-gradient(closest-side, rgb(207 220 203 / 0.9), rgb(207 220 203 / 0) 100%)' }, 'aurora-b')}
       {blob({ width: '48vw', height: '48vw', left: '24vw', top: '30vw', background: 'radial-gradient(closest-side, rgb(251 240 204 / 0.95), rgb(251 240 204 / 0) 100%)' }, 'aurora-c')}
       {blob({ width: '40vw', height: '40vw', right: '4vw', top: '46vw', background: 'radial-gradient(closest-side, rgb(228 219 200 / 0.8), rgb(228 219 200 / 0) 100%)' }, 'aurora-a')}
@@ -95,21 +95,21 @@ function StoreScreen() {
       {/* The store's site underneath */}
       <div className="absolute inset-0 bg-[#f6f3ec]">
         <div className="flex items-center justify-between px-5 pt-[56px] text-[13px]">
-          <span className="font-semibold tracking-[0.18em] uppercase">Adire Lane</span>
+          <span className="font-semibold tracking-[0.18em] uppercase">Mira</span>
           <Icon name="menu" size={18} />
         </div>
         <div className="relative mx-4 mt-4 h-[46%] overflow-hidden rounded-[24px]">
-          <ProductImage name="New in" tint="lime" className="absolute inset-0" />
+          <ProductImage name="Mira" tint="lime" className="absolute inset-0" />
           <span className="absolute -right-6 -bottom-10 size-48 rounded-full bg-[radial-gradient(circle_at_30%_30%,#fff,#e8e2d4_60%,#d7cfbd)] shadow-[inset_-10px_-14px_30px_rgb(0_0_0/0.08)]" />
           <span className="absolute top-5 left-5 text-[22px] leading-tight font-medium tracking-tight">
-            New in:
+            Always on:
             <br />
-            indigo adire
+            every customer answered
           </span>
         </div>
         <div className="mx-4 mt-3 grid grid-cols-2 gap-2.5">
-          <ProductImage name="Kaftan" tint="sand" className="h-24 rounded-[18px]" />
-          <ProductImage name="Wrap dress" tint="mist" className="h-24 rounded-[18px]" />
+          <ProductImage name="WhatsApp" tint="sand" className="h-24 rounded-[18px]" />
+          <ProductImage name="Website chat" tint="mist" className="h-24 rounded-[18px]" />
         </div>
       </div>
       {/* Mira, as a frosted sheet over the store */}
@@ -202,8 +202,8 @@ export function Hero({ price = 50000 }: { price?: number }) {
   return (
     <section id="top" className="relative isolate overflow-hidden pt-28 pb-10 sm:pt-32">
       <Aurora fade={false} />
-      <div aria-hidden="true" className="pointer-events-none absolute -top-24 -left-28 size-[460px] rounded-full bg-[radial-gradient(closest-side,rgb(246_213_107/0.75),transparent)] sm:size-[680px]" />
-      <div aria-hidden="true" className="pointer-events-none absolute top-8 -right-28 size-[400px] rounded-full bg-[radial-gradient(closest-side,rgb(170_198_176/0.7),transparent)] sm:size-[600px]" />
+      <div aria-hidden="true" className="pointer-events-none absolute -top-24 -left-28 size-[460px] rounded-full bg-[radial-gradient(closest-side,rgb(241_223_160/0.5),transparent)] sm:size-[680px]" />
+      <div aria-hidden="true" className="pointer-events-none absolute top-8 -right-28 size-[400px] rounded-full bg-[radial-gradient(closest-side,rgb(205_214_160/0.5),transparent)] sm:size-[600px]" />
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-surface" />
 
       <GlassSurface
@@ -225,7 +225,7 @@ export function Hero({ price = 50000 }: { price?: number }) {
           {WORDS.map((w, i) =>
             w === '#icons' ? (
               <span key={w} className="mr-[0.22em] inline-flex translate-y-[0.06em] gap-[0.1em] align-baseline animate-pop" style={{ animationDelay: `${120 + i * 55}ms` }}>
-                <span className="grid size-[0.74em] place-items-center rounded-full bg-[linear-gradient(140deg,#fbf0cc,#f6d56b)] shadow-[inset_0_1px_0_#fff,0_10px_24px_-10px_rgb(200_140_0/0.6)]">
+                <span className="grid size-[0.74em] place-items-center rounded-full bg-[linear-gradient(140deg,#fbf0cc,#f1dfa0)] shadow-[inset_0_1px_0_#fff,0_10px_24px_-10px_rgb(200_140_0/0.35)]">
                   <Icon name="chat" size={40} className="size-[0.38em]" />
                 </span>
                 <span className="grid size-[0.74em] place-items-center rounded-full bg-ink text-white shadow-float">
