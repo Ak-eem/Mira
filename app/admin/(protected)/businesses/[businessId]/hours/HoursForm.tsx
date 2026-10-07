@@ -40,7 +40,7 @@ export function HoursForm({
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
       {days.map((d, i) => (
-        <div key={d.day_of_week} className="flex flex-wrap items-center gap-3 rounded border border-slate-200 bg-white p-3">
+        <div key={d.day_of_week} className="flex flex-wrap items-center gap-3 rounded-sm border border-slate-200 bg-white p-3">
           <span className="w-24 text-sm font-medium">{d.name}</span>
           <label className="flex items-center gap-1 text-xs text-slate-500">
             <input type="checkbox" checked={d.closed} onChange={(e) => updateDay(i, { closed: e.target.checked })} />
@@ -52,14 +52,14 @@ export function HoursForm({
                 type="time"
                 value={d.opens_at}
                 onChange={(e) => updateDay(i, { opens_at: e.target.value })}
-                className="rounded border border-slate-300 px-2 py-1 text-sm"
+                className="rounded-sm border border-slate-300 px-2 py-1 text-sm"
               />
               <span className="text-slate-400">–</span>
               <input
                 type="time"
                 value={d.closes_at}
                 onChange={(e) => updateDay(i, { closes_at: e.target.value })}
-                className="rounded border border-slate-300 px-2 py-1 text-sm"
+                className="rounded-sm border border-slate-300 px-2 py-1 text-sm"
               />
             </>
           )}
@@ -71,7 +71,7 @@ export function HoursForm({
       <button
         type="submit"
         disabled={saving}
-        className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
       >
         {saving ? "Saving…" : "Save hours"}
       </button>

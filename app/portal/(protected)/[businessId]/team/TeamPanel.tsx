@@ -181,7 +181,7 @@ export function TeamPanel({ businessId }: { businessId: string }) {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
         <h2 className="text-lg font-semibold">People with access</h2>
 
         {loadError && <p className="text-sm text-red-600">{loadError}</p>}
@@ -226,7 +226,7 @@ export function TeamPanel({ businessId }: { businessId: string }) {
       </section>
 
       {invites.length > 0 && (
-        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
           <h2 className="text-lg font-semibold">Pending invitations</h2>
           <ul className="divide-y divide-slate-100">
             {invites.map((invite) => (
@@ -261,7 +261,7 @@ export function TeamPanel({ businessId }: { businessId: string }) {
         </section>
       )}
 
-      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
         <h2 className="text-lg font-semibold">Invite someone</h2>
         <p className="text-sm text-slate-500">
           They&apos;ll get an email with a link to join as staff. You can make them an owner afterwards.
@@ -274,12 +274,12 @@ export function TeamPanel({ businessId }: { businessId: string }) {
             onChange={(event) => setEmail(event.target.value)}
             placeholder="teammate@example.com"
             aria-label="Teammate email address"
-            className="min-w-0 flex-1 rounded border border-slate-300 px-3 py-2 text-sm"
+            className="min-w-0 flex-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
           />
           <button
             type="submit"
             disabled={inviting}
-            className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+            className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
           >
             {inviting ? "Sending…" : "Send invite"}
           </button>

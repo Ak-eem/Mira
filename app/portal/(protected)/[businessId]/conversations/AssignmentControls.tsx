@@ -106,7 +106,7 @@ export function AssignmentControls({
           type="button"
           onClick={updateAssignment}
           disabled={isPending}
-          className="rounded border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-60"
+          className="rounded-sm border border-slate-300 bg-white px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isPending ? "Updating…" : displayedClaimedBy ? "Unclaim" : "Claim"}
         </button>

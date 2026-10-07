@@ -35,14 +35,14 @@ export function NewFaqForm({ businessId }: { businessId: string }) {
       <h2 className="text-sm font-semibold">Add an FAQ</h2>
 
       <input
-        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
         placeholder="Question"
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
         required
       />
       <textarea
-        className="w-full rounded border border-slate-300 px-3 py-2 text-sm"
+        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
         placeholder="Answer — exactly what you want Mira to say"
         rows={3}
         value={answer}
@@ -55,7 +55,7 @@ export function NewFaqForm({ businessId }: { businessId: string }) {
       <button
         type="submit"
         disabled={submitting}
-        className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
       >
         {submitting ? "Adding…" : "Add FAQ"}
       </button>

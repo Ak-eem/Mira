@@ -5,6 +5,7 @@ import { linkifyContent } from "@/lib/linkify";
 import { ReplyForm } from "./ReplyForm";
 import { LiveRefresh } from "./LiveRefresh";
 import { ReplyReview } from "./ReplyReview";
+import { describeSignal, type GroundingSignal } from "@/lib/grounding/assess";
 
 type MessageContextSnapshot = {
   productImages?: { name: string; imageUrl: string }[];
@@ -50,6 +51,14 @@ export default async function PortalConversationThreadPage({
         .select("message_id, source, rating, reason, note")
         .in("message_id", messageIds)
     : { data: [] as { message_id: string; source: string; rating: "up" | "down"; reason: string | null; note: string | null }[] };
+  // Grounding verdicts (absent until migration 0055 is applied -- then the
+  // query just returns nothing and no badge is shown).
+  const { data: assessmentRows } = messageIds.length
+    ? await supabase.from("message_assessments").select("message_id, verdict, signals").in("message_id", messageIds)
+    : { data: [] as { message_id: string; verdict: string; signals: GroundingSignal[] }[] };
+  const assessments = new Map<string, { verdict: string; signals: GroundingSignal[] }>();
+  for (const row of assessmentRows ?? []) assessments.set(row.message_id, { verdict: row.verdict, signals: row.signals ?? [] });
+
   const customerFeedback = new Map<string, { rating: "up" | "down"; reason: string | null }>();
   const staffReviews = new Map<string, { rating: "up" | "down"; reason: string | null; note: string | null }>();
   for (const row of feedbackRows ?? []) {
@@ -91,11 +100,11 @@ export default async function PortalConversationThreadPage({
       </h2>
 
       {conversation.needs_human && !isClaimed && (
-        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-medium text-amber-800">
             🚩 This customer asked for a person (or Mira got stuck) — take over when you&apos;re ready.
           </p>
-          <div className="flex flex-shrink-0 gap-2">
+          <div className="flex shrink-0 gap-2">
             <form action={resolveHandoffForConversation}>
               <button
                 type="submit"
@@ -117,11 +126,11 @@ export default async function PortalConversationThreadPage({
       )}
 
       {isClaimed && (
-        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-sky-300 bg-sky-50 px-4 py-3 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-sky-300 bg-sky-50 px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm font-medium text-sky-800">
             👤 {conversation.claimed_by} is handling this conversation — Mira is silent until it&apos;s handed back or ended.
           </p>
-          <div className="flex flex-shrink-0 gap-2">
+          <div className="flex shrink-0 gap-2">
             <form action={handBackForConversation}>
               <button
                 type="submit"
@@ -144,7 +153,7 @@ export default async function PortalConversationThreadPage({
 
       {!conversation.needs_human && !isClaimed && <div className="mb-6" />}
 
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
         {messages?.map((m) => {
           const snapshot = m.context_snapshot as MessageContextSnapshot | null;
 
@@ -193,6 +202,14 @@ export default async function PortalConversationThreadPage({
                 {isOperatorReply && <span className="mr-2 font-medium text-sky-600">You replied</span>}
                 {new Date(m.created_at).toLocaleTimeString()}
               </p>
+
+              {m.role === "assistant" && assessments.get(m.id) && ["low", "medium"].includes(assessments.get(m.id)!.verdict) && (
+                <p className={`mt-1 text-xs ${assessments.get(m.id)!.verdict === "low" ? "text-red-500" : "text-amber-600"}`}>
+                  Grounding: {assessments.get(m.id)!.verdict}
+                  {assessments.get(m.id)!.signals.filter((signal) => !signal.supported).length > 0 &&
+                    ` — ${assessments.get(m.id)!.signals.filter((signal) => !signal.supported).map(describeSignal).join("; ")}`}
+                </p>
+              )}
 
               {m.role === "assistant" && !isOperatorReply && (
                 <ReplyReview

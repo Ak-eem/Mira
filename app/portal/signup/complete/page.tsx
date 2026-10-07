@@ -8,7 +8,7 @@ export default function SignupCompletePage() {
           Mira <span className="font-normal text-accent">for Business</span>
         </p>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-xs">
           <h1 className="text-lg font-semibold text-slate-900">Account created</h1>
           <p className="mt-3 text-sm leading-6 text-slate-600">
             Your business is set up and your 14-day free trial has started. Sign in to get going.
@@ -18,7 +18,7 @@ export default function SignupCompletePage() {
           </p>
           <Link
             href="/portal/login"
-            className="mt-6 inline-flex rounded bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark"
+            className="mt-6 inline-flex rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark"
           >
             Continue to sign in
           </Link>

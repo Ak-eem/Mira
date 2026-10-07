@@ -160,8 +160,8 @@ function AnalyticsStripSkeleton() {
       <div className="grid animate-pulse gap-5 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-center">
         {Array.from({ length: 5 }, (_, index) => (
           <div key={index} className={index === 4 ? "lg:justify-self-end" : undefined}>
-            <div className="h-3 w-24 rounded bg-slate-200" />
-            <div className="mt-2 h-7 w-20 rounded bg-slate-200" />
+            <div className="h-3 w-24 rounded-sm bg-slate-200" />
+            <div className="mt-2 h-7 w-20 rounded-sm bg-slate-200" />
           </div>
         ))}
       </div>

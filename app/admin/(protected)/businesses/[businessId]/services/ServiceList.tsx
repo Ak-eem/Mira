@@ -35,7 +35,7 @@ export function ServiceList({ services, currency }: { services: Service[]; curre
             onCancel={() => setEditingId(null)}
           />
         ) : (
-          <li key={s.id} className="rounded border border-slate-200 bg-white p-3">
+          <li key={s.id} className="rounded-sm border border-slate-200 bg-white p-3">
             <div className="flex items-center justify-between">
               <span className="font-medium">{s.name}</span>
               <span className="font-mono text-sm text-slate-500">
@@ -102,23 +102,23 @@ function EditServiceRow({
   }
 
   return (
-    <li className="space-y-2 rounded border border-accent bg-white p-3">
-      <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-      <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
-      <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" inputMode="decimal" />
+    <li className="space-y-2 rounded-sm border border-accent bg-white p-3">
+      <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+      <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
+      <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" inputMode="decimal" />
       <label className="flex items-center gap-2 text-xs">
         <input type="checkbox" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
         Available
       </label>
       {!isAvailable && (
-        <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={availabilityNote} onChange={(e) => setAvailabilityNote(e.target.value)} placeholder="Note" />
+        <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={availabilityNote} onChange={(e) => setAvailabilityNote(e.target.value)} placeholder="Note" />
       )}
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button onClick={handleSave} disabled={saving} className="rounded bg-accent px-3 py-1 text-xs font-medium text-white disabled:opacity-50">
+        <button onClick={handleSave} disabled={saving} className="rounded-sm bg-accent px-3 py-1 text-xs font-medium text-white disabled:opacity-50">
           {saving ? "Saving…" : "Save"}
         </button>
-        <button onClick={onCancel} className="rounded border border-slate-300 px-3 py-1 text-xs">
+        <button onClick={onCancel} className="rounded-sm border border-slate-300 px-3 py-1 text-xs">
           Cancel
         </button>
       </div>

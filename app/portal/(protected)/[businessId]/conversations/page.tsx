@@ -113,7 +113,7 @@ export default async function PortalConversationsPage({
       </div>
 
       {(!conversations || conversations.length === 0) && (
-        <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-sm">
+        <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-xs">
           No conversations match this filter.
         </p>
       )}
@@ -122,7 +122,7 @@ export default async function PortalConversationsPage({
         {conversations?.map((conversation) => (
           <li
             key={conversation.id}
-            className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition hover:border-accent"
+            className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition hover:border-accent"
           >
             <div className="flex flex-wrap items-center justify-between gap-3">
               <Link

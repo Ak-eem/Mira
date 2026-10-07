@@ -199,7 +199,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
 
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-12 text-slate-900">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(125,211,252,0.35),_transparent_45%),radial-gradient(circle_at_bottom_right,_rgba(165,243,252,0.4),_transparent_42%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(165,243,252,0.4),transparent_42%)]" />
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">
           <Link href="/" className="text-2xl font-semibold tracking-tight text-slate-900">
@@ -208,7 +208,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
           <p className="mt-3 text-sm text-slate-600">Team invitation</p>
         </div>
 
-        <section className="rounded-[2rem] border border-white/80 bg-white/90 p-7 shadow-2xl shadow-sky-200/50 backdrop-blur sm:p-9">
+        <section className="rounded-4xl border border-white/80 bg-white/90 p-7 shadow-2xl shadow-sky-200/50 backdrop-blur-sm sm:p-9">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
           <p className="mt-3 leading-6 text-slate-600">{description}</p>
 
@@ -233,7 +233,7 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
           {isActionable ? (
             <form action={acceptInvite} className="mt-7">
               <input type="hidden" name="token" value={token} />
-              <button type="submit" className="w-full rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-200/70 transition hover:bg-accent-dark focus:outline-none focus:ring-4 focus:ring-cyan-100">
+              <button type="submit" className="w-full rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-200/70 transition hover:bg-accent-dark focus:outline-hidden focus:ring-4 focus:ring-cyan-100">
                 Accept invitation
               </button>
             </form>

@@ -637,7 +637,7 @@ export function ChatWindow({
             <button
               type="button"
               onClick={() => setShowEndConfirm(false)}
-              className="rounded px-2 py-1 font-medium text-slate-500 hover:text-slate-700"
+              className="rounded-sm px-2 py-1 font-medium text-slate-500 hover:text-slate-700"
             >
               Cancel
             </button>
@@ -645,7 +645,7 @@ export function ChatWindow({
               type="button"
               onClick={confirmEndConversation}
               disabled={ending}
-              className="rounded bg-accent px-2 py-1 font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+              className="rounded-sm bg-accent px-2 py-1 font-medium text-white hover:bg-accent-dark disabled:opacity-50"
             >
               End chat
             </button>
@@ -663,7 +663,7 @@ export function ChatWindow({
               type="button"
               onClick={() => markOrderReceived(order.id)}
               disabled={markingOrderId === order.id}
-              className="shrink-0 rounded bg-accent px-2 py-1 font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+              className="shrink-0 rounded-sm bg-accent px-2 py-1 font-medium text-white hover:bg-accent-dark disabled:opacity-50"
             >
               {markingOrderId === order.id ? "Saving..." : "I received it"}
             </button>
@@ -689,21 +689,21 @@ export function ChatWindow({
                 onChange={(e) => setNotificationEmail(e.target.value)}
                 placeholder="you@example.com"
                 aria-label="Email address for delivery updates"
-                className="min-w-0 flex-1 rounded border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+                className="min-w-0 flex-1 rounded-sm border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
               />
               <div className="flex gap-2">
                 <button
                   type="button"
                   disabled={notificationSaving || !notificationEmail.trim()}
                   onClick={saveNotificationConsent}
-                  className="glass-hover rounded bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+                  className="glass-hover rounded-sm bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
                 >
                   {notificationSaving ? "Saving..." : "Yes, notify me"}
                 </button>
                 <button
                   type="button"
                   onClick={dismissNotificationPrompt}
-                  className="rounded px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700"
+                  className="rounded-sm px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700"
                 >
                   Not now
                 </button>
@@ -779,8 +779,8 @@ export function ChatWindow({
                   onClick={() => submitFeedback(i, m.id!, "up")}
                   className={
                     m.feedback === "up"
-                      ? "rounded p-1 text-emerald-600"
-                      : "rounded p-1 text-slate-300 hover:text-slate-500"
+                      ? "rounded-sm p-1 text-emerald-600"
+                      : "rounded-sm p-1 text-slate-300 hover:text-slate-500"
                   }
                 >
                   <ThumbIcon direction="up" filled={m.feedback === "up"} />
@@ -791,8 +791,8 @@ export function ChatWindow({
                   onClick={() => submitFeedback(i, m.id!, "down")}
                   className={
                     m.feedback === "down"
-                      ? "rounded p-1 text-red-500"
-                      : "rounded p-1 text-slate-300 hover:text-slate-500"
+                      ? "rounded-sm p-1 text-red-500"
+                      : "rounded-sm p-1 text-slate-300 hover:text-slate-500"
                   }
                 >
                   <ThumbIcon direction="down" filled={m.feedback === "down"} />
@@ -886,7 +886,7 @@ export function ChatWindow({
           className="glass-panel-strong flex gap-2 px-4 py-3"
         >
           <input
-            className="flex-1 rounded border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+            className="flex-1 rounded-sm border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask a question…"
@@ -894,7 +894,7 @@ export function ChatWindow({
           <button
             type="submit"
             disabled={sending || !input.trim()}
-            className="glass-hover rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+            className="glass-hover rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
           >
             Send
           </button>

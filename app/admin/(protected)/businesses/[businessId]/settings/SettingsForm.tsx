@@ -48,7 +48,7 @@ export function SettingsForm({ business }: { business: Business }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-slate-700">Name</label>
-        <input className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm" value={name} onChange={(e) => setName(e.target.value)} required />
+        <input className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm" value={name} onChange={(e) => setName(e.target.value)} required />
       </div>
 
       <div className="rounded-lg border border-slate-200 p-3">
@@ -75,7 +75,7 @@ export function SettingsForm({ business }: { business: Business }) {
           Slug <span className="font-normal text-slate-400">— /chat/{slug || "…"}</span>
         </label>
         <input
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm"
+          className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 font-mono text-sm"
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
           pattern="[a-z0-9-]+"
@@ -85,17 +85,17 @@ export function SettingsForm({ business }: { business: Business }) {
 
       <div>
         <label className="block text-sm font-medium text-slate-700">Description</label>
-        <textarea className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+        <textarea className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
       </div>
 
       <div className="flex gap-3">
         <div className="flex-1">
           <label className="block text-sm font-medium text-slate-700">Currency</label>
-          <input className="mt-1 w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm" value={currency} onChange={(e) => setCurrency(e.target.value)} />
+          <input className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 font-mono text-sm" value={currency} onChange={(e) => setCurrency(e.target.value)} />
         </div>
         <div className="flex-1">
           <label className="block text-sm font-medium text-slate-700">Timezone</label>
-          <input className="mt-1 w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm" value={timezone} onChange={(e) => setTimezone(e.target.value)} />
+          <input className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 font-mono text-sm" value={timezone} onChange={(e) => setTimezone(e.target.value)} />
         </div>
       </div>
 
@@ -104,7 +104,7 @@ export function SettingsForm({ business }: { business: Business }) {
           Hours note <span className="font-normal text-slate-400">— exceptions that don&apos;t fit the weekly pattern</span>
         </label>
         <input
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
           placeholder="e.g. Closed on public holidays"
           value={hoursNote}
           onChange={(e) => setHoursNote(e.target.value)}
@@ -116,7 +116,7 @@ export function SettingsForm({ business }: { business: Business }) {
           WhatsApp phone number ID <span className="font-normal text-slate-400">— optional, from Meta&apos;s WhatsApp Business API setup</span>
         </label>
         <input
-          className="mt-1 w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm"
+          className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 font-mono text-sm"
           placeholder="e.g. 109876543212345"
           value={whatsappPhoneNumberId}
           onChange={(e) => setWhatsappPhoneNumberId(e.target.value)}
@@ -131,7 +131,7 @@ export function SettingsForm({ business }: { business: Business }) {
           <div>
             <label className="block text-xs font-medium text-slate-600">WhatsApp number</label>
             <input
-              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm"
+              className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 font-mono text-sm"
               placeholder="e.g. 2348012345678 (country code, no + or spaces)"
               value={socialLinks.whatsapp ?? ""}
               onChange={(e) => setSocialLinks((s) => ({ ...s, whatsapp: e.target.value }))}
@@ -140,7 +140,7 @@ export function SettingsForm({ business }: { business: Business }) {
           <div>
             <label className="block text-xs font-medium text-slate-600">Instagram</label>
             <input
-              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
               placeholder="e.g. yourbrand (no @)"
               value={socialLinks.instagram ?? ""}
               onChange={(e) => setSocialLinks((s) => ({ ...s, instagram: e.target.value }))}
@@ -149,7 +149,7 @@ export function SettingsForm({ business }: { business: Business }) {
           <div>
             <label className="block text-xs font-medium text-slate-600">Facebook</label>
             <input
-              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
               placeholder="e.g. facebook.com/yourbrand"
               value={socialLinks.facebook ?? ""}
               onChange={(e) => setSocialLinks((s) => ({ ...s, facebook: e.target.value }))}
@@ -158,7 +158,7 @@ export function SettingsForm({ business }: { business: Business }) {
           <div>
             <label className="block text-xs font-medium text-slate-600">TikTok</label>
             <input
-              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
               placeholder="e.g. tiktok.com/@yourbrand"
               value={socialLinks.tiktok ?? ""}
               onChange={(e) => setSocialLinks((s) => ({ ...s, tiktok: e.target.value }))}
@@ -167,7 +167,7 @@ export function SettingsForm({ business }: { business: Business }) {
           <div>
             <label className="block text-xs font-medium text-slate-600">Website</label>
             <input
-              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
               placeholder="e.g. yourbrand.com"
               value={socialLinks.website ?? ""}
               onChange={(e) => setSocialLinks((s) => ({ ...s, website: e.target.value }))}
@@ -187,7 +187,7 @@ export function SettingsForm({ business }: { business: Business }) {
       <button
         type="submit"
         disabled={saving}
-        className="rounded bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
       >
         {saving ? "Saving…" : "Save changes"}
       </button>

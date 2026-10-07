@@ -58,12 +58,12 @@ export default function BusinessNamePage() {
           Mira <span className="font-normal text-accent">for Business</span>
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
           <div>
             <label className="block text-sm font-medium text-slate-700">One last step: your business name</label>
             <input
               type="text"
-              className="mt-1 w-full rounded border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-none focus:ring-1 focus:ring-accent"
+              className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
               required
@@ -76,7 +76,7 @@ export default function BusinessNamePage() {
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark disabled:opacity-50"
+            className="w-full rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark disabled:opacity-50"
           >
             {submitting ? "Setting up…" : "Continue"}
           </button>

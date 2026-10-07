@@ -37,12 +37,12 @@ export function ProductList({ products, currency }: { products: Product[]; curre
             onCancel={() => setEditingId(null)}
           />
         ) : (
-          <li key={p.id} className="flex gap-3 rounded border border-slate-200 bg-white p-3">
+          <li key={p.id} className="flex gap-3 rounded-sm border border-slate-200 bg-white p-3">
             {p.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={p.image_url} alt={p.name} className="h-14 w-14 flex-shrink-0 rounded object-cover" />
+              <img src={p.image_url} alt={p.name} className="h-14 w-14 shrink-0 rounded-sm object-cover" />
             ) : (
-              <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded bg-slate-100 text-xs text-slate-400">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-sm bg-slate-100 text-xs text-slate-400">
                 No photo
               </div>
             )}
@@ -147,13 +147,13 @@ function EditProductRow({
   }
 
   return (
-    <li className="space-y-2 rounded border border-accent bg-white p-3">
+    <li className="space-y-2 rounded-sm border border-accent bg-white p-3">
       <div className="flex items-center gap-3">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt={name} className="h-14 w-14 flex-shrink-0 rounded object-cover" />
+          <img src={imageUrl} alt={name} className="h-14 w-14 shrink-0 rounded-sm object-cover" />
         ) : (
-          <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center rounded bg-slate-100 text-xs text-slate-400">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-sm bg-slate-100 text-xs text-slate-400">
             No photo
           </div>
         )}
@@ -176,25 +176,25 @@ function EditProductRow({
           )}
         </div>
       </div>
-      <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-      <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
+      <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+      <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
       <div className="flex gap-2">
-        <input className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" inputMode="decimal" />
-        <input className="flex-1 rounded border border-slate-300 px-2 py-1 text-sm" value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} placeholder="Stock (blank = untracked)" inputMode="numeric" />
+        <input className="flex-1 rounded-sm border border-slate-300 px-2 py-1 text-sm" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" inputMode="decimal" />
+        <input className="flex-1 rounded-sm border border-slate-300 px-2 py-1 text-sm" value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} placeholder="Stock (blank = untracked)" inputMode="numeric" />
       </div>
       <label className="flex items-center gap-2 text-xs">
         <input type="checkbox" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
         Available
       </label>
       {!isAvailable && (
-        <input className="w-full rounded border border-slate-300 px-2 py-1 text-sm" value={availabilityNote} onChange={(e) => setAvailabilityNote(e.target.value)} placeholder="Note" />
+        <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={availabilityNote} onChange={(e) => setAvailabilityNote(e.target.value)} placeholder="Note" />
       )}
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button onClick={handleSave} disabled={saving} className="rounded bg-accent px-3 py-1 text-xs font-medium text-white disabled:opacity-50">
+        <button onClick={handleSave} disabled={saving} className="rounded-sm bg-accent px-3 py-1 text-xs font-medium text-white disabled:opacity-50">
           {saving ? "Saving…" : "Save"}
         </button>
-        <button onClick={onCancel} className="rounded border border-slate-300 px-3 py-1 text-xs">
+        <button onClick={onCancel} className="rounded-sm border border-slate-300 px-3 py-1 text-xs">
           Cancel
         </button>
       </div>

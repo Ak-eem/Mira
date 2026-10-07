@@ -50,7 +50,7 @@ function RuleCard({ businessId, rule }: { businessId: string; rule: Rule }) {
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
       <div className="mb-1 flex items-center justify-between">
         <p className="font-medium text-slate-900">{info.title}</p>
         <label className="flex items-center gap-2 text-sm text-slate-600">
@@ -66,7 +66,7 @@ function RuleCard({ businessId, rule }: { businessId: string; rule: Rule }) {
             Meta template name <span className="font-normal text-slate-400">— leave blank until yours is approved</span>
           </label>
           <input
-            className="mt-1 w-full rounded border border-slate-300 px-3 py-2 font-mono text-sm"
+            className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 font-mono text-sm"
             placeholder="e.g. order_shipped_v1"
             value={templateName}
             onChange={(e) => setTemplateName(e.target.value)}
@@ -79,7 +79,7 @@ function RuleCard({ businessId, rule }: { businessId: string; rule: Rule }) {
             <input
               type="number"
               min={1}
-              className="mt-1 w-32 rounded border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 w-32 rounded-sm border border-slate-300 px-3 py-2 text-sm"
               value={hoursThreshold}
               onChange={(e) => setHoursThreshold(e.target.value)}
             />

@@ -1,8 +1,9 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
-import { buildSystemPrompt, buildMessages, isFallbackReply } from "@/lib/ai/buildPrompt";
+import { isFallbackReply } from "@/lib/ai/buildPrompt";
+import { composeReply } from "@/lib/ai/composeReply";
+import { loadPriorMessages } from "@/lib/chat/history";
 import { classifyIntent } from "@/lib/ai/classifyIntent";
-import { generateReplyWithMetadata } from "@/lib/ai/generateReply";
 import { recordAiResponseTelemetry } from "@/lib/analytics/recordTelemetry";
 import { after } from "next/server";
 import { getOfflineGateReply } from "@/lib/chat/offlineReply";
@@ -12,6 +13,9 @@ import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
 import { replyKeyFor } from "@/lib/chat/inboundKey";
 import { processDeliveryConfirmation, processOrderRequest, type RecordReply } from "@/lib/chat/orderTaking";
 import { isDeliveryConfirmation } from "@/lib/orders/deliveryPhrase";
+import { assessGrounding } from "@/lib/grounding/assess";
+import { getGroundingSettings } from "@/lib/grounding/settings";
+import { recordGroundingAssessment } from "@/lib/grounding/record";
 
 export class ProcessMessageError extends Error {
   status: number;
@@ -185,12 +189,7 @@ export async function processMessage(
     throw new ProcessMessageError("Conversation does not belong to this business.", 403);
   }
 
-  const { data: allPriorMessages, error: priorMessagesError } = await supabase
-    .from("messages")
-    .select("role, content, inbound_key")
-    .eq("conversation_id", conversation.id)
-    .order("created_at", { ascending: true })
-    .limit(20);
+  const { data: allPriorMessages, error: priorMessagesError } = await loadPriorMessages(supabase, conversation.id);
 
   if (priorMessagesError) {
     console.error("Prior messages fetch failed:", priorMessagesError);
@@ -351,8 +350,35 @@ export async function processMessage(
   const repeatedFallback =
     recentAssistantReplies.length === 2 &&
     recentAssistantReplies.every((text) => isFallbackReply(text, businessName));
+
+  // Optional extension of the same idea (off by default, per-business): two
+  // weak replies in a row -- each either the "I don't know" fallback or a reply
+  // whose facts don't match the business info -- also count as the conversation
+  // going nowhere. Reuses the existing handoff path; it never interrupts on a
+  // single weak reply.
+  let repeatedWeakReplies = false;
+  if (!repeatedFallback && recentAssistantReplies.length === 2) {
+    const groundingSettings = await getGroundingSettings(supabase, businessId);
+    if (groundingSettings.escalateRepeat) {
+      const customerMessages = [
+        ...(priorMessages ?? []).filter((m) => m.role === "customer").map((m) => m.content),
+        trimmedMessage,
+      ];
+      repeatedWeakReplies = recentAssistantReplies.every(
+        (text) =>
+          isFallbackReply(text, businessName) ||
+          assessGrounding({
+            reply: text,
+            knowledge: context.contextText,
+            customerMessages,
+            businessName,
+            currency: context.business?.currency ?? "NGN",
+          }).verdict === "low",
+      );
+    }
+  }
   const needsHandoff =
-    intent === "human_handoff" || repeatedFallback || isFrustrationSignal(trimmedMessage);
+    intent === "human_handoff" || repeatedFallback || repeatedWeakReplies || isFrustrationSignal(trimmedMessage);
 
   if (needsHandoff) {
     // The needs_human flip, the handoff message and the last_message_at bump
@@ -385,12 +411,10 @@ export async function processMessage(
   }
 
 
-  const systemPrompt = buildSystemPrompt(context);
   const history = (priorMessages ?? []).map((m) => ({
     role: m.role as "customer" | "assistant",
     content: m.content,
   }));
-  const llmMessages = buildMessages(history, trimmedMessage);
 
   // Mirrors the duplicated pipeline in app/api/chat/route.ts (the web
   // widget) apart from streaming -- see the comment there for why a
@@ -405,10 +429,13 @@ export async function processMessage(
   // above, so nothing is lost by keeping it out of the thrown message.
   let replyText: string;
   let aiMetadata;
-  let orderRequest: Awaited<ReturnType<typeof generateReplyWithMetadata>>["orderRequest"];
+  let orderRequest: Awaited<ReturnType<typeof composeReply>>["orderRequest"];
   const aiStartedAt = Date.now();
   try {
-    const result = await generateReplyWithMetadata(systemPrompt, llmMessages, {
+    const result = await composeReply({
+      context,
+      history,
+      message: trimmedMessage,
       orderTool: context.business?.ai_order_taking === true,
     });
     replyText = result.text;
@@ -495,6 +522,24 @@ export async function processMessage(
     success: true,
     latencyMs: Date.now() - aiStartedAt,
     metadata: aiMetadata,
+  }));
+
+  // Flag-only answer check: runs after the reply is already on its way, so it
+  // can add no delay and can't change what the customer sees.
+  after(() => recordGroundingAssessment(supabase, {
+    businessId,
+    messageId: savedAssistantMessage.messageId,
+    question: trimmedMessage,
+    input: {
+      reply: replyText,
+      knowledge: context.contextText,
+      customerMessages: [
+        ...(priorMessages ?? []).filter((m) => m.role === "customer").map((m) => m.content),
+        trimmedMessage,
+      ],
+      businessName,
+      currency: context.business?.currency ?? "NGN",
+    },
   }));
 
   return { reply: replyText, messageId: savedAssistantMessage.messageId, productImages };

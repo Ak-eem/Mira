@@ -48,7 +48,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
           <div>
             <label className="block text-xs font-medium text-slate-600">Plan</label>
             <select
-              className="mt-1 rounded border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
               value={plan}
               onChange={(e) => setPlan(e.target.value as "base" | "pro")}
             >
@@ -59,7 +59,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
           <div>
             <label className="block text-xs font-medium text-slate-600">Status</label>
             <select
-              className="mt-1 rounded border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
               value={status}
               onChange={(e) => setStatus(e.target.value as "active" | "past_due" | "cancelled")}
             >
@@ -80,7 +80,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
             <div>
               <label className="block text-xs font-medium text-slate-600">Nudges tier</label>
               <select
-                className="mt-1 rounded border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
                 value={nudgesTier}
                 onChange={(e) => setNudgesTier(e.target.value)}
               >
@@ -94,7 +94,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
               <input
                 type="number"
                 min={1}
-                className="mt-1 w-24 rounded border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-24 rounded-sm border border-slate-300 px-3 py-2 text-sm"
                 value={maxPerWeek}
                 onChange={(e) => setMaxPerWeek(e.target.value)}
               />
@@ -108,7 +108,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+            className="rounded-sm bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save"}
           </button>

@@ -113,14 +113,14 @@ export function ReplyReview({
             <button
               type="button"
               onClick={() => setRating("up")}
-              className={`rounded border px-2.5 py-1 ${rating === "up" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-300 text-slate-600"}`}
+              className={`rounded-sm border px-2.5 py-1 ${rating === "up" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-300 text-slate-600"}`}
             >
               Good reply
             </button>
             <button
               type="button"
               onClick={() => setRating("down")}
-              className={`rounded border px-2.5 py-1 ${rating === "down" ? "border-red-400 bg-red-50 text-red-600" : "border-slate-300 text-slate-600"}`}
+              className={`rounded-sm border px-2.5 py-1 ${rating === "down" ? "border-red-400 bg-red-50 text-red-600" : "border-slate-300 text-slate-600"}`}
             >
               Needs work
             </button>
@@ -148,7 +148,7 @@ export function ReplyReview({
                 maxLength={MAX_FEEDBACK_NOTE_LENGTH}
                 rows={2}
                 placeholder="Optional note: what should it have said?"
-                className="w-full rounded border border-slate-300 px-2 py-1.5 text-sm"
+                className="w-full rounded-sm border border-slate-300 px-2 py-1.5 text-sm"
               />
             </>
           )}
@@ -160,7 +160,7 @@ export function ReplyReview({
               type="button"
               disabled={saving || !rating || (rating === "down" && !reason)}
               onClick={save}
-              className="rounded bg-accent px-3 py-1 font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+              className="rounded-sm bg-accent px-3 py-1 font-medium text-white hover:bg-accent-dark disabled:opacity-50"
             >
               {saving ? "Saving…" : "Save review"}
             </button>

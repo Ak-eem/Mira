@@ -29,12 +29,12 @@ export default async function ActivityPage({
           {activity.map((a) => (
             <li
               key={a.id}
-              className="flex items-center justify-between rounded border border-slate-200 bg-white px-3 py-2 text-sm"
+              className="flex items-center justify-between rounded-sm border border-slate-200 bg-white px-3 py-2 text-sm"
             >
               <span>
                 {a.summary}
                 {a.source === "command_center" && (
-                  <span className="ml-2 rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                  <span className="ml-2 rounded-sm bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
                     via Command Center
                   </span>
                 )}

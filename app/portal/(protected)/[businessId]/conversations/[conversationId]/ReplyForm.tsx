@@ -35,7 +35,7 @@ export function ReplyForm({
         rows={3}
         required
         placeholder="Type a reply to send to the customer…"
-        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-sm focus:border-accent focus:outline-none"
+        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-xs focus:border-accent focus:outline-hidden"
       />
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         {state.error ? (
@@ -48,7 +48,7 @@ export function ReplyForm({
         <button
           type="submit"
           disabled={pending}
-          className="flex-shrink-0 rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-white shadow-sm disabled:opacity-50"
+          className="shrink-0 rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-white shadow-xs disabled:opacity-50"
         >
           {pending ? "Sending…" : "Send reply"}
         </button>
