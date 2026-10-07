@@ -206,11 +206,13 @@ export function Hero() {
       <div aria-hidden="true" className="pointer-events-none absolute top-8 -right-28 size-[400px] rounded-full bg-[radial-gradient(closest-side,rgb(170_198_176/0.7),transparent)] sm:size-[600px]" />
       <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-b from-transparent to-surface" />
 
+      <div aria-hidden="true" className="pointer-events-none absolute top-44 -right-6 hidden size-56 rounded-full bg-[linear-gradient(140deg,#f6d56b,#f2a900)] sm:block lg:right-[3%] lg:size-64" />
+      <div aria-hidden="true" className="pointer-events-none absolute top-[360px] -left-8 hidden size-56 rounded-full border-[20px] border-ink sm:block lg:left-[3%] lg:size-72" />
       <GlassSurface
         width="auto"
         height="auto"
         borderRadius={36}
-        backgroundOpacity={0.12}
+        backgroundOpacity={0.06}
         saturation={1.4}
         brightness={55}
         opacity={0.9}
