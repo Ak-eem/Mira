@@ -1,28 +1,63 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { getProducts, sendChat } from '@/lib/site/api'
-import { business } from '@/lib/site/mock'
+import { getProducts } from '@/lib/site/api'
+import { streamChat } from '@/lib/chat-stream'
 import { cx, naira } from '@/lib/site/format'
 import type { ChatMessage, Product } from '@/lib/site/types'
 import { Icon } from './icons'
 import { Badge, Logo, ProductImage } from './ui'
 
-const SUGGESTIONS = ['Show me kaftans', 'How much is delivery to Abuja?', 'Where is MRA-2040?', 'Are you open on Sunday?']
+const BUSINESS_NAME = 'Mira Demo Cafe'
+const BUSINESS_SLUG = 'mira-demo-cafe'
+const VISITOR_ID_KEY = 'mira-demo-visitor-id'
+const SUGGESTIONS = ['Show me the coffee menu', 'Do you have brunch?', 'What time do you close?', 'Can I order takeaway?']
 
 const now = () => new Date().toISOString()
-const greeting = (): ChatMessage => ({ id: 'hello', from: 'assistant', text: business.greeting, at: now() })
 
-/**
- * Chat state for the demo assistant. `inviteAfter` adds the signup invitation
- * once the visitor has had that many answers (the landing-page flow).
- */
+const greeting = (): ChatMessage => ({
+  id: 'hello',
+  from: 'assistant',
+  text: `Hi! I'm ${BUSINESS_NAME}'s assistant. Ask me about our menu or opening hours.`,
+  at: now(),
+})
+
+function uid(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID()
+  }
+  return `m_${Math.random().toString(36).slice(2)}_${Date.now()}`
+}
+
+function getVisitorId(): string {
+  if (typeof window === 'undefined') return uid()
+  try {
+    const existing = window.localStorage.getItem(VISITOR_ID_KEY)
+    if (existing) return existing
+    const id = uid()
+    window.localStorage.setItem(VISITOR_ID_KEY, id)
+    return id
+  } catch {
+    return uid()
+  }
+}
+
 export function useChat({ inviteAfter }: { inviteAfter?: number } = {}) {
   const [messages, setMessages] = useState<ChatMessage[]>(() => [greeting()])
   const [typing, setTyping] = useState(false)
   const [failed, setFailed] = useState<string | null>(null)
   const [products, setProducts] = useState<Product[]>([])
+  const messagesRef = useRef(messages)
+  const inFlight = useRef(false)
   const invited = useRef(false)
+
+  const commitMessages = useCallback((next: ChatMessage[] | ((current: ChatMessage[]) => ChatMessage[])) => {
+    setMessages((prev) => {
+      const updated = typeof next === 'function' ? next(prev) : next
+      messagesRef.current = updated
+      return updated
+    })
+  }, [])
 
   useEffect(() => {
     getProducts().then(setProducts)
@@ -31,43 +66,97 @@ export function useChat({ inviteAfter }: { inviteAfter?: number } = {}) {
   const send = useCallback(
     async (text: string) => {
       const t = text.trim()
-      if (!t || typing) return
-      const mine: ChatMessage = { id: crypto.randomUUID(), from: 'customer', text: t, at: now() }
-      const history = [...messages, mine]
-      setMessages(history)
+      if (!t || inFlight.current) return
+      inFlight.current = true
+
+      const mine: ChatMessage = { id: uid(), from: 'customer', text: t, at: now() }
+      const history = [...messagesRef.current, mine]
+      const streamId = uid()
+      let streamedText = ''
+
+      commitMessages(history)
       setFailed(null)
       setTyping(true)
+
       try {
-        const answer = await sendChat(t, history)
+        let completion: { done: true; messageId?: string; productImages?: unknown; silent?: boolean } | undefined
+
+        for await (const event of streamChat({
+          businessSlug: BUSINESS_SLUG,
+          message: t,
+          visitorId: getVisitorId(),
+        })) {
+          if (event.type === 'token') {
+            streamedText += event.token
+            const partial: ChatMessage = {
+              id: streamId,
+              from: 'assistant',
+              text: streamedText,
+              at: now(),
+            }
+            commitMessages([...history, partial])
+          } else {
+            completion = event
+          }
+        }
+
+        if (!completion) {
+          throw new Error('Chat stream ended without a completion event')
+        }
+
+        if (completion.silent) {
+          commitMessages(history)
+          return
+        }
+
+        const productIds = Array.isArray(completion.productImages)
+          ? (completion.productImages as { productId?: string }[])
+              .map((p) => p?.productId)
+              .filter((id): id is string => typeof id === 'string')
+          : undefined
+
+        const answer: ChatMessage = {
+          id: completion.messageId ?? streamId,
+          from: 'assistant',
+          text: streamedText,
+          products: productIds && productIds.length > 0 ? productIds : undefined,
+          at: now(),
+        }
         const next = [...history, answer]
         const answers = next.filter((m) => m.from === 'assistant').length - 1
+
         if (inviteAfter && answers >= inviteAfter && !invited.current) {
           invited.current = true
           next.push({
             id: 'invite',
             from: 'assistant',
-            text: 'That’s Mira, answering from a demo store’s own data. Want this on your website?',
+            text: "That's Mira, answering from Mira Demo Cafe's own data. Want this on your website?",
             link: { label: 'Start your free trial', href: '/signup' },
             at: now(),
           })
         }
-        setMessages(next)
+
+        commitMessages(next)
       } catch {
+        commitMessages(history)
         setFailed(t)
       } finally {
+        inFlight.current = false
         setTyping(false)
       }
     },
-    [messages, typing, inviteAfter],
+    [commitMessages, inviteAfter],
   )
 
   const retry = useCallback(() => {
     if (!failed) return
-    setMessages((m) => m.slice(0, -1))
     const t = failed
+    commitMessages((current) => current.slice(0, -1))
     setFailed(null)
-    setTimeout(() => send(t), 0)
-  }, [failed, send])
+    setTimeout(() => {
+      void send(t)
+    }, 0)
+  }, [commitMessages, failed, send])
 
   return { messages, typing, failed, send, retry, products }
 }
@@ -121,7 +210,6 @@ export function Bubble({ m, products, onOpen }: { m: ChatMessage; products: Prod
         </div>
       )}
       {m.link && (
-        // Same tab, on purpose: the chat keeps its place.
         <a href={m.link.href} className="inline-flex h-9 items-center gap-1.5 rounded-pill bg-ink px-4 text-[13px] font-medium text-white transition-transform active:scale-[0.97]">
           {m.link.label}
           <Icon name="arrow" size={14} />
@@ -178,7 +266,7 @@ export function ChatPanel({ chat, compact = false, onClose }: { chat: ReturnType
           <Logo wordmark={false} className="scale-75 text-white" />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-medium">{business.name} assistant</p>
+          <p className="truncate text-[14px] font-medium">{BUSINESS_NAME} assistant</p>
           <p className="flex items-center gap-1.5 text-xs text-muted">
             <span className="size-1.5 rounded-full bg-lime-3" /> Online · replies instantly
           </p>
@@ -197,7 +285,7 @@ export function ChatPanel({ chat, compact = false, onClose }: { chat: ReturnType
         {typing && <TypingIndicator />}
         {failed && (
           <div className="flex items-center gap-2 self-end text-xs text-danger animate-fade">
-            Not sent.
+            Not sent.{' '}
             <button type="button" onClick={retry} className="font-medium underline underline-offset-2">
               Retry
             </button>
@@ -238,7 +326,7 @@ export function ChatPanel({ chat, compact = false, onClose }: { chat: ReturnType
           <Icon name="send" size={17} />
         </button>
       </form>
-      <p className="pb-2 text-center text-[11px] text-muted">Answers come only from {business.name}’s own info · Powered by Mira</p>
+      <p className="pb-2 text-center text-[11px] text-muted">Answers come only from {BUSINESS_NAME}&apos;s own info · Powered by Mira</p>
 
       {preview && <Preview p={preview} onClose={() => setPreview(null)} />}
     </div>
@@ -246,7 +334,7 @@ export function ChatPanel({ chat, compact = false, onClose }: { chat: ReturnType
 }
 
 /** Floating bubble + panel, as it sits on a customer's website. */
-export function ChatWidget({ color = business.brandColor, defaultOpen = false }: { color?: string; defaultOpen?: boolean }) {
+export function ChatWidget({ color = '#111112', defaultOpen = false }: { color?: string; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen)
   const [nudge, setNudge] = useState(false)
   const chat = useChat({ inviteAfter: 2 })
