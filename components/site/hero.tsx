@@ -268,10 +268,10 @@ export function Hero() {
 
           <FloatCard depth={1.2} delay={700} className="top-[9%] -left-[150px] hidden md:block lg:-left-[230px]">
             <div className="flex items-center gap-3 pr-2">
-              <MiniRing value={0.96} />
+              <IconDot name="check" />
               <span className="text-left text-[12px] leading-tight text-ink-2">
-                <span className="block text-[14px] font-medium text-ink">Answered automatically</span>
-                last 14 days
+                <span className="block text-[14px] font-medium text-ink">Answers from your data</span>
+                prices, stock and policies
               </span>
             </div>
           </FloatCard>

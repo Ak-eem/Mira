@@ -92,9 +92,61 @@ export async function sendOwnerReply(conversationId: string, text: string): Prom
  * business's own catalog, FAQs, policies, hours and orders. The demo below
  * fakes that with keyword matching so the widget can be tried.
  */
-export async function sendChat(message: string, history: ChatMessage[]): Promise<ChatMessage> {
+async function sendMockChat(message: string, history: ChatMessage[]): Promise<ChatMessage> {
   await new Promise((r) => setTimeout(r, 700 + Math.random() * 500)) // let the typing indicator show
   return reply(message, history, { products: db.products, orders: db.orders, faqs: db.faqs, policies: db.policies, hours: db.hours, promotions: db.promotions })
+}
+
+const DEMO_SLUG = process.env.NEXT_PUBLIC_DEMO_BUSINESS_SLUG
+
+function demoVisitorId(): string {
+  try {
+    let id = localStorage.getItem('mira-demo-visitor')
+    if (!id) {
+      id = crypto.randomUUID()
+      localStorage.setItem('mira-demo-visitor', id)
+    }
+    return id
+  } catch {
+    return crypto.randomUUID()
+  }
+}
+
+/**
+ * Landing-page demo chat. With NEXT_PUBLIC_DEMO_BUSINESS_SLUG set it talks to the real
+ * /api/chat for that business (same assistant your customers get); without it, it falls
+ * back to the sample keyword matcher so the page still works.
+ */
+export async function sendChat(message: string, history: ChatMessage[]): Promise<ChatMessage> {
+  if (!DEMO_SLUG) return sendMockChat(message, history)
+  const res = await fetch('/api/chat', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ businessSlug: DEMO_SLUG, message, visitorId: demoVisitorId() }),
+  })
+  if (!res.ok || !res.body) throw new Error('chat request failed')
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  let text = ''
+  for (;;) {
+    const { value, done } = await reader.read()
+    if (done) break
+    buffer += decoder.decode(value, { stream: true })
+    const events = buffer.split(/\r?\n\r?\n/)
+    buffer = events.pop() ?? ''
+    for (const ev of events) {
+      const data = ev.split(/\r?\n/).filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trimStart()).join('\n').trim()
+      if (!data) continue
+      try {
+        const parsed = JSON.parse(data) as { token?: string }
+        if (parsed.token) text += parsed.token
+      } catch {
+        /* ignore malformed event */
+      }
+    }
+  }
+  return { id: crypto.randomUUID(), from: 'assistant', text: text.trim() || 'Thanks. We will get back to you shortly.', at: new Date().toISOString() }
 }
 
 // GET/PUT /api/faqs
