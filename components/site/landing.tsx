@@ -19,7 +19,6 @@ export function Preloader() {
       if (sessionStorage.getItem('mira-seen')) return
       sessionStorage.setItem('mira-seen', '1')
     } catch {}
-    setSkip(false)
     const start = performance.now()
     let raf = 0
     const tick = (t: number) => {
@@ -28,7 +27,10 @@ export function Preloader() {
       if (p < 1) raf = requestAnimationFrame(tick)
       else setTimeout(() => setGone(true), 180)
     }
-    raf = requestAnimationFrame(tick)
+    raf = requestAnimationFrame(() => {
+      setSkip(false)
+      raf = requestAnimationFrame(tick)
+    })
     return () => cancelAnimationFrame(raf)
   }, [])
 

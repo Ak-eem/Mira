@@ -9,8 +9,8 @@ export function CountUp({ value, format = (n) => Math.round(n).toLocaleString('e
   const [n, setN] = useState(0)
   useEffect(() => {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-      setN(value)
-      return
+      const raf = requestAnimationFrame(() => setN(value))
+      return () => cancelAnimationFrame(raf)
     }
     const start = performance.now()
     let raf = 0

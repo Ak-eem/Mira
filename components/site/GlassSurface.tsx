@@ -109,13 +109,16 @@ export default function GlassSurface({
   }, [width, height, borderRadius, borderWidth, brightness, opacity, blur, displace, distortionScale, redOffset, greenOffset, blueOffset, xChannel, yChannel, mixBlendMode]);
 
   useEffect(() => {
-    setBackdropOk(CSS.supports('backdrop-filter', 'blur(10px)'));
-    const ua = navigator.userAgent;
-    const webkitOnly = /Safari/.test(ua) && !/Chrome/.test(ua);
-    const lite = window.matchMedia('(max-width: 767px), (prefers-reduced-motion: reduce)').matches;
-    const probe = document.createElement('div');
-    probe.style.backdropFilter = `url(#${filterId})`;
-    setSvgOk(!webkitOnly && !/Firefox/.test(ua) && !lite && probe.style.backdropFilter !== '');
+    const raf = requestAnimationFrame(() => {
+      setBackdropOk(CSS.supports('backdrop-filter', 'blur(10px)'));
+      const ua = navigator.userAgent;
+      const webkitOnly = /Safari/.test(ua) && !/Chrome/.test(ua);
+      const lite = window.matchMedia('(max-width: 767px), (prefers-reduced-motion: reduce)').matches;
+      const probe = document.createElement('div');
+      probe.style.backdropFilter = `url(#${filterId})`;
+      setSvgOk(!webkitOnly && !/Firefox/.test(ua) && !lite && probe.style.backdropFilter !== '');
+    });
+    return () => cancelAnimationFrame(raf);
   }, [filterId]);
 
   useEffect(() => {
