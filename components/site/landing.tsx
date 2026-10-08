@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { cx, naira } from '@/lib/site/format'
 import { Aurora, InlineIcon } from './hero'
+import GlassSurface from './GlassSurface'
 import { Icon } from './icons'
 import { Badge, Button, Chip, Logo, Orb, ProductImage, Toggle } from './ui'
 
@@ -18,15 +19,20 @@ const NAV = [
 export function Nav() {
   const [open, setOpen] = useState(false)
   return (
-    <>
-      {/* Frosted glass band across the top, so the page blurs softly beneath the nav */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-x-0 top-0 z-30 h-24 bg-gradient-to-b from-white/70 via-white/35 to-transparent backdrop-blur-xl backdrop-saturate-150"
-        style={{ maskImage: 'linear-gradient(#000 60%, transparent)', WebkitMaskImage: 'linear-gradient(#000 60%, transparent)' }}
-      />
     <header className="fixed inset-x-0 top-3 z-40 mx-auto flex w-full max-w-[1240px] items-center justify-between gap-4 px-3 sm:px-5">
-      <div className="glass flex h-14 w-full items-center justify-between rounded-pill pr-2 pl-5">
+      <GlassSurface
+        width="auto"
+        height="auto"
+        borderRadius={999}
+        backgroundOpacity={0.12}
+        saturation={1.4}
+        brightness={55}
+        opacity={0.9}
+        blur={14}
+        displace={0.5}
+        distortionScale={-150}
+        className="flex h-14 w-full items-center justify-between rounded-pill pr-2 pl-5"
+      >
         <a href="#top" aria-label="Mira home">
           <Logo />
         </a>
@@ -50,7 +56,7 @@ export function Nav() {
             <Icon name={open ? 'x' : 'menu'} />
           </button>
         </div>
-      </div>
+      </GlassSurface>
       {open && (
         <div className="glass absolute top-16 right-3 left-3 flex flex-col gap-1 rounded-[24px] p-2 shadow-float animate-pop md:hidden">
           {NAV.map(([l, h]) => (
@@ -64,7 +70,6 @@ export function Nav() {
         </div>
       )}
     </header>
-    </>
   )
 }
 
