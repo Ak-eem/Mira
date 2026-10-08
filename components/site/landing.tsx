@@ -35,7 +35,7 @@ export function Nav() {
         mixBlendMode="screen"
         className="flex h-14 w-full items-center justify-between rounded-pill pr-2 pl-5"
       >
-        <div className="flex h-full w-full items-center justify-between">
+        <div className="flex h-full w-full items-center justify-between md:grid md:grid-cols-[1fr_auto_1fr]">
           <a href="#top" aria-label="Mira home">
             <Logo />
           </a>
@@ -46,7 +46,7 @@ export function Nav() {
               </a>
             ))}
           </nav>
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center justify-self-end gap-3">
             <Button variant="ghost" size="sm" href="/login" className="h-10 px-4 !transition-none active:!scale-100">
               Log in
             </Button>

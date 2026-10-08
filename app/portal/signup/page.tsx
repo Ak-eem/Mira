@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import GoogleAuthButton from "@/app/components/GoogleAuthButton";
+import CodeSlots, { type CodeSlotsStatus } from "@/components/site/CodeSlots";
 
 function getApiErrorMessage(value: unknown, fallback: string): string {
   if (
@@ -30,6 +31,7 @@ export default function PortalSignupPage() {
   const [verificationSent, setVerificationSent] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
   const [verificationBusy, setVerificationBusy] = useState(false);
+  const [otpStatus, setOtpStatus] = useState<CodeSlotsStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -60,21 +62,23 @@ export default function PortalSignupPage() {
     }
   }
 
-  async function verifyEmail() {
+  async function verifyEmail(code: string) {
     setError(null);
     setVerificationBusy(true);
     try {
       const response = await fetch("/api/auth/email-verification/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, otp }),
+        body: JSON.stringify({ email, otp: code }),
       });
       const result = await response.json().catch(() => null);
       if (!response.ok) {
         throw new Error(getApiErrorMessage(result, "Unable to verify email"));
       }
       setEmailVerified(true);
+      setOtpStatus("success");
     } catch (verifyError) {
+      setOtpStatus("error");
       setError(
         verifyError instanceof Error
           ? verifyError.message
@@ -254,6 +258,9 @@ export default function PortalSignupPage() {
               onChange={(e) => {
                 setEmail(e.target.value);
                 setEmailVerified(false);
+                setVerificationSent(false);
+                setOtp("");
+                setOtpStatus("idle");
               }}
               required
               disabled={emailVerified}
@@ -278,24 +285,34 @@ export default function PortalSignupPage() {
               <label className="block text-sm font-medium text-slate-700">
                 6-digit verification code
               </label>
-              <div className="mt-1 flex gap-2">
-                <input
-                  inputMode="numeric"
-                  pattern="[0-9]{6}"
-                  maxLength={6}
-                  className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm tracking-[0.3em] focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+              <div className="mt-2">
+                <CodeSlots
+                  length={6}
                   value={otp}
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                  required
+                  status={otpStatus}
+                  disabled={verificationBusy}
+                  onChange={(code) => {
+                    setOtp(code);
+                    setOtpStatus("idle");
+                  }}
+                  onComplete={(code) => verifyEmail(code)}
+                  accentColor="#f5f5f5"
+                  inkColor="#f5f5f5"
+                  slotColor="#27272a"
+                  digitColor="#18181b"
+                  dangerColor="#ff3b30"
+                  slotSize={44}
+                  gap={8}
+                  radius={12}
+                  bounce={0.2}
+                  settle={0.3}
+                  rise={8}
+                  cascade={20}
+                  mask={false}
+                  caret
+                  outcome="accept"
+                  ariaLabel="6-digit verification code"
                 />
-                <button
-                  type="button"
-                  onClick={verifyEmail}
-                  disabled={verificationBusy || otp.length !== 6}
-                  className="rounded-sm bg-accent px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
-                >
-                  Verify
-                </button>
               </div>
             </div>
           )}
