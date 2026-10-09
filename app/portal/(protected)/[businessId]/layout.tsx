@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
@@ -38,22 +37,11 @@ export default async function PortalBusinessLayout({ children, params }: { child
         isOwner={isOwner}
         hasMultipleBusinesses={owner.businesses.length > 1}
         needsYou={needsYou ?? 0}
+        email={user.email ?? ""}
+        planLabel={`${trialing ? "Free trial · " : ""}${subscriptionLabel(access.subscription)}`}
+        showUpgrade={isOwner && trialing}
       />
       <div className="min-w-0 flex-1">
-        <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-marigold/40 bg-lime px-4 py-2.5 text-sm text-ink">
-          <span>{trialing ? "Free trial" : "Subscription"}</span>
-          <span className="flex items-center gap-3">
-            <span className="font-medium">{subscriptionLabel(access.subscription)}</span>
-            {isOwner && trialing && (
-              <Link
-                href={`/portal/upgrade?businessId=${encodeURIComponent(businessId)}`}
-                className="rounded-full bg-ink px-3 py-1 text-xs font-medium text-white transition hover:bg-ink-2"
-              >
-                Upgrade
-              </Link>
-            )}
-          </span>
-        </div>
         {children}
       </div>
     </div>

@@ -75,34 +75,39 @@ type Step = { done: boolean; title: string; description: string; href: string };
 function OnboardingCard({ steps }: { steps: Step[] }) {
   const doneCount = steps.filter((s) => s.done).length;
   if (doneCount === steps.length) return null;
+  const nextIndex = steps.findIndex((s) => !s.done);
   return (
-    <section className="glass-panel rounded-2xl p-5 sm:p-6" aria-labelledby="getting-started">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 id="getting-started" className="text-lg font-semibold tracking-tight text-ink">
+    <section className="glass-panel rounded-2xl p-4 sm:p-5" aria-labelledby="getting-started">
+      <div className="flex items-center justify-between gap-3">
+        <h2 id="getting-started" className="font-semibold tracking-tight text-ink">
           Get Mira ready for customers
         </h2>
-        <span className="text-sm text-muted">
+        <span className="shrink-0 text-xs text-muted">
           {doneCount} of {steps.length} done
         </span>
       </div>
-      <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-mist" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={doneCount}>
+      <div className="mt-2.5 h-2 overflow-hidden rounded-full bg-ink/10" role="progressbar" aria-valuemin={0} aria-valuemax={steps.length} aria-valuenow={doneCount}>
         <div className="h-full rounded-full bg-marigold transition-all" style={{ width: `${(doneCount / steps.length) * 100}%` }} />
       </div>
-      <ul className="mt-4 divide-y divide-line">
-        {steps.map((step) => (
+      <ul className="mt-2 divide-y divide-line">
+        {steps.map((step, index) => (
           <li key={step.title}>
-            <Link href={step.href} className="group flex items-start gap-3 py-3">
+            <Link href={step.href} className="group flex items-center gap-3 py-2.5">
               <span
-                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${step.done ? "bg-ink text-white" : "border border-line text-transparent"}`}
+                className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-full ${step.done ? "bg-ink text-white" : "border border-line text-transparent"}`}
                 aria-hidden="true"
               >
                 {step.done ? <Check className="h-3 w-3" /> : <Circle className="h-3 w-3" />}
               </span>
               <span className="min-w-0 flex-1">
                 <span className={`block text-sm font-medium ${step.done ? "text-muted line-through" : "text-ink"}`}>{step.title}</span>
-                <span className="block text-sm text-muted">{step.description}</span>
+                <span className="block truncate text-xs text-muted">{step.description}</span>
               </span>
-              {!step.done && <ArrowRight className="mt-0.5 h-4 w-4 shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-ink" aria-hidden="true" />}
+              {index === nextIndex ? (
+                <span className="shrink-0 rounded-full bg-marigold px-3.5 py-1.5 text-xs font-semibold text-ink transition group-hover:brightness-95">Start</span>
+              ) : (
+                !step.done && <ArrowRight className="h-4 w-4 shrink-0 text-muted transition group-hover:translate-x-0.5 group-hover:text-ink" aria-hidden="true" />
+              )}
             </Link>
           </li>
         ))}
@@ -278,9 +283,21 @@ export default async function PortalDashboardPage({
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-ink">Welcome back</h1>
-        <p className="mt-1 text-sm text-muted">Here&apos;s how {business?.name ?? "your business"} did in the last 30 days.</p>
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight text-ink">Welcome back</h1>
+          <p className="mt-1 text-sm text-muted">Here&apos;s how {business?.name ?? "your business"} did in the last 30 days.</p>
+        </div>
+        {business?.slug && (
+          <a
+            href={`/chat/${business.slug}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white shadow-soft transition hover:bg-ink-2"
+          >
+            Try your Mira <ArrowUpRight className="h-4 w-4 text-marigold" aria-hidden="true" />
+          </a>
+        )}
       </div>
 
       <OnboardingCard steps={steps} />
@@ -316,7 +333,7 @@ export default async function PortalDashboardPage({
             </>
           ) : (
             <>
-              <p className="mt-2 text-3xl font-semibold tracking-tight text-muted">Off</p>
+              <p className="mt-2 text-xl font-medium text-muted">Not turned on</p>
               <p className="mt-2 flex items-center gap-1 text-xs text-ink-2">
                 Request the Nudges add-on <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
               </p>
