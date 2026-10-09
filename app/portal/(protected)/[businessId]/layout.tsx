@@ -30,7 +30,7 @@ export default async function PortalBusinessLayout({ children, params }: { child
   const trialing = access.subscription?.status === "trialing";
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:flex lg:gap-8">
+    <div className="w-full px-4 py-6 sm:px-6 lg:flex lg:gap-8 lg:px-8">
       <PortalSidebar
         businessId={businessId}
         businessName={business.name}
