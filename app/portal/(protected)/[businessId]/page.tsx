@@ -2,10 +2,19 @@ import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Check, Circle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
-import { Badge } from "@/components/site/ui";
 import { naira } from "@/lib/site/format";
 import { getOrderTakingEnabled } from "@/lib/orderSettings";
 import { ActivityChart, type ChartPoint } from "./ActivityChart";
+import { DataTable, type Column, type Row } from "./DataTable";
+
+type OrderRow = {
+  id: string;
+  created_at: string;
+  total: number | null;
+  status: string;
+  customer_identifier: string;
+  order_items: { name: string; quantity: number; unit_price: number | null }[] | null;
+};
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TZ = "Africa/Lagos";
@@ -38,21 +47,11 @@ function dailySeries(now: number, entries: { at: string; value: number }[]): Cha
   });
 }
 
-function timeAgo(iso: string | null, now: number): string {
-  if (!iso) return "—";
-  const seconds = Math.round((new Date(iso).getTime() - now) / 1000);
-  const rtf = new Intl.RelativeTimeFormat("en", { numeric: "auto" });
-  const steps: [Intl.RelativeTimeFormatUnit, number][] = [["day", 86400], ["hour", 3600], ["minute", 60]];
-  for (const [unit, size] of steps) {
-    if (Math.abs(seconds) >= size) return rtf.format(Math.round(seconds / size), unit);
-  }
-  return "just now";
-}
-
 function customerLabel(sessionToken: string | null): string {
   if (!sessionToken) return "Website visitor";
   if (sessionToken.startsWith("email_")) return sessionToken.slice(6);
   if (sessionToken.startsWith("wa_")) return `+${sessionToken.slice(3)}`;
+  if (sessionToken.startsWith("web_")) return "Website visitor";
   return "Website visitor";
 }
 
@@ -173,7 +172,7 @@ export default async function PortalDashboardPage({
       .select("id, session_token, channel, needs_human, last_message_at")
       .eq("business_id", businessId)
       .order("last_message_at", { ascending: false })
-      .limit(5),
+      .limit(8),
     count("products"),
     count("services"),
     count("faqs"),
@@ -182,10 +181,10 @@ export default async function PortalDashboardPage({
     fetchPaged<{ started_at: string }>((from, to) =>
       supabase.from("conversations").select("started_at").eq("business_id", businessId).gte("started_at", thirtyDaysAgo).order("started_at").range(from, to),
     ),
-    fetchPaged<{ created_at: string; total: number | null }>((from, to) =>
+    fetchPaged<OrderRow>((from, to) =>
       supabase
         .from("orders")
-        .select("created_at, total")
+        .select("id, created_at, total, status, customer_identifier, order_items(name, quantity, unit_price)")
         .eq("business_id", businessId)
         .in("status", ["placed", "shipped", "delivered"])
         .gte("created_at", thirtyDaysAgo)
@@ -198,6 +197,61 @@ export default async function PortalDashboardPage({
   const conversationSeries = dailySeries(now, conversationRows.map((r) => ({ at: r.started_at, value: 1 })));
   const orderSeries = dailySeries(now, orderRows.map((r) => ({ at: r.created_at, value: Number(r.total ?? 0) })));
   const showOrders = orderTakingEnabled || orderRows.length > 0;
+
+  const orderTableRows: Row[] = [...orderRows].reverse().slice(0, 8).map((order) => {
+    const items = order.order_items ?? [];
+    const first = items[0];
+    const summary = first ? `${first.name}${first.quantity > 1 ? ` ×${first.quantity}` : ""}${items.length > 1 ? ` +${items.length - 1} more` : ""}` : "—";
+    return {
+      id: order.id,
+      href: `/portal/${businessId}/orders`,
+      customer: customerLabel(order.customer_identifier),
+      items: summary,
+      total: Number(order.total ?? 0),
+      status: order.status,
+    };
+  });
+
+  const bestSellerMap = new Map<string, { units: number; revenue: number }>();
+  for (const order of orderRows) {
+    for (const item of order.order_items ?? []) {
+      const entry = bestSellerMap.get(item.name) ?? { units: 0, revenue: 0 };
+      entry.units += item.quantity;
+      entry.revenue += item.quantity * Number(item.unit_price ?? 0);
+      bestSellerMap.set(item.name, entry);
+    }
+  }
+  const bestSellerRows: Row[] = [...bestSellerMap.entries()]
+    .sort((a, b) => b[1].units - a[1].units)
+    .slice(0, 8)
+    .map(([name, v]) => ({ id: name, product: name, sold: v.units, revenue: v.revenue }));
+
+  const conversationTableRows: Row[] = (recent ?? []).map((conversation) => ({
+    id: conversation.id,
+    href: `/portal/${businessId}/conversations/${conversation.id}`,
+    customer: customerLabel(conversation.session_token),
+    channel: CHANNEL_LABEL[conversation.channel as string] ?? "Chat",
+    status: conversation.needs_human ? "needs-you" : "handled",
+    last: conversation.last_message_at,
+  }));
+
+  const orderColumns: Column[] = [
+    { key: "customer", header: "Customer", kind: "customer", sortable: true },
+    { key: "items", header: "Items", kind: "text" },
+    { key: "total", header: "Amount", kind: "money", sortable: true, align: "right" },
+    { key: "status", header: "Status", kind: "status", sortable: true },
+  ];
+  const bestSellerColumns: Column[] = [
+    { key: "product", header: "Product", kind: "text", sortable: true },
+    { key: "sold", header: "Sold", kind: "number", sortable: true, align: "right" },
+    { key: "revenue", header: "Revenue", kind: "money", sortable: true, align: "right" },
+  ];
+  const conversationColumns: Column[] = [
+    { key: "customer", header: "Customer", kind: "customer", sortable: true },
+    { key: "channel", header: "Channel", kind: "text", sortable: true },
+    { key: "last", header: "Last message", kind: "when", sortable: true },
+    { key: "status", header: "Status", kind: "status", sortable: true },
+  ];
 
   const nudgesActive = subscription?.nudges_addon === true;
   const needsYou = needsHumanCount ?? 0;
@@ -289,38 +343,34 @@ export default async function PortalDashboardPage({
         )}
       </div>
 
-      <section className="glass-panel rounded-2xl" aria-labelledby="recent-conversations">
-        <div className="flex items-center justify-between px-5 pt-5">
-          <h2 id="recent-conversations" className="font-medium text-ink">
-            Recent conversations
-          </h2>
-          <Link href={`${base}/conversations`} className="text-sm font-medium text-ink hover:underline">
-            View all
-          </Link>
+      {showOrders && (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <DataTable
+            title="Recent orders"
+            action={{ href: `${base}/orders`, label: "View all" }}
+            columns={orderColumns}
+            rows={orderTableRows}
+            filterPlaceholder="Filter orders…"
+            emptyMessage="No orders in the last 30 days."
+          />
+          <DataTable
+            title="Best sellers"
+            columns={bestSellerColumns}
+            rows={bestSellerRows}
+            filterPlaceholder="Filter products…"
+            emptyMessage="Your top products show up here once orders come in."
+          />
         </div>
-        {recent && recent.length > 0 ? (
-          <ul className="mt-3 divide-y divide-line">
-            {recent.map((conversation) => (
-              <li key={conversation.id}>
-                <Link href={`${base}/conversations/${conversation.id}`} className="flex items-center gap-3 px-5 py-3 transition hover:bg-mist/60">
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-medium text-ink">{customerLabel(conversation.session_token)}</span>
-                    <span className="block text-xs text-muted">
-                      {CHANNEL_LABEL[conversation.channel as string] ?? "Chat"} · {timeAgo(conversation.last_message_at, now)}
-                    </span>
-                  </span>
-                  {conversation.needs_human ? <Badge tone="lime">Needs you</Badge> : <Badge>Handled by Mira</Badge>}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="px-5 pb-6 pt-3 text-sm text-muted">
-            No conversations yet. Once a customer messages your chat widget, WhatsApp or email address, it shows up here.
-          </p>
-        )}
-        <div className="h-2" />
-      </section>
+      )}
+
+      <DataTable
+        title="Recent conversations"
+        action={{ href: `${base}/conversations`, label: "View all" }}
+        columns={conversationColumns}
+        rows={conversationTableRows}
+        filterPlaceholder="Filter conversations…"
+        emptyMessage="No conversations yet. Once a customer messages your chat widget, WhatsApp or email address, it shows up here."
+      />
 
       {nudgesActive && (
         <div className="glass-panel rounded-2xl p-5">

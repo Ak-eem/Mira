@@ -1,0 +1,182 @@
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { ArrowRight, ArrowUpDown, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { Badge } from "@/components/site/ui";
+import { naira } from "@/lib/site/format";
+
+// Rows and columns are plain data (not functions) so a Server Component can pass
+// them straight in. Each column declares how its cell is drawn via `kind`.
+export type Kind = "customer" | "text" | "number" | "money" | "status" | "when";
+export type Column = { key: string; header: string; kind: Kind; sortable?: boolean; align?: "right" };
+export type Row = { id: string; href?: string } & Record<string, string | number | boolean | null | undefined>;
+
+const STATUS: Record<string, { label: string; tone: "neutral" | "lime" | "ink" | "danger" }> = {
+  "needs-you": { label: "Needs you", tone: "lime" },
+  handled: { label: "Handled by Mira", tone: "neutral" },
+  placed: { label: "Placed", tone: "lime" },
+  shipped: { label: "Shipped", tone: "neutral" },
+  delivered: { label: "Delivered", tone: "ink" },
+  cancelled: { label: "Cancelled", tone: "danger" },
+};
+
+const whenFormat = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+function initials(label: string): string {
+  return (label.match(/[A-Za-z]/g) ?? ["#"]).slice(0, 2).join("").toUpperCase();
+}
+
+function Cell({ column, row }: { column: Column; row: Row }) {
+  const value = row[column.key];
+  switch (column.kind) {
+    case "customer":
+      return (
+        <span className="flex items-center gap-3">
+          <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-lime text-xs font-semibold text-ink">
+            {initials(String(value ?? ""))}
+          </span>
+          <span className="truncate font-medium text-ink">{String(value ?? "—")}</span>
+        </span>
+      );
+    case "money":
+      return <span className="tabular-nums text-ink">{naira(Number(value ?? 0))}</span>;
+    case "number":
+      return <span className="tabular-nums text-ink">{Number(value ?? 0).toLocaleString("en-NG")}</span>;
+    case "when":
+      return <span className="whitespace-nowrap text-muted">{value ? whenFormat.format(new Date(String(value))) : "—"}</span>;
+    case "status": {
+      const status = STATUS[String(value)] ?? { label: String(value ?? "—"), tone: "neutral" as const };
+      return <Badge tone={status.tone}>{status.label}</Badge>;
+    }
+    default:
+      return <span className="truncate text-ink-2">{String(value ?? "—")}</span>;
+  }
+}
+
+export function DataTable({
+  title,
+  action,
+  columns,
+  rows,
+  filterPlaceholder,
+  emptyMessage,
+}: {
+  title: string;
+  action?: { href: string; label: string };
+  columns: Column[];
+  rows: Row[];
+  filterPlaceholder: string;
+  emptyMessage: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
+
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    let result = needle
+      ? rows.filter((row) => columns.some((c) => c.kind !== "when" && String(row[c.key] ?? "").toLowerCase().includes(needle)))
+      : rows;
+    if (sort) {
+      const dir = sort.dir === "asc" ? 1 : -1;
+      result = [...result].sort((a, b) => {
+        const x = a[sort.key];
+        const y = b[sort.key];
+        if (typeof x === "number" && typeof y === "number") return (x - y) * dir;
+        return String(x ?? "").localeCompare(String(y ?? "")) * dir;
+      });
+    }
+    return result;
+  }, [rows, columns, query, sort]);
+
+  const hasLinks = rows.some((row) => row.href);
+
+  return (
+    <section className="glass-panel overflow-hidden rounded-2xl" aria-label={title}>
+      <div className="flex items-center justify-between gap-3 px-5 pt-5">
+        <h2 className="font-medium text-ink">{title}</h2>
+        {action && (
+          <Link href={action.href} className="text-sm font-medium text-ink hover:underline">
+            {action.label}
+          </Link>
+        )}
+      </div>
+
+      {rows.length === 0 ? (
+        <p className="px-5 pb-6 pt-3 text-sm text-muted">{emptyMessage}</p>
+      ) : (
+        <>
+          <div className="px-5 pt-3">
+            <label className="relative block">
+              <span className="sr-only">{filterPlaceholder}</span>
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={filterPlaceholder}
+                className="w-full rounded-xl border border-line bg-surface py-2 pl-9 pr-3 text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none"
+              />
+            </label>
+          </div>
+
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[420px] text-left text-sm">
+              <thead>
+                <tr className="border-y border-line text-xs text-muted">
+                  {columns.map((column) => {
+                    const active = sort?.key === column.key;
+                    const Icon = !active ? ArrowUpDown : sort.dir === "asc" ? ChevronUp : ChevronDown;
+                    return (
+                      <th
+                        key={column.key}
+                        scope="col"
+                        aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
+                        className={`px-5 py-2.5 font-medium ${column.align === "right" ? "text-right" : ""}`}
+                      >
+                        {column.sortable ? (
+                          <button
+                            type="button"
+                            onClick={() => setSort(active && sort.dir === "asc" ? { key: column.key, dir: "desc" } : { key: column.key, dir: "asc" })}
+                            className="inline-flex items-center gap-1 hover:text-ink"
+                          >
+                            {column.header}
+                            <Icon className="h-3 w-3" aria-hidden="true" />
+                          </button>
+                        ) : (
+                          column.header
+                        )}
+                      </th>
+                    );
+                  })}
+                  {hasLinks && <th scope="col" className="w-10 px-5 py-2.5" />}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {visible.map((row) => (
+                  <tr key={row.id} className="transition hover:bg-mist/60">
+                    {columns.map((column) => (
+                      <td key={column.key} className={`max-w-[14rem] px-5 py-3 ${column.align === "right" ? "text-right" : ""}`}>
+                        <Cell column={column} row={row} />
+                      </td>
+                    ))}
+                    {hasLinks && (
+                      <td className="px-5 py-3 text-right">
+                        {row.href && (
+                          <Link href={row.href} aria-label={`Open ${title.toLowerCase()} item`} className="inline-flex text-muted hover:text-ink">
+                            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                          </Link>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {visible.length === 0 && <p className="px-5 py-4 text-sm text-muted">Nothing matches &ldquo;{query}&rdquo;.</p>}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
