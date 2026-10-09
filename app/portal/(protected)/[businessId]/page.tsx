@@ -3,10 +3,40 @@ import { ArrowRight, ArrowUpRight, Check, Circle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { Badge } from "@/components/site/ui";
-import { WebsiteImport } from "./WebsiteImport";
-import { EmbedSnippet } from "./EmbedSnippet";
+import { naira } from "@/lib/site/format";
+import { getOrderTakingEnabled } from "@/lib/orderSettings";
+import { ActivityChart, type ChartPoint } from "./ActivityChart";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+const TZ = "Africa/Lagos";
+const dayKey = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(d);
+const dayLabel = (d: Date) => new Intl.DateTimeFormat("en-GB", { timeZone: TZ, day: "numeric", month: "short" }).format(d);
+
+// PostgREST returns at most 1000 rows per request, so page through (capped at 5000)
+// rather than silently under-counting a busy month.
+async function fetchPaged<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null }>): Promise<T[]> {
+  const rows: T[] = [];
+  for (let from = 0; from < 5000; from += 1000) {
+    const { data } = await page(from, from + 999);
+    if (!data) break;
+    rows.push(...data);
+    if (data.length < 1000) break;
+  }
+  return rows;
+}
+
+// One point per day for the last 30 days, zero-filled so quiet days still show.
+function dailySeries(now: number, entries: { at: string; value: number }[]): ChartPoint[] {
+  const totals = new Map<string, number>();
+  for (const entry of entries) {
+    const key = dayKey(new Date(entry.at));
+    totals.set(key, (totals.get(key) ?? 0) + entry.value);
+  }
+  return Array.from({ length: 30 }, (_, i) => {
+    const date = new Date(now - (29 - i) * DAY_MS);
+    return { label: dayLabel(date), value: totals.get(dayKey(date)) ?? 0 };
+  });
+}
 
 function timeAgo(iso: string | null, now: number): string {
   if (!iso) return "—";
@@ -119,6 +149,9 @@ export default async function PortalDashboardPage({
     { count: faqCount },
     { count: policyCount },
     { count: inviteCount },
+    conversationRows,
+    orderRows,
+    orderTakingEnabled,
   ] = await Promise.all([
     count("conversations").gte("started_at", thirtyDaysAgo),
     count("conversations").gte("started_at", sixtyDaysAgo).lt("started_at", thirtyDaysAgo),
@@ -146,7 +179,25 @@ export default async function PortalDashboardPage({
     count("faqs"),
     count("policies"),
     count("team_invites").in("status", ["pending", "accepted"]),
+    fetchPaged<{ started_at: string }>((from, to) =>
+      supabase.from("conversations").select("started_at").eq("business_id", businessId).gte("started_at", thirtyDaysAgo).order("started_at").range(from, to),
+    ),
+    fetchPaged<{ created_at: string; total: number | null }>((from, to) =>
+      supabase
+        .from("orders")
+        .select("created_at, total")
+        .eq("business_id", businessId)
+        .in("status", ["placed", "shipped", "delivered"])
+        .gte("created_at", thirtyDaysAgo)
+        .order("created_at")
+        .range(from, to),
+    ),
+    getOrderTakingEnabled(businessId),
   ]);
+
+  const conversationSeries = dailySeries(now, conversationRows.map((r) => ({ at: r.started_at, value: 1 })));
+  const orderSeries = dailySeries(now, orderRows.map((r) => ({ at: r.created_at, value: Number(r.total ?? 0) })));
+  const showOrders = orderTakingEnabled || orderRows.length > 0;
 
   const nudgesActive = subscription?.nudges_addon === true;
   const needsYou = needsHumanCount ?? 0;
@@ -158,13 +209,13 @@ export default async function PortalDashboardPage({
       done: knowledge > 0,
       title: "Teach Mira about your business",
       description: "Import from your website, or add products, FAQs and policies.",
-      href: "#import-website",
+      href: `${base}/settings#import-website`,
     },
     {
       done: (totalConversations ?? 0) > 0,
       title: "Get your first conversation",
       description: "Add the chat widget to your site and send a test message.",
-      href: "#add-widget",
+      href: `${base}/settings#add-widget`,
     },
     ...(isOwner
       ? [{ done: (inviteCount ?? 0) > 0, title: "Invite a teammate", description: "Let staff answer the chats Mira hands over.", href: `${base}/team` }]
@@ -220,6 +271,24 @@ export default async function PortalDashboardPage({
         </Link>
       </div>
 
+      <div className={showOrders ? "grid gap-4 lg:grid-cols-2" : ""}>
+        <ActivityChart
+          title="Conversations"
+          subtitle="Last 30 days"
+          points={conversationSeries}
+          emptyMessage="Your activity shows up here once customers start chatting with Mira."
+        />
+        {showOrders && (
+          <ActivityChart
+            title="Sales from orders"
+            subtitle="Placed, shipped and delivered, last 30 days"
+            points={orderSeries}
+            format={naira}
+            emptyMessage="Order value appears here after Mira takes your first order."
+          />
+        )}
+      </div>
+
       <section className="glass-panel rounded-2xl" aria-labelledby="recent-conversations">
         <div className="flex items-center justify-between px-5 pt-5">
           <h2 id="recent-conversations" className="font-medium text-ink">
@@ -268,16 +337,6 @@ export default async function PortalDashboardPage({
               </div>
             ))}
           </div>
-        </div>
-      )}
-
-      <div id="import-website" className="scroll-mt-24">
-        <WebsiteImport businessId={businessId} />
-      </div>
-
-      {business && (
-        <div id="add-widget" className="scroll-mt-24">
-          <EmbedSnippet slug={business.slug} businessName={business.name} />
         </div>
       )}
     </div>

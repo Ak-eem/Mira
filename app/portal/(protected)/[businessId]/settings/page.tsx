@@ -11,6 +11,8 @@ import { GroundingPanel } from "./GroundingPanel";
 import { getGroundingSettings } from "@/lib/grounding/settings";
 import { CancelSubscriptionPanel } from "./CancelSubscriptionPanel";
 import { getOrderTakingEnabled } from "@/lib/orderSettings";
+import { WebsiteImport } from "../WebsiteImport";
+import { EmbedSnippet } from "../EmbedSnippet";
 
 export const dynamic = "force-dynamic";
 
@@ -32,14 +34,14 @@ export default async function PortalSettingsPage({ params }: PageProps) {
     getPublishedHistory(businessId),
     getAgentSettings(businessId),
     getOrderTakingEnabled(businessId),
-    supabase.from("businesses").select("email_inbound_address").eq("id", businessId).maybeSingle(),
+    supabase.from("businesses").select("email_inbound_address, slug").eq("id", businessId).maybeSingle(),
     getGroundingSettings(supabase, businessId),
   ]);
   const businessName = membership.name ?? "your business";
   const inboundAddress: string | null = emailBusiness?.email_inbound_address ?? null;
 
   return (
-    <div className="max-w-lg space-y-4">
+    <div className="max-w-2xl space-y-4">
       <div>
         <h1 className="mb-1 mt-2 text-xl font-semibold">Settings</h1>
         <p className="text-sm text-slate-500">
@@ -47,6 +49,16 @@ export default async function PortalSettingsPage({ params }: PageProps) {
           changes what Mira actually says to your customers.
         </p>
       </div>
+
+      <div id="import-website" className="scroll-mt-24">
+        <WebsiteImport businessId={businessId} />
+      </div>
+
+      {emailBusiness?.slug && (
+        <div id="add-widget" className="scroll-mt-24">
+          <EmbedSnippet slug={emailBusiness.slug} businessName={businessName} />
+        </div>
+      )}
 
       <AgentSettingsPanel
         businessId={businessId}

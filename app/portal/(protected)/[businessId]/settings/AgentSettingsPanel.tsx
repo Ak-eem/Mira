@@ -18,7 +18,9 @@ export function AgentSettingsPanel({
 }) {
   const router = useRouter();
   const [enabled, setEnabled] = useState(initialEnabled);
-  const [provider, setProvider] = useState<ProviderName>(initialProvider);
+  // The vendor/model is chosen by Mira's team (platform admin), not the business owner,
+  // so it is passed through unchanged when the owner saves their own settings.
+  const provider: ProviderName = initialProvider;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -59,23 +61,6 @@ export function AgentSettingsPanel({
         />
         Allow the inventory assistant to make changes
       </label>
-
-      <div>
-        <label className="block text-sm font-medium text-slate-700">Which AI agent</label>
-        <select
-          className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm disabled:bg-slate-50 disabled:text-slate-400"
-          value={provider}
-          disabled={!canEdit}
-          onChange={(e) => setProvider(e.target.value as ProviderName)}
-        >
-          <option value="groq">Groq</option>
-          <option value="gemini">Gemini</option>
-        </select>
-        <p className="mt-1 text-xs text-slate-400">
-          If your chosen provider is unavailable, the other one is used automatically as a
-          fallback.
-        </p>
-      </div>
 
       {!canEdit && (
         <p className="text-xs text-slate-400">Only the business owner can change this.</p>
