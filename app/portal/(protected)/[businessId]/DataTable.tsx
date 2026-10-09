@@ -1,227 +1,138 @@
-"use client";
-
-import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ArrowRight, ArrowUpDown, ChevronDown, ChevronUp, Search } from "lucide-react";
-import { Badge } from "@/components/site/ui";
-import { naira } from "@/lib/site/format";
-
-// Rows and columns are plain data (not functions) so a Server Component can pass
-// them straight in. Each column declares how its cell is drawn via `kind`.
-export type Kind = "customer" | "text" | "number" | "money" | "status" | "when";
-export type Column = { key: string; header: string; kind: Kind; sortable?: boolean; align?: "right" };
-export type Row = { id: string; href?: string } & Record<string, string | number | boolean | null | undefined>;
-
-const STATUS: Record<string, { label: string; tone: "neutral" | "lime" | "ink" | "danger" }> = {
-  "needs-you": { label: "Needs you", tone: "lime" },
-  handled: { label: "Handled by Mira", tone: "neutral" },
-  placed: { label: "Placed", tone: "lime" },
-  shipped: { label: "Shipped", tone: "neutral" },
-  delivered: { label: "Delivered", tone: "ink" },
-  cancelled: { label: "Cancelled", tone: "danger" },
-};
-
-const whenFormat = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
-
-function initials(label: string): string {
-  return (label.match(/[A-Za-z]/g) ?? ["#"]).slice(0, 2).join("").toUpperCase();
-}
-
-function Cell({ column, row }: { column: Column; row: Row }) {
-  const value = row[column.key];
-  switch (column.kind) {
-    case "customer":
-      return (
-        <span className="flex min-w-0 items-center gap-3">
-          <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-lime text-xs font-semibold text-ink">
-            {initials(String(value ?? ""))}
-          </span>
-          <span className="truncate font-medium text-ink">{String(value ?? "—")}</span>
-        </span>
-      );
-    case "money":
-      return <span className="tabular-nums text-ink">{naira(Number(value ?? 0))}</span>;
-    case "number":
-      return <span className="tabular-nums text-ink">{Number(value ?? 0).toLocaleString("en-NG")}</span>;
-    case "when":
-      return <span className="whitespace-nowrap text-muted">{value ? whenFormat.format(new Date(String(value))) : "—"}</span>;
-    case "status": {
-      const status = STATUS[String(value)] ?? { label: String(value ?? "—"), tone: "neutral" as const };
-      return <Badge tone={status.tone}>{status.label}</Badge>;
-    }
-    default:
-      return <span className="truncate text-ink-2">{String(value ?? "—")}</span>;
-  }
-}
-
-export function DataTable({
-  title,
-  action,
-  columns,
-  rows,
-  filterPlaceholder,
-  emptyMessage,
-}: {
-  title: string;
-  action?: { href: string; label: string };
-  columns: Column[];
-  rows: Row[];
-  filterPlaceholder: string;
-  emptyMessage: string;
-}) {
-  const [query, setQuery] = useState("");
-  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
-
-  const visible = useMemo(() => {
-    const needle = query.trim().toLowerCase();
-    let result = needle
-      ? rows.filter((row) => columns.some((c) => c.kind !== "when" && String(row[c.key] ?? "").toLowerCase().includes(needle)))
-      : rows;
-    if (sort) {
-      const dir = sort.dir === "asc" ? 1 : -1;
-      result = [...result].sort((a, b) => {
-        const x = a[sort.key];
-        const y = b[sort.key];
-        if (typeof x === "number" && typeof y === "number") return (x - y) * dir;
-        return String(x ?? "").localeCompare(String(y ?? "")) * dir;
-      });
-    }
-    return result;
-  }, [rows, columns, query, sort]);
-
-  const hasLinks = rows.some((row) => row.href);
-  const toggleSort = (column: Column) => {
-    if (!column.sortable) return;
-    setSort((current) => current?.key === column.key && current.dir === "asc"
-      ? { key: column.key, dir: "desc" }
-      : { key: column.key, dir: "asc" });
-  };
-
-  return (
-    <section className="glass-panel min-w-0 overflow-hidden rounded-2xl" aria-label={title}>
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 pt-5 sm:px-5">
-        <h2 className="min-w-0 break-words font-medium text-ink">{title}</h2>
-        {action && (
-          <Link href={action.href} className="shrink-0 text-sm font-medium text-ink hover:underline">
-            {action.label}
-          </Link>
-        )}
-      </div>
-
-      {rows.length === 0 ? (
-        <p className="px-4 pb-6 pt-3 text-sm text-muted sm:px-5">{emptyMessage}</p>
-      ) : (
-        <>
-          <div className="px-4 pt-3 sm:px-5">
-            <label className="relative block">
-              <span className="sr-only">{filterPlaceholder}</span>
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
-              <input
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={filterPlaceholder}
-                className="w-full min-w-0 rounded-xl border border-line bg-surface py-2 pl-9 pr-3 text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none"
-              />
-            </label>
-          </div>
-
-          <div className="mt-2 flex gap-2 overflow-x-auto px-4 py-2 sm:hidden" aria-label="Sort dashboard items">
-            {columns.filter((column) => column.sortable).map((column) => {
-              const active = sort?.key === column.key;
-              const Icon = !active ? ArrowUpDown : sort.dir === "asc" ? ChevronUp : ChevronDown;
-              return (
-                <button
-                  key={column.key}
-                  type="button"
-                  onClick={() => toggleSort(column)}
-                  aria-pressed={active}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-ink"
-                >
-                  {column.header}
-                  <Icon className="h-3 w-3" aria-hidden="true" />
-                </button>
-              );
-            })}
-          </div>
-
-          <ul className="divide-y divide-line px-4 sm:hidden">
-            {visible.map((row) => (
-              <li key={row.id} className="min-w-0 py-3">
-                <dl className="grid min-w-0 grid-cols-2 gap-x-3 gap-y-3">
-                  {columns.map((column) => (
-                    <div key={column.key} className="min-w-0">
-                      <dt className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted">{column.header}</dt>
-                      <dd className="min-w-0 overflow-hidden text-sm text-ink">
-                        <Cell column={column} row={row} />
-                      </dd>
-                    </div>
-                  ))}
-                </dl>
-                {row.href && (
-                  <Link href={row.href} className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-ink hover:underline">
-                    Open item <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-                    <span className="sr-only"> in {title.toLowerCase()}</span>
-                  </Link>
-                )}
-              </li>
-            ))}
-          </ul>
-          {visible.length === 0 && <p className="px-4 py-4 text-sm text-muted sm:hidden">Nothing matches &ldquo;{query}&rdquo;.</p>}
-
-          <div className="mt-3 hidden min-w-0 overflow-x-auto sm:block">
-            <table className="w-full min-w-[420px] text-left text-sm">
-              <thead>
-                <tr className="border-y border-line text-xs text-muted">
-                  {columns.map((column) => {
-                    const active = sort?.key === column.key;
-                    const Icon = !active ? ArrowUpDown : sort.dir === "asc" ? ChevronUp : ChevronDown;
-                    return (
-                      <th
-                        key={column.key}
-                        scope="col"
-                        aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
-                        className={`px-5 py-2.5 font-medium ${column.align === "right" ? "text-right" : ""}`}
-                      >
-                        {column.sortable ? (
-                          <button type="button" onClick={() => toggleSort(column)} className="inline-flex items-center gap-1 hover:text-ink">
-                            {column.header}
-                            <Icon className="h-3 w-3" aria-hidden="true" />
-                          </button>
-                        ) : (
-                          column.header
-                        )}
-                      </th>
-                    );
-                  })}
-                  {hasLinks && <th scope="col" className="w-10 px-5 py-2.5" />}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-line">
-                {visible.map((row) => (
-                  <tr key={row.id} className="transition hover:bg-mist/60">
-                    {columns.map((column) => (
-                      <td key={column.key} className={`max-w-[14rem] px-5 py-3 ${column.align === "right" ? "text-right" : ""}`}>
-                        <Cell column={column} row={row} />
-                      </td>
-                    ))}
-                    {hasLinks && (
-                      <td className="px-5 py-3 text-right">
-                        {row.href && (
-                          <Link href={row.href} aria-label={`Open ${title.toLowerCase()} item`} className="inline-flex text-muted hover:text-ink">
-                            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-                          </Link>
-                        )}
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {visible.length === 0 && <p className="px-5 py-4 text-sm text-muted">Nothing matches &ldquo;{query}&rdquo;.</p>}
-          </div>
-        </>
-      )}
-    </section>
-  );
-}
+InVzZSBjbGllbnQiOwoKaW1wb3J0IExpbmsgZnJvbSAibmV4dC9saW5rIjsK
+aW1wb3J0IHsgdXNlTWVtbywgdXNlU3RhdGUgfSBmcm9tICJyZWFjdCI7Cmlt
+cG9ydCB7IEFycm93UmlnaHQsIEFycm93VXBEb3duLCBDaGV2cm9uRG93biwg
+Q2hldnJvblVwLCBTZWFyY2ggfSBmcm9tICJsdWNpZGUtcmVhY3QiOwppbXBv
+cnQgeyBCYWRnZSB9IGZyb20gIkAvY29tcG9uZW50cy9zaXRlL3VpIjsKaW1w
+b3J0IHsgbmFpcmEgfSBmcm9tICJAL2xpYi9zaXRlL2Zvcm1hdCI7CgovLyBS
+b3dzIGFuZCBjb2x1bW5zIGFyZSBwbGFpbiBkYXRhIChub3QgZnVuY3Rpb25z
+KSBzbyBhIFNlcnZlciBDb21wb25lbnQgY2FuIHBhc3MKLy8gdGhlbSBzdHJh
+aWdodCBpbi4gRWFjaCBjb2x1bW4gZGVjbGFyZXMgaG93IGl0cyBjZWxsIGlz
+IGRyYXduIHZpYSBga2luZGAuCmV4cG9ydCB0eXBlIEtpbmQgPSAiY3VzdG9t
+ZXIiIHwgInRleHQiIHwgIm51bWJlciIgfCAibW9uZXkiIHwgInN0YXR1cyIg
+fCAid2hlbiI7CmV4cG9ydCB0eXBlIENvbHVtbiA9IHsga2V5OiBzdHJpbmc7
+IGhlYWRlcjogc3RyaW5nOyBraW5kOiBLaW5kOyBzb3J0YWJsZT86IGJvb2xl
+YW47IGFsaWduPzogInJpZ2h0IiB9OwpleHBvcnQgdHlwZSBSb3cgPSB7IGlk
+OiBzdHJpbmc7IGhyZWY/OiBzdHJpbmcgfSAmIFJlY29yZDxzdHJpbmcsIHN0
+cmluZyB8IG51bWJlciB8IGJvb2xlYW4gfCBudWxsIHwgdW5kZWZpbmVkPjsK
+CmNvbnN0IFNUQVRVUzogUmVjb3JkPHN0cmluZywgeyBsYWJlbDogc3RyaW5n
+OyB0b25lOiAibmV1dHJhbCIgfCAibGltZSIgfCAiaW5rIiB8ICJkYW5nZXIi
+IH0+ID0gewogICJuZWVkcy15b3UiOiB7IGxhYmVsOiAiTmVlZHMgeW91Iiwg
+dG9uZTogImxpbWUiIH0sCiAgaGFuZGxlZDogeyBsYWJlbDogIkhhbmRsZWQg
+YnkgTWlyYSIsIHRvbmU6ICJuZXV0cmFsIiB9LAogIHBsYWNlZDogeyBsYWJl
+bDogIlBsYWNlZCIsIHRvbmU6ICJsaW1lIiB9LAogIHNoaXBwZWQ6IHsgbGFi
+ZWw6ICJTaGlwcGVkIiwgdG9uZTogIm5ldXRyYWwiIH0sCiAgZGVsaXZlcmVk
+OiB7IGxhYmVsOiAiRGVsaXZlcmVkIiwgdG9uZTogImluayIgfSwKICBjYW5j
+ZWxsZWQ6IHsgbGFiZWw6ICJDYW5jZWxsZWQiLCB0b25lOiAiZGFuZ2VyIiB9
+LAp9OwoKY29uc3Qgd2hlbkZvcm1hdCA9IG5ldyBJbnRsLkRhdGVUaW1lRm9y
+bWF0KCJlbi1HQiIsIHsgdGltZVpvbmU6ICJBZnJpY2EvTGFnb3MiLCBkYXk6
+ICJudW1lcmljIiwgbW9udGg6ICJzaG9ydCIsIGhvdXI6ICIyLWRpZ2l0Iiwg
+bWludXRlOiAiMi1kaWdpdCIgfSk7CgpmdW5jdGlvbiBpbml0aWFscyhsYWJl
+bDogc3RyaW5nKTogc3RyaW5nIHsKICByZXR1cm4gKGxhYmVsLm1hdGNoKC9b
+QS1aYS16XS9nKSA/PyBbIiMiXSkuc2xpY2UoMCwgMikuam9pbigiIikudG9V
+cHBlckNhc2UoKTsKfQoKZnVuY3Rpb24gQ2VsbCh7IGNvbHVtbiwgcm93IH06
+IHsgY29sdW1uOiBDb2x1bW47IHJvdzogUm93IH0pIHsKICBjb25zdCB2YWx1
+ZSA9IHJvd1tjb2x1bW4ua2V5XTsKICBzd2l0Y2ggKGNvbHVtbi5raW5kKSB7
+CiAgICBjYXNlICJjdXN0b21lciI6CiAgICAgIHJldHVybiAoCiAgICAgICAg
+PHNwYW4gY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMyI+CiAg
+ICAgICAgICA8c3BhbiBhcmlhLWhpZGRlbj0idHJ1ZSIgY2xhc3NOYW1lPSJm
+bGV4IGgtOCB3LTggc2hyaW5rLTAgaXRlbXMtY2VudGVyIGp1c3RpZnktY2Vu
+dGVyIHJvdW5kZWQtZnVsbCBiZy1saW1lIHRleHQteHMgZm9udC1zZW1pYm9s
+ZCB0ZXh0LWluayI+CiAgICAgICAgICAgIHtpbml0aWFscyhTdHJpbmcodmFs
+dWUgPz8gIiIpKX0KICAgICAgICAgIDwvc3Bhbj4KICAgICAgICAgIDxzcGFu
+IGNsYXNzTmFtZT0idHJ1bmNhdGUgZm9udC1tZWRpdW0gdGV4dC1pbmsiPntT
+dHJpbmcodmFsdWUgPz8gIuKAlCIpfTwvc3Bhbj4KICAgICAgICA8L3NwYW4+
+CiAgICAgICk7CiAgICBjYXNlICJtb25leSI6CiAgICAgIHJldHVybiA8c3Bh
+biBjbGFzc05hbWU9InRhYnVsYXItbnVtcyB0ZXh0LWluayI+e25haXJhKE51
+bWJlcih2YWx1ZSA/PyAwKSl9PC9zcGFuPjsKICAgIGNhc2UgIm51bWJlciI6
+CiAgICAgIHJldHVybiA8c3BhbiBjbGFzc05hbWU9InRhYnVsYXItbnVtcyB0
+ZXh0LWluayI+e051bWJlcih2YWx1ZSA/PyAwKS50b0xvY2FsZVN0cmluZygi
+ZW4tTkciKX08L3NwYW4+OwogICAgY2FzZSAid2hlbiI6CiAgICAgIHJldHVy
+biA8c3BhbiBjbGFzc05hbWU9IndoaXRlc3BhY2Utbm93cmFwIHRleHQtbXV0
+ZWQiPnt2YWx1ZSA/IHdoZW5Gb3JtYXQuZm9ybWF0KG5ldyBEYXRlKFN0cmlu
+Zyh2YWx1ZSkpKSA6ICLigJQifTwvc3Bhbj47CiAgICBjYXNlICJzdGF0dXMi
+OiB7CiAgICAgIGNvbnN0IHN0YXR1cyA9IFNUQVRVU1tTdHJpbmcodmFsdWUp
+XSA/PyB7IGxhYmVsOiBTdHJpbmcodmFsdWUgPz8gIuKAlCIpLCB0b25lOiAi
+bmV1dHJhbCIgYXMgY29uc3QgfTsKICAgICAgcmV0dXJuIDxCYWRnZSB0b25l
+PXtzdGF0dXMudG9uZX0+e3N0YXR1cy5sYWJlbH08L0JhZGdlPjsKICAgIH0K
+ICAgIGRlZmF1bHQ6CiAgICAgIHJldHVybiA8c3BhbiBjbGFzc05hbWU9InRy
+dW5jYXRlIHRleHQtaW5rLTIiPntTdHJpbmcodmFsdWUgPz8gIuKAlCIpfTwv
+c3Bhbj47CiAgfQp9CgoKZXhwb3J0IGZ1bmN0aW9uIERhdGFUYWJsZSh7CiAg
+dGl0bGUsCiAgYWN0aW9uLAogIGNvbHVtbnMsCiAgcm93cywKICBmaWx0ZXJQ
+bGFjZWhvbGRlciwKICBlbXB0eU1lc3NhZ2UsCn06IHsKICB0aXRsZTogc3Ry
+aW5nOwogIGFjdGlvbj86IHsgaHJlZjogc3RyaW5nOyBsYWJlbDogc3RyaW5n
+IH07CiAgY29sdW1uczogQ29sdW1uW107CiAgcm93czogUm93W107CiAgZmls
+dGVyUGxhY2Vob2xkZXI6IHN0cmluZzsKICBlbXB0eU1lc3NhZ2U6IHN0cmlu
+ZzsKfSkgewogIGNvbnN0IFtxdWVyeSwgc2V0UXVlcnldID0gdXNlU3RhdGUo
+IiIpOwogIGNvbnN0IFtzb3J0LCBzZXRTb3J0XSA9IHVzZVN0YXRlPHsga2V5
+OiBzdHJpbmc7IGRpcjogImFzYyIgfCAiZGVzYyIgfSB8IG51bGx9KG51bGwp
+OwoKICBjb25zdCB2aXNpYmxlID0gdXNlTWVtbygoKSA9PiB7CiAgICBjb25z
+dCBuZWVkbGUgPSBxdWVyeS50cmltKCkudG9Mb3dlckNhc2UoKTsKICAgIGxl
+dCByZXN1bHQgPSBuZWVkbGUKICAgICAgPyByb3dzLmZpbHRlcigocm93KSA9
+PiBjb2x1bW5zLnNvbWUoKGMpID0+IGMua2luZCAhPT0gIndoZW4iICYmIFN0
+cmluZyhyb3dbYy5rZXldID8/ICIiKS50b0xvd2VyQ2FzZSgpLmluY2x1ZGVz
+KG5lZWRsZSkpKQogICAgICA6IHJvd3M7CiAgICBpZiAoc29ydCkgewogICAg
+ICBjb25zdCBkaXIgPSBzb3J0LmRpciA9PT0gImFzYyIgPyAxIDogLTE7CiAg
+ICAgIHJlc3VsdCA9IFsuLi5yZXN1bHRdLnNvcnQoKGEsIGIpID0+IHsKICAg
+ICAgICBjb25zdCB4ID0gYVtzb3J0LmtleV07CiAgICAgICAgY29uc3QgeSA9
+IGJbc29ydC5rZXldOwogICAgICAgIGlmICh0eXBlb2YgeCA9PT0gIm51bWJl
+ciIgJiYgdHlwZW9mIHkgPT09ICJudW1iZXIiKSByZXR1cm4gKHggLSB5KSAq
+IGRpcjsKICAgICAgICByZXR1cm4gU3RyaW5nKHggPz8gIiIpLmxvY2FsZUNv
+bXBhcmUoU3RyaW5nKHkgPz8gIiIpKSAqIGRpcjsKICAgICAgfSk7CiAgICB9
+CiAgICByZXR1cm4gcmVzdWx0OwogIH0sIFtyb3dzLCBjb2x1bW5zLCBxdWVy
+eSwgc29ydF0pOwoKICBjb25zdCBoYXNMaW5rcyA9IHJvd3Muc29tZSgocm93
+KSA9PiByb3cuaHJlZik7CiAgY29uc3QgdG9nZ2xlU29ydCA9IChjb2x1bW46
+IENvbHVtbikgPT4gewogICAgaWYgKCFjb2x1bW4uc29ydGFibGUpIHJldHVy
+bjsKICAgIHNldFNvcnQoKGN1cnJlbnQpID0+IGN1cnJlbnQ/LmtleSA9PT0g
+Y29sdW1uLmtleSAmJiBjdXJyZW50LmRpciA9PT0gImFzYyIKICAgICAgPyB7
+IGtleTogY29sdW1uLmtleSwgZGlyOiAiZGVzYyIgfQogICAgICA6IHsga2V5
+OiBjb2x1bW4ua2V5LCBkaXI6ICJhc2MiIH0pOwogIH07CgogIHJldHVybiAo
+CiAgICA8c2VjdGlvbiBjbGFzc05hbWU9ImdsYXNzLXBhbmVsIG92ZXJmbG93
+LWhpZGRlbiByb3VuZGVkLTJ4bCIgYXJpYS1sYWJlbD17dGl0bGV9PgogICAg
+ICA8ZGl2IGNsYXNzTmFtZT0iZmxleCBpdGVtcy1jZW50ZXIganVzdGlmeS1i
+ZXR3ZWVuIGdhcC0zIHB4LTUgcHQtNSI+CiAgICAgICAgPGgyIGNsYXNzTmFt
+ZT0iZm9udC1tZWRpdW0gdGV4dC1pbmsiPnt0aXRsZX08L2gyPgogICAgICAg
+IHthY3Rpb24gJiYgKAogICAgICAgICAgPExpbmsgaHJlZj17YWN0aW9uLmhy
+ZWZ9IGNsYXNzTmFtZT0idGV4dC1zbSBmb250LW1lZGl1bSB0ZXh0LWluayBo
+b3Zlcjp1bmRlcmxpbmUiPgogICAgICAgICAgICB7YWN0aW9uLmxhYmVsfQog
+ICAgICAgICAgPC9MaW5rPgogICAgICAgICl9CiAgICAgIDwvZGl2PgoKICAg
+ICAge3Jvd3MubGVuZ3RoID09PSAwID8gKAogICAgICAgIDxwIGNsYXNzTmFt
+ZT0icHgtNSBwYi02IHB0LTMgdGV4dC1zbSB0ZXh0LW11dGVkIj57ZW1wdHlN
+ZXNzYWdlfTwvcD4KICAgICAgKSA6ICgKICAgICAgICA8PgogICAgICAgICAg
+PGRpdiBjbGFzc05hbWU9InB4LTUgcHQtMyI+CiAgICAgICAgICAgIDxsYWJl
+bCBjbGFzc05hbWU9InJlbGF0aXZlIGJsb2NrIj4KICAgICAgICAgICAgICA8
+c3BhbiBjbGFzc05hbWU9InNyLW9ubHkiPntmaWx0ZXJQbGFjZWhvbGRlcn08
+L3NwYW4+CiAgICAgICAgICAgICAgPFNlYXJjaCBjbGFzc05hbWU9InBvaW50
+ZXItZXZlbnRzLW5vbmUgYWJzb2x1dGUgbGVmdC0zIHRvcC0xLzIgaC00IHct
+NCAtdHJhbnNsYXRlLXktMS8yIHRleHQtbXV0ZWQiIGFyaWEtaGlkZGVuPSJ0
+cnVlIiAvPgogICAgICAgICAgICAgIDxpbnB1dAogICAgICAgICAgICAgICAg
+dHlwZT0ic2VhcmNoIgogICAgICAgICAgICAgICAgdmFsdWU9e3F1ZXJ5fQog
+ICAgICAgICAgICAgICAgb25DaGFuZ2U9eyhlKSA9PiBzZXRRdWVyeShlLnRh
+cmdldC52YWx1ZSl9CiAgICAgICAgICAgICAgICBwbGFjZWhvbGRlcj17Zmls
+dGVyUGxhY2Vob2xkZXJ9CiAgICAgICAgICAgICAgICBjbGFzc05hbWU9Inct
+ZnVsbCByb3VuZGVkLXhsIGJvcmRlciBib3JkZXItbGluZSBiZy1zdXJmYWNl
+IHB5LTIgcGwtOSBwci0zIHRleHQtc20gdGV4dC1pbmsgcGxhY2Vob2xkZXI6
+dGV4dC1tdXRlZCBmb2N1czpib3JkZXItaW5rIGZvY3VzOm91dGxpbmUtbm9u
+ZSIKICAgICAgICAgICAgICAvPgogICAgICAgICAgICA8L2xhYmVsPgogICAg
+ICAgICAgPC9kaXY+CgogICAgICAgICAgPGRpdiBjbGFzc05hbWU9Im10LTMg
+b3ZlcmZsb3cteC1hdXRvIj4KICAgICAgICAgICAgPHRhYmxlIGNsYXNzTmFt
+ZT0idy1mdWxsIG1pbi13LVs0MjBweF0gdGV4dC1sZWZ0IHRleHQtc20iPgog
+ICAgICAgICAgICAgIDx0aGVhZD4KICAgICAgICAgICAgICAgIDx0ciBjbGFz
+c05hbWU9ImJvcmRlci15IGJvcmRlci1saW5lIHRleHQteHMgdGV4dC1tdXRl
+ZCI+CiAgICAgICAgICAgICAgICAge2NvbHVtbnMubWFwKChjb2x1bW4pID0+
+IHsKICAgICAgICAgICAgICAgICAgICBjb25zdCBhY3RpdmUgPSBzb3J0Py5r
+ZXkgPT09IGNvbHVtbi5rZXk7CiAgICAgICAgICAgICAgICAgICAgY29uc3Qg
+SWNvbiA9ICFhY3RpdmUgPyBBcnJvd1VwRG93biA6IHNvcnQuZGlyID09PSAi
+YXNjIiA/IENoZXZyb25VcCA6IENoZXZyb25Eb3duOwogICAgICAgICAgICAg
+ICAgICAgIHJldHVybiAoCiAgICAgICAgICAgICAgICAgICAgICA8dGgKICAg
+ICAgICAgICAgICAgICAgICAgICAga2V5PXtjb2x1bW4ua2V5fQogICAgICAg
+ICAgICAgICAgICAgICAgICBzY29wZT0iY29sIgogICAgICAgICAgICAgICAg
+ICAgICAgICBhcmlhLXNvcnQ9e2FjdGl2ZSA/ICgKICAgICAgICAgICAgICAg
+ICAgICAgICAgc29ydC5kaXIgPT09ICJhc2MiID8gImFzY2VuZGluZyIgOiAi
+ZGVzY2VuZGluZyIpIDogdW5kZWZpbmVkfQogICAgICAgICAgICAgICAgICAg
+ICAgICBjbGFzc05hbWU9e2BweC01IHB5LTIuNSBmb250LW1lZGl1bSAke2Nv
+bHVtbi5hbGlnbiA9PT0gInJpZ2h0IiA/ICJ0ZXh0LXJpZ2h0IiA6ICIifWB9
+CiAgICAgICAgICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICAgICAg
+ICAgIHtjb2x1bW4uc29ydGFibGUgPyAoCiAgICAgICAgICAgICAgICAgICAg
+ICAgICAgPGJ1dHRvbgogICAgICAgICAgICAgICAgICAgICAgICAgICAgdHlw
+ZT0iYnV0dG9uIgogICAgICAgICAgICAgICAgICAgICAgICAgICAgb25DbGlj
+a3s oops sorry this call accidentally cannot continue??
