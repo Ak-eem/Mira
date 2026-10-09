@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { Logo } from "@/components/site/ui";
 import { SignOutButton } from "./SignOutButton";
 
 // This layout only guards authentication. Business ownership is handled by the
@@ -23,9 +24,10 @@ export default async function PortalLayout({
   return (
     <div className="mira-wash min-h-screen">
       <header className="glass-panel-strong sticky top-0 z-10">
-        <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-4">
-          <Link href="/" className="text-base font-semibold tracking-tight text-slate-900" aria-label="Mira home">
-            Mira <span className="font-normal text-accent">for Business</span>
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6">
+          <Link href="/" className="flex items-center gap-2 text-ink" aria-label="Mira home">
+            <Logo />
+            <span className="text-sm text-muted">for Business</span>
           </Link>
           <div className="flex items-center gap-4">
             <span className="hidden text-sm text-slate-400 sm:inline">{user.email}</span>
@@ -33,7 +35,7 @@ export default async function PortalLayout({
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-3xl px-6 py-8">{children}</main>
+      <main>{children}</main>
     </div>
   );
 }

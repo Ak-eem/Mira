@@ -152,31 +152,31 @@ html {
   }
 }
 
-/* Teal-glass surfaces for the chat widget and business portal.
+/* Cream-glass surfaces for the chat widget and business portal.
    Deliberately restrained: glass reads as "incoming / at-rest" (assistant
-   messages, chrome bars, dashboard cards) while solid teal stays reserved
+   messages, chrome bars, dashboard cards) while solid ink green stays reserved
    for "outgoing / confident" (the customer's own sent messages), so the
    material itself carries meaning instead of being applied uniformly. */
 
 .mira-wash {
-  background: linear-gradient(165deg, #f0fdfa 0%, #f8fafc 55%, #eff6ff 100%);
+  background: linear-gradient(170deg, #f6f0e2 0%, #f3ecdd 60%, #efe6d2 100%);
 }
 
 .glass-panel {
-  background-color: rgba(255, 255, 255, 0.76);
+  background-color: rgba(255, 253, 248, 0.82);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  border: 1px solid rgba(15, 118, 110, 0.14);
+  border: 1px solid rgba(15, 42, 34, 0.14);
   box-shadow:
-    0 1px 2px rgba(15, 118, 110, 0.06),
-    0 12px 28px -18px rgba(15, 118, 110, 0.35);
+    0 1px 2px rgba(15, 42, 34, 0.06),
+    0 12px 28px -18px rgba(15, 42, 34, 0.35);
 }
 
 .glass-panel-strong {
-  background-color: rgba(255, 255, 255, 0.88);
+  background-color: rgba(255, 253, 248, 0.92);
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
-  border: 1px solid rgba(15, 118, 110, 0.14);
+  border: 1px solid rgba(15, 42, 34, 0.14);
 }
 
 .glass-hover {
@@ -188,8 +188,8 @@ html {
 
 .glass-hover:hover,
 .glass-hover:focus-visible {
-  background-color: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 16px 32px -20px rgba(15, 118, 110, 0.4);
+  background-color: rgba(255, 253, 248, 0.95);
+  box-shadow: 0 16px 32px -20px rgba(15, 42, 34, 0.4);
   transform: translateY(-1px);
 }
 
