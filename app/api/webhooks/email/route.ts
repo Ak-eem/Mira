@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend, type WebhookEventPayload } from "resend";
 import { processMessage } from "@/lib/chat/processMessage";
 import { processIncomingMessage } from "@/lib/chat/processIncomingMessage";
+import { isBusinessSwitchedOff } from "@/lib/chat/businessStatus";
 import { withConversationLease } from "@/lib/chat/durable";
 import { checkRateLimit } from "@/lib/rateLimit";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -177,6 +178,11 @@ export async function POST(request: NextRequest) {
 
       const inboundKey = `email:${item.email_id}`;
       const processIncoming = async () => {
+        // Cancelled / expired / unsubscribed businesses are switched off on every
+        // channel, including the human inbox: nothing stored, queue row closed.
+        if (await isBusinessSwitchedOff(client, routedBusiness.id)) {
+          return { reply: "", silent: true };
+        }
         if (!routedBusiness.email_responses_enabled) {
           await captureForHuman(client, routedBusiness.id, sender, body, inboundKey);
           return { reply: "", silent: true };
