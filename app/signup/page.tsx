@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
@@ -22,7 +22,16 @@ function getApiErrorMessage(value: unknown, fallback: string): string {
 
 export default function SignupPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  // The landing page footer passes ?email= so the visitor does not retype it.
+  // Read it as an external value (empty on the server) instead of setting state
+  // in an effect; anything the visitor types takes over from the prefill.
+  const prefillEmail = useSyncExternalStore(
+    () => () => {},
+    () => new URLSearchParams(window.location.search).get("email") ?? "",
+    () => "",
+  );
+  const [typedEmail, setEmail] = useState<string | null>(null);
+  const email = typedEmail ?? prefillEmail;
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [otp, setOtp] = useState("");
@@ -32,12 +41,6 @@ export default function SignupPage() {
   const [otpStatus, setOtpStatus] = useState<CodeSlotsStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  // The landing page footer passes ?email= so the visitor does not retype it.
-  useEffect(() => {
-    const prefill = new URLSearchParams(window.location.search).get("email");
-    if (prefill) setEmail(prefill);
-  }, []);
 
   async function sendVerification() {
     setError(null);

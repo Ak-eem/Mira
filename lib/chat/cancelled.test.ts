@@ -114,6 +114,14 @@ async function run() {
     check(result.silent === true && result.reply === "" && result.messageId === null, `${label}: WhatsApp/email message gets no reply (silent)`);
     check(f.touched.length === 1 && f.touched[0] === "business_subscriptions", `${label}: nothing is read or stored besides the subscription check`);
   }
+
+  // The email webhook's human-inbox branch (AI replies off) used to run before the
+  // switched-off check, so cancelled/expired businesses still got messages stored.
+  const { readFileSync } = await import("node:fs");
+  const route = readFileSync("app/api/webhooks/email/route.ts", "utf8");
+  const gate = route.indexOf("await isBusinessSwitchedOff(");
+  const human = route.indexOf("await captureForHuman(");
+  check(gate !== -1 && human !== -1 && gate < human, "email webhook: switched-off check runs before the human-inbox capture");
 }
 
 void run();
