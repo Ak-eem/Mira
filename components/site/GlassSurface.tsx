@@ -164,7 +164,7 @@ export default function GlassSurface({
   return (
     <div
       ref={box}
-      className={`relative flex items-center justify-center overflow-hidden transition-opacity duration-[260ms] ease-out focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#007AFF] ${className}`}
+      className={`relative flex items-center justify-center overflow-hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#007AFF] ${className}`}
       style={{ ...base, ...look }}
     >
       <svg className="pointer-events-none absolute inset-0 -z-10 h-full w-full opacity-0" xmlns="http://www.w3.org/2000/svg">

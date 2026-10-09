@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { cx, naira } from '@/lib/site/format'
 import { Aurora, InlineIcon } from './hero'
+import GlassSurface from './GlassSurface'
 import { Icon } from './icons'
 import { Badge, Button, Chip, Logo, Orb, ProductImage, Toggle } from './ui'
 
@@ -18,53 +19,61 @@ const NAV = [
 export function Nav() {
   const [open, setOpen] = useState(false)
   return (
-    <>
-      {/* Frosted glass band across the top, so the page blurs softly beneath the nav */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-x-0 top-0 z-30 h-24 bg-gradient-to-b from-white/70 via-white/35 to-transparent backdrop-blur-xl backdrop-saturate-150"
-        style={{ maskImage: 'linear-gradient(#000 60%, transparent)', WebkitMaskImage: 'linear-gradient(#000 60%, transparent)' }}
-      />
-    <header className="fixed inset-x-0 top-3 z-40 mx-auto flex w-full max-w-[1240px] items-center justify-between gap-4 px-3 sm:px-5">
-      <div className="glass flex h-14 w-full items-center justify-between rounded-pill pr-2 pl-5">
-        <a href="#top" aria-label="Mira home">
-          <Logo />
-        </a>
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
-          {NAV.map(([l, h]) => (
-            <a key={h} href={h} className="rounded-pill px-4 py-2 text-sm text-ink-2 transition-colors hover:bg-mist hover:text-ink">
-              {l}
-            </a>
-          ))}
-        </nav>
-        <div className="flex items-center gap-1.5">
-          <Button variant="ghost" size="sm" href="/login" className="h-10 px-4">
-            Log in
-          </Button>
-          <span className="hidden sm:block">
-            <Button size="sm" href="/signup" className="h-10 px-4">
-              Start free trial
+    <header className="fixed inset-x-0 top-3 z-40 mx-auto flex w-full max-w-none items-center justify-between gap-4 px-3 sm:px-5">
+      <GlassSurface
+        width="100%"
+        height="auto"
+        borderRadius={50}
+        backgroundOpacity={0.1}
+        brightness={50}
+        opacity={0.93}
+        displace={0.5}
+        distortionScale={-180}
+        redOffset={0}
+        greenOffset={10}
+        blueOffset={20}
+        mixBlendMode="screen"
+        className="flex h-14 w-full items-center justify-between rounded-pill pr-2 pl-5"
+      >
+        <div className="flex h-full w-full items-center justify-between md:grid md:grid-cols-[1fr_auto_1fr]">
+          <a href="#top" aria-label="Mira home">
+            <Logo />
+          </a>
+          <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
+            {NAV.map(([l, h]) => (
+              <a key={h} href={h} className="rounded-pill px-4 py-2 text-sm text-ink-2 hover:bg-mist hover:text-ink">
+                {l}
+              </a>
+            ))}
+          </nav>
+          <div className="flex items-center justify-self-end gap-3">
+            <Button variant="ghost" size="sm" href="/login" className="h-10 px-4 !transition-none active:!scale-100">
+              Log in
             </Button>
-          </span>
-          <button type="button" onClick={() => setOpen((o) => !o)} className="grid size-10 place-items-center rounded-full bg-mist md:hidden" aria-label="Menu" aria-expanded={open}>
-            <Icon name={open ? 'x' : 'menu'} />
-          </button>
+            <span className="hidden sm:block">
+              <Button size="sm" href="/signup" className="h-10 px-4 !transition-none active:!scale-100">
+                Start free trial
+              </Button>
+            </span>
+            <button type="button" onClick={() => setOpen((o) => !o)} className="grid size-10 place-items-center rounded-full bg-mist md:hidden" aria-label="Menu" aria-expanded={open}>
+              <Icon name={open ? 'x' : 'menu'} />
+            </button>
+          </div>
         </div>
-      </div>
+      </GlassSurface>
       {open && (
-        <div className="glass absolute top-16 right-3 left-3 flex flex-col gap-1 rounded-[24px] p-2 shadow-float animate-pop md:hidden">
+        <div className="glass absolute top-16 right-3 left-3 flex flex-col gap-1 rounded-[24px] p-2 shadow-float md:hidden">
           {NAV.map(([l, h]) => (
             <a key={h} href={h} onClick={() => setOpen(false)} className="rounded-[16px] px-4 py-3 text-[15px] hover:bg-mist">
               {l}
             </a>
           ))}
-          <Button href="/signup" size="lg" className="mt-1">
+          <Button href="/signup" size="lg" className="mt-1 !transition-none active:!scale-100">
             Start free trial
           </Button>
         </div>
       )}
     </header>
-    </>
   )
 }
 

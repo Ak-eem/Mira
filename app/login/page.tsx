@@ -10,6 +10,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(() =>
     typeof window !== "undefined" && new URLSearchParams(window.location.search).get("error") === "oauth"
       ? "Google sign-in didn't complete. Please try again."
@@ -80,13 +81,47 @@ return;
 
           <div>
             <label className="block text-sm font-medium text-slate-700">Password</label>
-            <input
-              type="password"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
+            <div className="relative mt-2">
+              <input
+                type={showPassword ? "text" : "password"}
+                className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 pr-12 text-sm outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((show) => !show)}
+                className="absolute inset-y-0 right-0 flex items-center px-4 text-slate-500 hover:text-slate-700"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+                aria-pressed={showPassword}
+              >
+                <svg
+                  aria-hidden="true"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.8"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                >
+                  {showPassword ? (
+                    <>
+                      <path d="M3 3l18 18" />
+                      <path d="M10.6 10.6a2 2 0 002.8 2.8" />
+                      <path d="M9.9 5.2A10.8 10.8 0 0112 5c5 0 8.5 4.2 9.5 6-.4.8-1.3 2-2.6 3.1" />
+                      <path d="M6.2 6.2C4.3 7.4 3 9.3 2.5 11c.6 1.1 3.9 6 9.5 6 1.1 0 2.1-.2 3-.5" />
+                    </>
+                  ) : (
+                    <>
+                      <path d="M2.5 12s3.5-7 9.5-7 9.5 7 9.5 7-3.5 7-9.5 7-9.5-7-9.5-7z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </>
+                  )}
+                </svg>
+              </button>
+            </div>
           </div>
 
           {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
