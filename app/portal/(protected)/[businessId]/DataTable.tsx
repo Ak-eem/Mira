@@ -32,7 +32,7 @@ function Cell({ column, row }: { column: Column; row: Row }) {
   switch (column.kind) {
     case "customer":
       return (
-        <span className="flex items-center gap-3">
+        <span className="flex min-w-0 items-center gap-3">
           <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-lime text-xs font-semibold text-ink">
             {initials(String(value ?? ""))}
           </span>
@@ -90,23 +90,29 @@ export function DataTable({
   }, [rows, columns, query, sort]);
 
   const hasLinks = rows.some((row) => row.href);
+  const toggleSort = (column: Column) => {
+    if (!column.sortable) return;
+    setSort((current) => current?.key === column.key && current.dir === "asc"
+      ? { key: column.key, dir: "desc" }
+      : { key: column.key, dir: "asc" });
+  };
 
   return (
-    <section className="glass-panel overflow-hidden rounded-2xl" aria-label={title}>
-      <div className="flex items-center justify-between gap-3 px-5 pt-5">
-        <h2 className="font-medium text-ink">{title}</h2>
+    <section className="glass-panel min-w-0 overflow-hidden rounded-2xl" aria-label={title}>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 px-4 pt-5 sm:px-5">
+        <h2 className="min-w-0 break-words font-medium text-ink">{title}</h2>
         {action && (
-          <Link href={action.href} className="text-sm font-medium text-ink hover:underline">
+          <Link href={action.href} className="shrink-0 text-sm font-medium text-ink hover:underline">
             {action.label}
           </Link>
         )}
       </div>
 
       {rows.length === 0 ? (
-        <p className="px-5 pb-6 pt-3 text-sm text-muted">{emptyMessage}</p>
+        <p className="px-4 pb-6 pt-3 text-sm text-muted sm:px-5">{emptyMessage}</p>
       ) : (
         <>
-          <div className="px-5 pt-3">
+          <div className="px-4 pt-3 sm:px-5">
             <label className="relative block">
               <span className="sr-only">{filterPlaceholder}</span>
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
@@ -115,12 +121,55 @@ export function DataTable({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 placeholder={filterPlaceholder}
-                className="w-full rounded-xl border border-line bg-surface py-2 pl-9 pr-3 text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none"
+                className="w-full min-w-0 rounded-xl border border-line bg-surface py-2 pl-9 pr-3 text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none"
               />
             </label>
           </div>
 
-          <div className="mt-3 overflow-x-auto">
+          <div className="mt-2 flex gap-2 overflow-x-auto px-4 py-2 sm:hidden" aria-label="Sort dashboard items">
+            {columns.filter((column) => column.sortable).map((column) => {
+              const active = sort?.key === column.key;
+              const Icon = !active ? ArrowUpDown : sort.dir === "asc" ? ChevronUp : ChevronDown;
+              return (
+                <button
+                  key={column.key}
+                  type="button"
+                  onClick={() => toggleSort(column)}
+                  aria-pressed={active}
+                  className="inline-flex shrink-0 items-center gap-1 rounded-full border border-line bg-surface px-3 py-1.5 text-xs text-ink"
+                >
+                  {column.header}
+                  <Icon className="h-3 w-3" aria-hidden="true" />
+                </button>
+              );
+            })}
+          </div>
+
+          <ul className="divide-y divide-line px-4 sm:hidden">
+            {visible.map((row) => (
+              <li key={row.id} className="min-w-0 py-3">
+                <dl className="grid min-w-0 grid-cols-2 gap-x-3 gap-y-3">
+                  {columns.map((column) => (
+                    <div key={column.key} className="min-w-0">
+                      <dt className="mb-1 text-[11px] font-medium uppercase tracking-wide text-muted">{column.header}</dt>
+                      <dd className="min-w-0 overflow-hidden text-sm text-ink">
+                        <Cell column={column} row={row} />
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+                {row.href && (
+                  <Link href={row.href} className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-ink hover:underline">
+                    Open item <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+                    <span className="sr-only"> in {title.toLowerCase()}</span>
+                  </Link>
+                )}
+              </li>
+            ))}
+          </ul>
+          {visible.length === 0 && <p className="px-4 py-4 text-sm text-muted sm:hidden">Nothing matches &ldquo;{query}&rdquo;.</p>}
+
+          <div className="mt-3 hidden min-w-0 overflow-x-auto sm:block">
             <table className="w-full min-w-[420px] text-left text-sm">
               <thead>
                 <tr className="border-y border-line text-xs text-muted">
@@ -135,11 +184,7 @@ export function DataTable({
                         className={`px-5 py-2.5 font-medium ${column.align === "right" ? "text-right" : ""}`}
                       >
                         {column.sortable ? (
-                          <button
-                            type="button"
-                            onClick={() => setSort(active && sort.dir === "asc" ? { key: column.key, dir: "desc" } : { key: column.key, dir: "asc" })}
-                            className="inline-flex items-center gap-1 hover:text-ink"
-                          >
+                          <button type="button" onClick={() => toggleSort(column)} className="inline-flex items-center gap-1 hover:text-ink">
                             {column.header}
                             <Icon className="h-3 w-3" aria-hidden="true" />
                           </button>
