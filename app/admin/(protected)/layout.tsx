@@ -27,7 +27,7 @@ export default async function AdminLayout({
         </Link>
         <span className="ml-4 text-sm text-slate-400">{admin.email}</span>
       </header>
-      <div className="mx-auto flex max-w-6xl gap-6 px-6 py-8">
+      <div className="flex w-full gap-6 px-6 py-8 lg:px-8">
         <AdminSidebar />
         <main className="min-w-0 flex-1">{children}</main>
       </div>
