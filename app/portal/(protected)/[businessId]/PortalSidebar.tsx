@@ -78,7 +78,7 @@ export function PortalSidebar({
   ];
 
   const panel = (
-    <div className="flex h-full flex-col gap-6">
+    <div className="flex flex-col gap-6">
       <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 shadow-soft">
         <span
           aria-hidden="true"
@@ -155,7 +155,9 @@ export function PortalSidebar({
         </button>
       </div>
 
-      <aside className="sticky top-24 hidden h-[calc(100vh-7rem)] w-60 shrink-0 lg:block">{panel}</aside>
+      <aside className="hidden w-56 shrink-0 lg:block">
+        <div className="glass-panel-strong sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-xl p-3">{panel}</div>
+      </aside>
 
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
