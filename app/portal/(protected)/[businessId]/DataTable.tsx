@@ -1,153 +1,182 @@
-InVzZSBjbGllbnQiOwoKaW1wb3J0IExpbmsgZnJvbSAibmV4dC9saW5rIjsK
-aW1wb3J0IHsgdXNlTWVtbywgdXNlU3RhdGUgfSBmcm9tICJyZWFjdCI7Cmlt
-cG9ydCB7IEFycm93UmlnaHQsIEFycm93VXBEb3duLCBDaGV2cm9uRG93biwg
-Q2hldnJvblVwLCBTZWFyY2ggfSBmcm9tICJsdWNpZGUtcmVhY3QiOwppbXBv
-cnQgeyBCYWRnZSB9IGZyb20gIkAvY29tcG9uZW50cy9zaXRlL3VpIjsKaW1w
-b3J0IHsgbmFpcmEgfSBmcm9tICJAL2xpYi9zaXRlL2Zvcm1hdCI7CgovLyBS
-b3dzIGFuZCBjb2x1bW5zIGFyZSBwbGFpbiBkYXRhIChub3QgZnVuY3Rpb25z
-KSBzbyBhIFNlcnZlciBDb21wb25lbnQgY2FuIHBhc3MKLy8gdGhlbSBzdHJh
-aWdodCBpbi4gRWFjaCBjb2x1bW4gZGVjbGFyZXMgaG93IGl0cyBjZWxsIGlz
-IGRyYXduIHZpYSBga2luZGAuCmV4cG9ydCB0eXBlIEtpbmQgPSAiY3VzdG9t
-ZXIiIHwgInRleHQiIHwgIm51bWJlciIgfCAibW9uZXkiIHwgInN0YXR1cyIg
-fCAid2hlbiI7CmV4cG9ydCB0eXBlIENvbHVtbiA9IHsga2V5OiBzdHJpbmc7
-IGhlYWRlcjogc3RyaW5nOyBraW5kOiBLaW5kOyBzb3J0YWJsZT86IGJvb2xl
-YW47IGFsaWduPzogInJpZ2h0IiB9OwpleHBvcnQgdHlwZSBSb3cgPSB7IGlk
-OiBzdHJpbmc7IGhyZWY/OiBzdHJpbmcgfSAmIFJlY29yZDxzdHJpbmcsIHN0
-cmluZyB8IG51bWJlciB8IGJvb2xlYW4gfCBudWxsIHwgdW5kZWZpbmVkPjsK
-CmNvbnN0IFNUQVRVUzogUmVjb3JkPHN0cmluZywgeyBsYWJlbDogc3RyaW5n
-OyB0b25lOiAibmV1dHJhbCIgfCAibGltZSIgfCAiaW5rIiB8ICJkYW5nZXIi
-fSB8ID0gewogICJuZWVkcy15b3UiOiB7IGxhYmVsOiAiTmVlZHMgeW91Iiwg
-dG9uZTogImxpbWUiIH0sCiAgaGFuZGxlZDogeyBsYWJlbDogIkhhbmRsZWQg
-YnkgTWlyYSIsIHRvbmU6ICJuZXV0cmFsIiB9LAogIHBsYWNlZDogeyBsYWJl
-bDogIlBsYWNlZCIsIHRvbmU6ICJsaW1lIiB9LAogIHNoaXBwZWQ6IHsgbGFi
-ZWw6ICJTaGlwcGVkIiwgdG9uZTogIm5ldXRyYWwiIH0sCiAgZGVsaXZlcmVk
-OiB7IGxhYmVsOiAiRGVsaXZlcmVkIiwgdG9uZTogImluayIgfSwKICBjYW5j
-ZWxsZWQ6IHsgbGFiZWw6ICJDYW5jZWxsZWQiLCB0b25lOiAiZGFuZ2VyIiB9
-LAp9OwoKY29uc3Qgd2hlbkZvcm1hdCA9IG5ldyBJbnRsLkRhdGVUaW1lRm9y
-bWF0KCJlbi1HQiIsIHsgdGltZVpvbmU6ICJBZnJpY2EvTGFnb3MiLCBkYXk6
-ICJudW1lcmljIiwgbW9udGg6ICJzaG9ydCIsIGhvdXI6ICIyLWRpZ2l0Iiwg
-bWludXRlOiAiMi1kaWdpdCIgfSk7CgpmdW5jdGlvbiBpbml0aWFscyhsYWJl
-bDogc3RyaW5nKTogc3RyaW5nIHsKICByZXR1cm4gKGxhYmVsLm1hdGNoKC9b
-QS1aYS16XS9nKSA/PyBbIiMiXSkuc2xpY2UoMCwgMikuam9pbigiIikudG9V
-cHBlckNhc2UoKTsKfQoKZnVuY3Rpb24gQ2VsbCh7IGNvbHVtbiwgcm93IH06
-IHsgY29sdW1uOiBDb2x1bW47IHJvdzogUm93IH0pIHsKICBjb25zdCB2YWx1
-ZSA9IHJvd1tjb2x1bW4ua2V5XTsKICBzd2l0Y2ggKGNvbHVtbi5raW5kKSB7
-CiAgICBjYXNlICJjdXN0b21lciI6CiAgICAgIHJldHVybiAoCiAgICAgICAg
-PHNwYW4gY2xhc3NOYW1lPSJmbGV4IGl0ZW1zLWNlbnRlciBnYXAtMyI+CiAg
-ICAgICAgICA8c3BhbiBhcmlhLWhpZGRlbj0idHJ1ZSIgY2xhc3NOYW1lPSJm
-bGV4IGgtOCB3LTggc2hyaW5rLTAgaXRlbXMtY2VudGVyIGp1c3RpZnktY2Vu
-dGVyIHJvdW5kZWQtZnVsbCBiZy1saW1lIHRleHQteHMgZm9udC1zZW1pYm9s
-ZCB0ZXh0LWluayI+CiAgICAgICAgICAgIHtpbml0aWFscyhTdHJpbmcodmFs
-dWUgPz8gIiIpKX0KICAgICAgICAgIDwvc3Bhbj4KICAgICAgICAgIDxzcGFu
-IGNsYXNzTmFtZT0idHJ1bmNhdGUgZm9udC1tZWRpdW0gdGV4dC1pbmsiPntT
-dHJpbmcodmFsdWUgPz8gIuKAlCIpfTwvc3Bhbj4KICAgICAgICA8L3NwYW4+
-CiAgICAgICk7CiAgICBjYXNlICJtb25leSI6CiAgICAgIHJldHVybiA8c3Bh
-biBjbGFzc05hbWU9InRhYnVsYXItbnVtcyB0ZXh0LWluayI+e25haXJhKE51
-bWJlcih2YWx1ZSA/PyAwKSl9PC9zcGFuPjsKICAgIGNhc2UgIm51bWJlciI6
-CiAgICAgIHJldHVybiA8c3BhbiBjbGFzc05hbWU9InRhYnVsYXItbnVtcyB0
-ZXh0LWluayI+e051bWJlcih2YWx1ZSA/PyAwKS50b0xvY2FsZVN0cmluZygi
-ZW4tTkciKX08L3NwYW4+OwogICAgY2FzZSAid2hlbiI6CiAgICAgIHJldHVy
-biA8c3BhbiBjbGFzc05hbWU9IndoaXRlc3BhY2Utbm93cmFwIHRleHQtbXV0
-ZWQiPnt2YWx1ZSA/IHdoZW5Gb3JtYXQuZm9ybWF0KG5ldyBEYXRlKFN0cmlu
-Zyh2YWx1ZSkpIDogIuKAlCJ9PC9zcGFuPjsKICAgIGNhc2UgInN0YXR1cyI6
-IHsKICAgICAgY29uc3Qgc3RhdHVzID0gU1RBVFVTW1N0cmluZyh2YWx1ZSld
-ID8/IHsgbGFiZWw6IFN0cmluZyh2YWx1ZSA/PyAi4oCUIiksIHRvbmU6ICJu
-ZXV0cmFsIiBhcyBjb25zdCB9OwogICAgICByZXR1cm4gPEJhZGdlIHRvbmU9
-e3N0YXR1cy50b25lfT57c3RhdHVzLmxhYmVsfTwvQmFkZ2U+OwogICAgfQog
-ICAgZGVmYXVsdDoKICAgICAgcmV0dXJuIDxzcGFuIGNsYXNzTmFtZT0idHJ1
-bmNhdGUgdGV4dC1pbmstMiI+e1N0cmluZyh2YWx1ZSA/PyAi4oCUIil9PC9z
-cGFuPjsKICB9Cn0KCmV4cG9ydCBmdW5jdGlvbiBEYXRhVGFibGUoewogIHRp
-dGxlLAogIGFjdGlvbiwKICBjb2x1bW5zLAogIHJvd3MsCiAgZmlsdGVyUGxh
-Y2Vob2xkZXIsCiAgZW1wdHlNZXNzYWdlLAp9OiB7CiAgdGl0bGU6IHN0cmlu
-ZzsKICBhY3Rpb24/OiB7IGhyZWY6IHN0cmluZzsgbGFiZWw6IHN0cmluZyB9
-OwogIGNvbHVtbnM6IENvbHVtbltdOwogIHJvd3M6IFJvd1tdOwogIGZpbHRl
-clBsYWNlaG9sZGVyOiBzdHJpbmc7CiAgZW1wdHlNZXNzYWdlOiBzdHJpbmc7
-Cn0pIHsKICBjb25zdCBbcXVlcnksIHNldFF1ZXJ5XSA9IHVzZVN0YXRlKCIi
-KTsKICBjb25zdCBbc29ydCwgc2V0U29ydF0gPSB1c2VTdGF0ZTx7IGtleTog
-c3RyaW5nOyBkaXI6ICJhc2MiIHwgImRlc2MiIH0gfCBudWxsPihudWxsKTsK
-CiAgY29uc3QgdmlzaWJsZSA9IHVzZU1lbW8oKCkgPT4gewogICAgY29uc3Qg
-bmVlZGxlID0gcXVlcnkudHJpbSgpLnRvTG93ZXJDYXNlKCk7CiAgICBsZXQg
-cmVzdWx0ID0gbmVlZGxlCiAgICAgID8gcm93cy5maWx0ZXIoKHJvdykgPT4g
-Y29sdW1ucy5zb21lKChjKSA9PiBjLmtpbmQgIT09ICJ3aGVuIiAmJiBTdHJp
-bm7cm93W2Mua2V5XSA/PyAiIikudG9Mb3dlckNhc2UoKS5pbmNsdWRlcyhu
-ZWVkbGUpKSkKICAgICAgOiByb3dzOwogICAgaWYgKHNvcnQpIHsKICAgICAg
-Y29uc3QgZGlyID0gc29ydC5kaXIgPT09ICJhc2MiID8gMSA6IC0xOwogICAg
-ICByZXN1bHQgPSBbLi4ucmVzdWx0XS5zb3J0KChhLCBiKSA9PiB7CiAgICAg
-ICAgY29uc3QgeCA9IGFbc29ydC5rZXldOwogICAgICAgIGNvbnN0IHkgPSBi
-W3NvcnQua2V5XTsKICAgICAgICBpZiAodHlwZW9mIHggPT09ICJudW1iZXIi
-ICYmIHR5cGVvZiB5ID09PSAibnVtYmVyIikgcmV0dXJuICh4IC0geSkgKiBk
-aXI7CiAgICAgICAgcmV0dXJuIFN0cmluZyh4ID8/ICIiKS5sb2NhbGVDb21w
-YXJlKFN0cmluZyh5ID8/ICIiKSkgKiBkaXI7CiAgICAgIH0pOwogICAgfQog
-ICAgcmV0dXJuIHJlc3VsdDsKICB9LCBbcm93cywgY29sdW1ucywgcXVlcnks
-IHNvcnRdKTsKCiAgY29uc3QgaGFzTGlua3MgPSByb3dzLnNvbWUocm93ID0+
-IHJvdy5ocmVmKTsKICByZXR1cm4gKAogICAgPHNlY3Rpb24gY2xhc3NOYW1l
-PSJnbGFzcy1wYW5lbCBvdmVyZmxvdy1oaWRkZW4gcm91bmRlZC0yeGwiIGFy
-aWEtbGFiZWw9e3RpdGxlfT4KICAgICAgPGRpdiBjbGFzc05hbWU9ImZsZXgg
-aXRlbXMtY2VudGVyIGp1c3RpZnktYmV0d2VlbiBnYXAtMyBweC01IHB0LTUi
-PgogICAgICAgIDxoMiBjbGFzc05hbWU9ImZvbnQtbWVkaXVtIHRleHQtaW5r
-Ij57dGl0bGV9PC9oMj4KICAgICAgICB7YWN0aW9uICYmICgKICAgICAgICAg
-IDxMaW5rIGhyZWY9e2FjdGlvbi5ocmVmfSBjbGFzc05hbWU9InRleHQtc20g
-Zm9udC1tZWRpdW0gdGV4dC1pbmsgaG92ZXI6dW5kZXJsaW5lIj4KICAgICAg
-ICAgICAge2FjdGlvbi5sYWJlbH0KICAgICAgICAgIDwvTGluaz4KICAgICAg
-ICApfQogICAgICA8L2Rpdj4KCiAgICAgIHtyb3dzLmxlbmd0aCA9PT0gMCA/
-ICgKICAgICAgICA8cCBjbGFNzTmFtZT0icHgtNSBwYi02IHB0LTMgdGV4dC1z
-bSB0ZXh0LW11dGVkIj57ZW1wdHlNZXNzYWdlfTwvcD4KICAgICAgKSAgOiAo
-ICAgICAgICA8PgoKICAgICAgICAgIDxkaXYgY2xhc3NOYW1lPSJweC01IHB0
-LTMiPgogICAgICAgICAgICA8bGFiZWwgY2xhc3NOYW1lPSJyZWxhdGl2ZSBi
-bG9jayI+CiAgICAgICAgICAgICAgPHNwYW4gY2xhc3NOYW1lPSJzci1vbmx5
-Ij57ZmlsdGVyUGxhY2Vob2xkZXJ9PC9zcGFuPgogICAgICAgICAgICAgIDxT
-ZWFyY2ggY2xhc3NOYW1lPSJwb2ludGVyLWV2ZW50cy1ub25lIGFic29sdXRl
-IGxlZnQtMyB0b3AtMS8yIGgtNCB3LTQgLXRyYW5zbGF0ZS15LTEvMiB0ZXh0
-LW11dGVkIiBhcmlhLWhpZGRlbj0idHJ1ZSIgLz4KICAgICAgICAgICAgICA8
-aW5wdXQKICAgICAgICAgICAgICAgIHR5cGU9InNlYXJjaCIKICAgICAgICAg
-ICAgICAgIHZhbHVlPXtxdWVyeX0KICAgICAgICAgICAgICAgIG9uQ2hhbmdl
-PXsoZSkgPT4gc2V0UXVlcnkoZS50YXJnZXQudmFsdWUpfQogICAgICAgICAg
-ICAgICAgcGxhY2Vob2xkZXI9e2ZpbHRlclBsYWNlaG9sZGVyfQogICAgICAg
-ICAgICAgICAgY2xhc3NOYW1lPSJ3LWZ1bGwgcm91bmRlZC14bCBib3JkZXIg
-Ym9yZGVyLWxpbmUgYmc tc3VyZmFjZSBweS0yIHBsLTkgcHItMyB0ZXh0LXNt
-IHRleHQtaW5rIHBsYWNlaG9sZGVyOnRleHQtbXV0ZWQgZm9jdXM6Ym9yZGVy
-LWluayBmb2N1czpvdXRsaW5lLW5vbmUiCiAgICAgICAgICAgICAgLz4KICAg
-ICAgICAgICAgPC9sYWJlbD4KICAgICAgICAgIDwvZGl2PgoKICAgICAgICAg
-IDxkaXYgY2xhc3NOYW1lPSJtdC0zIG92ZXJmbG93LXgtYXV0byI+CiAgICAg
-ICAgICAgIDx0YWJsZSBjbGFzc05hbWU9Inc gZnVsbCBtaW4tdy1bNDIwcHhd
-IHRleHQtbGVmdCB0ZXh0LXNtIj4KICAgICAgICAgICAgICA8dGhlYWQ+CiAg
-ICAgICAgICAgICAgICA8dHIgY2xhc3NOYW1lPSJib3JkZXIteSBib3JkZXIt
-bGluZSB0ZXh0LXhzIHRleHQtbXV0ZWQiPgogICAgICAgICAgICAgICAgICB7
-Y29sdW1ucy5tYXAoKGNvbHVtbikgPT4gewogICAgICAgICAgICAgICAgICAg
-IGNvbnN0IGFjdGl2ZSA9IHNvcnQ/LmtleSA9PT0gY29sdW1uLmtleTsKICAg
-ICAgICAgICAgICAgICAgICBjb25zdCBJY29uID0gIWFjdGl2ZSA/IEFycm93
-VXBEb3duIDogc29ydC5kaXIgPT09ICJhc2MiID8gQ2hldnJvblVwIDogQ2hl
-dnJvbkRvd247CiAgICAgICAgICAgICAgICAgICAgcmV0dXJuICgKICAgICAg
-ICAgICAgICAgICAgICAgIDx0aAogICAgICAgICAgICAgICAgICAgICAgICBr
-a2V5PXtjb2x1bW4ua2V5fQogICAgICAgICAgICAgICAgICAgICAgICBzY29w
-ZT0iY29sIgogICAgICAgICAgICAgICAgICAgICAgICBhcmlhLXNvcnQ9e2Fj
-dGl2ZSA/ICggc29ydC5kaXIgPT09ICJhc2MiID8gImFzY2VuZGluZyIgOiAi
-ZGVzY2VuZGluZyIpIDogdW5kZWZpbmVkfQogICAgICAgICAgICAgICAgICAg
-ICAgICBjbGFzc05hbWU9e2BweC01IHB5LTIuNSBmb250LW1lZGl1bSAke2Nv
-bHVtbi5hbGlnbiA9PT0gInJpZ2h0IiA/ICJ0ZXh0LXJpZ2h0IiA6ICIifWB9
-CiAgICAgICAgICAgICAgICAgICAgICAgID4KICAgICAgICAgICAgICAgICAg
-ICAgICAgIHtjb2x1bW4uc29ydGFibGUgPyAoCiAgICAgICAgICAgICAgICAg
-ICAgICAgICAgPGJ1dHRvbgogICAgICAgICAgICAgICAgICAgICAgICAgICAg
-dHlwZT0iYnV0dG9uIgogICAgICAgICAgICAgICAgICAgICAgICAgICAgb25D
-bGljaz17KCkgPT4gdG9nZ2xlU29ydChjb2x1bW4pfQogICAgICAgICAgICAg
-ICAgICAgICAgICAgICAgYXJpYS1wcmVzc2VkPXthY3RpdmV9CiAgICAgICAg
-ICAgICAgICAgICAgICAgICAgICBjbGFzc05hbWU9ImlubGluZS1mbGV4IGl0
-ZW1zLWNlbnRlciBnYXAtMSBob3Zlcjp0ZXh0LWluayIKICAgICAgICAgICAg
-ICAgICAgICAgICAgICA+CiAgICAgICAgICAgICAgICAgICAgICAgICAgICB7
-Y29sdW1uLmhlYWRlcn0KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDxJ
-Y29uIGNsYXNzTmFtZT0iaC0zIHctMyIgYXJpYS1oaWRkZW49InRydWUiIC8+
-CiAgICAgICAgICAgICAgICAgICAgICAgICAgPC9idXR0b24+CiAgICAgICAg
-ICAgICAgICAgICAgICAgICkgOiAoCiAgICAgICAgICAgICAgICAgICAgICAg
-ICAgY29sdW1uLmhlYWRlcgogICAgICAgICAgICAgICAgICAgICAgICApfQog
-ICAgICAgICAgICAgICAgICAgICAgPC90aD4KICAgICAgICAgICAgICAgICAg
-ICAgKTsKICAgICAgICAgICAgICAgIH0pfQogICAgICAgICAgICAgICAgPHto
-YXNMaW5rcyAmJiA8dGggc2NvcGU9ImNvbCIgY2xhc3NOYW1lPSJ3LTEwIHB4
-LTUgcHktMi41IiAvPn0KICAgICAgICAgICAgICAgIDwvdHI+CiAgICAgICAg
-ICAgICAgPC90aGVhZD4KICAgICAgICAgICAgICA8dGJvZHkgY2xhc3NOYW1l
-PSJkaXZpZGUteSBkaXZpZGUtbGluZSI+CiAgICAgICAgICAgICAgICB7dmlz
-aWJsZS5tYXAoKHJvdykgPT4gKAogICAgICAgICAgICAgICAgICA8dHIga2V5
-PXtyb3cuaWR9IGNsYXNzTmFtZT0idHJhbnNpdGlvbiBob3ZlcjpiZy1taXN0
-LzYwIj4KICAgICAgICAgICAgICAgICAgICB7Y29sdW1ucy5tYXAoKGNvbHVt
-bikgPT4gKAogICAgICAgICAgICAgICAgICAgICAgPHRkIGtleT17Y29sdW1u
-LmtleX0gY2xhc3NOYW1lPXtgbWF4LXctWzE0cmVtXSBweC01IHB5LTMgJHtj
-b2x1bW4uYWxpZ24gPT09ICJyaWdodCIgPyAidGV4dC1yaWdodCIgOiAiIn1gfT4KICAgICAgICAgICAgICAgICAgICAgICAgPENlbGwgY29sdW1uPXtjb2x1bW59IHJvdz17cm93fSAvPgogICAgICAgICAgICAgICAgICAgICAgPC90ZD4KICAgICAgICAgICAgICAgICAgICApKX0KICAgICAgICAgICAgICAgICAgICB7aGFzTGlua3MgJiYgKAogICAgICAgICAgICAgICAgICAgICAgPHRkIGNsYXNzTmFtZT0icHgtNSBweS0zIHRleHQtcmlnaHQiPgogICAgICAgICAgICAgICAgICAgICAgICB7cm93LmhyZWYgJiYgKAogICAgICAgICAgICAgICAgICAgICAgICAgIDxMaW5rIGhyZWY9e3Jvdy5ocmVmfSBhcmlhLWxhYmVsPXtgT3BlbiAke3RpdGxlLnRvTG93ZXJDYXNlKCl9IGl0ZW1gfSBjbGFzc05hbWU9ImlubGluZS1mbGV4IHRleHQtbXV0ZWQgaG92ZXI6dGV4dC1pbmsiPgogICAgICAgICAgICAgICAgICAgICAgICAgICAgPEFycm93UmlnaHQgY2xhc3NOYW1lPSJoLTQgd y00IiBhcmlhLWhpZGRlbj0idHJ1ZSIgLz4KICAgICAgICAgICAgICAgICAgICAgICAgICAgIDwvTGluaz4KICAgICAgICAgICAgICAgICAgICAgICAgKX0KICAgICAgICAgICAgICAgICAgICAgIDwvdGQ+CiAgICAgICAgICAgICAgICAgICAgKX0KICAgICAgICAgICAgICAgICAgPC90cj4KICAgICAgICAgICAgICAgICkpfQogICAgICAgICAgICAgIDwvdGJvZHk+CiAgICAgICAgICAgIDwvdGFibGU+CiAgICAgICAgICAgIHt2aXNpYmxlLmxlbmd0aCA9PT0gMCAmJiA8cCBjbGFzc05hbWU9InB4LTUgcHktNCB0ZXh0LXNtIHRleHQtbXV0ZWQiPk5vdGhpbmcgbWF0Y2hlcyAmbGRxdW87e3F1ZXJ5fSZyZHF1bzsuPC9wPn0KICAgICAgICAgIDwvZGl2PgogICAgICAgIDwvPgogICAgICApfQogICAgPC9zZWN0aW9uPgogICk7Cn0K
+"use client";
+
+import Link from "next/link";
+import { useMemo, useState } from "react";
+import { ArrowRight, ArrowUpDown, ChevronDown, ChevronUp, Search } from "lucide-react";
+import { Badge } from "@/components/site/ui";
+import { naira } from "@/lib/site/format";
+
+// Rows and columns are plain data (not functions) so a Server Component can pass
+// them straight in. Each column declares how its cell is drawn via `kind`.
+export type Kind = "customer" | "text" | "number" | "money" | "status" | "when";
+export type Column = { key: string; header: string; kind: Kind; sortable?: boolean; align?: "right" };
+export type Row = { id: string; href?: string } & Record<string, string | number | boolean | null | undefined>;
+
+const STATUS: Record<string, { label: string; tone: "neutral" | "lime" | "ink" | "danger" }> = {
+  "needs-you": { label: "Needs you", tone: "lime" },
+  handled: { label: "Handled by Mira", tone: "neutral" },
+  placed: { label: "Placed", tone: "lime" },
+  shipped: { label: "Shipped", tone: "neutral" },
+  delivered: { label: "Delivered", tone: "ink" },
+  cancelled: { label: "Cancelled", tone: "danger" },
+};
+
+const whenFormat = new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+function initials(label: string): string {
+  return (label.match(/[A-Za-z]/g) ?? ["#"]).slice(0, 2).join("").toUpperCase();
+}
+
+function Cell({ column, row }: { column: Column; row: Row }) {
+  const value = row[column.key];
+  switch (column.kind) {
+    case "customer":
+      return (
+        <span className="flex items-center gap-3">
+          <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-lime text-xs font-semibold text-ink">
+            {initials(String(value ?? ""))}
+          </span>
+          <span className="truncate font-medium text-ink">{String(value ?? "—")}</span>
+        </span>
+      );
+    case "money":
+      return <span className="tabular-nums text-ink">{naira(Number(value ?? 0))}</span>;
+    case "number":
+      return <span className="tabular-nums text-ink">{Number(value ?? 0).toLocaleString("en-NG")}</span>;
+    case "when":
+      return <span className="whitespace-nowrap text-muted">{value ? whenFormat.format(new Date(String(value))) : "—"}</span>;
+    case "status": {
+      const status = STATUS[String(value)] ?? { label: String(value ?? "—"), tone: "neutral" as const };
+      return <Badge tone={status.tone}>{status.label}</Badge>;
+    }
+    default:
+      return <span className="truncate text-ink-2">{String(value ?? "—")}</span>;
+  }
+}
+
+export function DataTable({
+  title,
+  action,
+  columns,
+  rows,
+  filterPlaceholder,
+  emptyMessage,
+}: {
+  title: string;
+  action?: { href: string; label: string };
+  columns: Column[];
+  rows: Row[];
+  filterPlaceholder: string;
+  emptyMessage: string;
+}) {
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
+
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    let result = needle
+      ? rows.filter((row) => columns.some((c) => c.kind !== "when" && String(row[c.key] ?? "").toLowerCase().includes(needle)))
+      : rows;
+    if (sort) {
+      const dir = sort.dir === "asc" ? 1 : -1;
+      result = [...result].sort((a, b) => {
+        const x = a[sort.key];
+        const y = b[sort.key];
+        if (typeof x === "number" && typeof y === "number") return (x - y) * dir;
+        return String(x ?? "").localeCompare(String(y ?? "")) * dir;
+      });
+    }
+    return result;
+  }, [rows, columns, query, sort]);
+
+  const hasLinks = rows.some((row) => row.href);
+
+  return (
+    <section className="glass-panel overflow-hidden rounded-2xl" aria-label={title}>
+      <div className="flex items-center justify-between gap-3 px-5 pt-5">
+        <h2 className="font-medium text-ink">{title}</h2>
+        {action && (
+          <Link href={action.href} className="text-sm font-medium text-ink hover:underline">
+            {action.label}
+          </Link>
+        )}
+      </div>
+
+      {rows.length === 0 ? (
+        <p className="px-5 pb-6 pt-3 text-sm text-muted">{emptyMessage}</p>
+      ) : (
+        <>
+          <div className="px-5 pt-3">
+            <label className="relative block">
+              <span className="sr-only">{filterPlaceholder}</span>
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder={filterPlaceholder}
+                className="w-full rounded-xl border border-line bg-surface py-2 pl-9 pr-3 text-sm text-ink placeholder:text-muted focus:border-ink focus:outline-none"
+              />
+            </label>
+          </div>
+
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full min-w-[420px] text-left text-sm">
+              <thead>
+                <tr className="border-y border-line text-xs text-muted">
+                  {columns.map((column) => {
+                    const active = sort?.key === column.key;
+                    const Icon = !active ? ArrowUpDown : sort.dir === "asc" ? ChevronUp : ChevronDown;
+                    return (
+                      <th
+                        key={column.key}
+                        scope="col"
+                        aria-sort={active ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
+                        className={`px-5 py-2.5 font-medium ${column.align === "right" ? "text-right" : ""}`}
+                      >
+                        {column.sortable ? (
+                          <button
+                            type="button"
+                            onClick={() => setSort(active && sort.dir === "asc" ? { key: column.key, dir: "desc" } : { key: column.key, dir: "asc" })}
+                            className="inline-flex items-center gap-1 hover:text-ink"
+                          >
+                            {column.header}
+                            <Icon className="h-3 w-3" aria-hidden="true" />
+                          </button>
+                        ) : (
+                          column.header
+                        )}
+                      </th>
+                    );
+                  })}
+                  {hasLinks && <th scope="col" className="w-10 px-5 py-2.5" />}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-line">
+                {visible.map((row) => (
+                  <tr key={row.id} className="transition hover:bg-mist/60">
+                    {columns.map((column) => (
+                      <td key={column.key} className={`max-w-[14rem] px-5 py-3 ${column.align === "right" ? "text-right" : ""}`}>
+                        <Cell column={column} row={row} />
+                      </td>
+                    ))}
+                    {hasLinks && (
+                      <td className="px-5 py-3 text-right">
+                        {row.href && (
+                          <Link href={row.href} aria-label={`Open ${title.toLowerCase()} item`} className="inline-flex text-muted hover:text-ink">
+                            <ArrowRight className="h-4 w-4" aria-hidden="true" />
+                          </Link>
+                        )}
+                      </td>
+                    )}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {visible.length === 0 && <p className="px-5 py-4 text-sm text-muted">Nothing matches &ldquo;{query}&rdquo;.</p>}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}
