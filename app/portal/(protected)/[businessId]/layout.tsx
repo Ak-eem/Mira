@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { getBusinessEntitlement } from "@/lib/billing";
 import { subscriptionLabel } from "@/lib/plans";
-import { PortalNav } from "./PortalNav";
+import { PortalSidebar } from "./PortalSidebar";
 
 export default async function PortalBusinessLayout({ children, params }: { children: React.ReactNode; params: Promise<{ businessId: string }> }) {
   const { businessId } = await params;
@@ -20,18 +20,42 @@ export default async function PortalBusinessLayout({ children, params }: { child
   const access = await getBusinessEntitlement(businessId);
   if (!access.entitled) redirect(`/portal/upgrade?businessId=${encodeURIComponent(businessId)}`);
 
+  const { count: needsYou } = await supabase
+    .from("conversations")
+    .select("id", { count: "exact", head: true })
+    .eq("business_id", businessId)
+    .eq("needs_human", true);
+
+  const isOwner = business.role === "owner";
+  const trialing = access.subscription?.status === "trialing";
+
   return (
-    <div>
-      <div className="mb-4 flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-900">
-        <span>{access.subscription?.status === "trialing" ? "Free trial" : "Subscription"}</span>
-        <span className="font-medium">{subscriptionLabel(access.subscription)}</span>
+    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:flex lg:gap-8">
+      <PortalSidebar
+        businessId={businessId}
+        businessName={business.name}
+        roleLabel={isOwner ? "Owner" : "Team member"}
+        isOwner={isOwner}
+        hasMultipleBusinesses={owner.businesses.length > 1}
+        needsYou={needsYou ?? 0}
+      />
+      <div className="min-w-0 flex-1">
+        <div className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-marigold/40 bg-lime px-4 py-2.5 text-sm text-ink">
+          <span>{trialing ? "Free trial" : "Subscription"}</span>
+          <span className="flex items-center gap-3">
+            <span className="font-medium">{subscriptionLabel(access.subscription)}</span>
+            {isOwner && trialing && (
+              <Link
+                href={`/portal/upgrade?businessId=${encodeURIComponent(businessId)}`}
+                className="rounded-full bg-ink px-3 py-1 text-xs font-medium text-white transition hover:bg-ink-2"
+              >
+                Upgrade
+              </Link>
+            )}
+          </span>
+        </div>
+        {children}
       </div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{business.name}</h1>
-        {owner.businesses.length > 1 && <Link href="/portal" className="text-sm text-slate-400 hover:text-slate-600">Switch business</Link>}
-      </div>
-      <PortalNav businessId={businessId} isOwner={business.role === "owner"} />
-      {children}
     </div>
   );
 }

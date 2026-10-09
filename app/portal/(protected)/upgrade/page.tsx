@@ -60,7 +60,7 @@ export default async function PortalUpgradePage({
           };
 
   return (
-    <main className="mx-auto max-w-xl rounded-xl border border-slate-200 bg-white p-8 text-center shadow-xs">
+    <main className="mx-auto my-8 w-[calc(100%-3rem)] max-w-xl rounded-xl border border-slate-200 bg-white p-8 text-center shadow-xs">
       <p className="text-sm font-medium text-accent">{business.name}</p>
       <h1 className="mt-2 text-2xl font-semibold text-slate-900">{copy.title}</h1>
       <p className="mt-3 text-sm leading-6 text-slate-600">{copy.body}</p>

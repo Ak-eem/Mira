@@ -3,6 +3,14 @@ import { redirect } from "next/navigation";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 
 export default async function PortalHomePage() {
+  return (
+    <div className="mx-auto max-w-3xl px-6 py-8">
+      <PortalHomeContent />
+    </div>
+  );
+}
+
+async function PortalHomeContent() {
   const owner = await getCurrentBusinessOwner();
 
   if (!owner) {
