@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Resend, type WebhookEventPayload } from "resend";
 import { processMessage } from "@/lib/chat/processMessage";
+import { isBusinessSwitchedOff } from "@/lib/chat/businessStatus";
 import { processIncomingMessage } from "@/lib/chat/processIncomingMessage";
 import { withConversationLease } from "@/lib/chat/durable";
 import { checkRateLimit } from "@/lib/rateLimit";
@@ -177,6 +178,15 @@ export async function POST(request: NextRequest) {
 
       const inboundKey = `email:${item.email_id}`;
       const processIncoming = async () => {
+        // Switched off (cancelled, paid period or trial ended, no subscription):
+        // store nothing and send nothing. This must come BEFORE the human-inbox
+        // branch below -- captureForHuman writes the customer's email into the
+        // business's inbox without ever reaching the check inside
+        // processIncomingMessage, so a paused business would keep receiving
+        // mail and a cancelled one would fail on the database paywall and retry.
+        if (await isBusinessSwitchedOff(client, routedBusiness.id)) {
+          return { reply: "", silent: true };
+        }
         if (!routedBusiness.email_responses_enabled) {
           await captureForHuman(client, routedBusiness.id, sender, body, inboundKey);
           return { reply: "", silent: true };
