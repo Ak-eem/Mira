@@ -35,7 +35,7 @@ export default async function AdminBusinessLayout({
   if (!business) notFound();
 
   return (
-    <div className="flex gap-6">
+    <div className="flex flex-col md:flex-row md:gap-6">
       <BusinessSidebar
         businessId={businessId}
         businessName={business.name}

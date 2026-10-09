@@ -5,8 +5,8 @@ import { useId, useState } from "react";
 export type ChartPoint = { label: string; value: number };
 
 const W = 640;
-const H = 180;
-const PAD = { top: 12, right: 8, bottom: 22, left: 8 };
+const H = 160;
+const PAD = { top: 12, right: 8, bottom: 8, left: 8 };
 
 // A small dependency-free line chart. The line draws itself on mount and the area
 // fades in; both are switched off for people who prefer reduced motion.
@@ -69,49 +69,64 @@ export function ActivityChart({
           <p className="max-w-xs px-4">{emptyMessage}</p>
         </div>
       ) : (
-        <svg
-          viewBox={`0 0 ${W} ${H}`}
-          className="mt-3 h-auto w-full"
-          role="img"
-          aria-label={`${title}: ${format(total)} in total`}
-          onMouseMove={onMove}
-          onMouseLeave={() => setHover(null)}
-        >
-          <defs>
-            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="var(--color-marigold)" stopOpacity="0.35" />
-              <stop offset="100%" stopColor="var(--color-marigold)" stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {[0.25, 0.5, 0.75].map((t) => (
-            <line key={t} x1={PAD.left} x2={W - PAD.right} y1={PAD.top + innerH * t} y2={PAD.top + innerH * t} stroke="var(--color-line)" strokeDasharray="3 5" />
-          ))}
-          <path d={area} fill={`url(#${gradientId})`} className="animate-area motion-reduce:animate-none" />
-          <path
-            d={line}
-            pathLength={1}
-            strokeDasharray={1}
-            strokeDashoffset={0}
-            fill="none"
-            stroke="var(--color-ink)"
-            strokeWidth={2.5}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="animate-draw motion-reduce:animate-none"
-          />
+        <div className="relative mt-3">
+          <svg
+            viewBox={`0 0 ${W} ${H}`}
+            preserveAspectRatio="none"
+            className="block h-44 w-full"
+            role="img"
+            aria-label={`${title}: ${format(total)} in total`}
+            onMouseMove={onMove}
+            onMouseLeave={() => setHover(null)}
+          >
+            <defs>
+              <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="var(--color-marigold)" stopOpacity="0.35" />
+                <stop offset="100%" stopColor="var(--color-marigold)" stopOpacity="0" />
+              </linearGradient>
+            </defs>
+            {[0.25, 0.5, 0.75].map((t) => (
+              <line
+                key={t}
+                x1={PAD.left}
+                x2={W - PAD.right}
+                y1={PAD.top + innerH * t}
+                y2={PAD.top + innerH * t}
+                stroke="var(--color-line)"
+                strokeDasharray="3 5"
+                vectorEffect="non-scaling-stroke"
+              />
+            ))}
+            <path d={area} fill={`url(#${gradientId})`} className="animate-area motion-reduce:animate-none" />
+            <path
+              d={line}
+              pathLength={1}
+              strokeDasharray={1}
+              strokeDashoffset={0}
+              fill="none"
+              stroke="var(--color-ink)"
+              strokeWidth={2}
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              vectorEffect="non-scaling-stroke"
+              className="animate-draw motion-reduce:animate-none"
+            />
+            {hover !== null && points[hover] && (
+              <line x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={PAD.top + innerH} stroke="var(--color-ink)" strokeOpacity={0.25} vectorEffect="non-scaling-stroke" />
+            )}
+          </svg>
           {hover !== null && points[hover] && (
-            <>
-              <line x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={PAD.top + innerH} stroke="var(--color-ink)" strokeOpacity={0.25} />
-              <circle cx={x(hover)} cy={y(points[hover].value)} r={5} fill="var(--color-marigold)" stroke="var(--color-ink)" strokeWidth={2} />
-            </>
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 border-ink bg-marigold"
+              style={{ left: `${(x(hover) / W) * 100}%`, top: `${(y(points[hover].value) / H) * 100}%` }}
+            />
           )}
-          <text x={PAD.left} y={H - 6} fontSize="11" fill="var(--color-muted)">
-            {points[0]?.label}
-          </text>
-          <text x={W - PAD.right} y={H - 6} fontSize="11" textAnchor="end" fill="var(--color-muted)">
-            {points[points.length - 1]?.label}
-          </text>
-        </svg>
+          <div className="mt-1 flex justify-between text-xs text-muted">
+            <span>{points[0]?.label}</span>
+            <span>{points[points.length - 1]?.label}</span>
+          </div>
+        </div>
       )}
     </section>
   );
