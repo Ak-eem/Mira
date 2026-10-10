@@ -1,22 +1,12 @@
 import { createHmac, timingSafeEqual } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { processIncomingMessage } from "@/lib/chat/processIncomingMessage";
-import { withConversationLease } from "@/lib/chat/durable";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   enqueueInboundMessage,
   claimInboundMessage,
-  markInboundDone,
-  markInboundFailed,
-  markInboundSent,
-  saveInboundReply,
-  decideSend,
-  markSendStarted,
-  markSendRejected,
-  markSendAbandoned,
 } from "@/lib/whatsapp/inboundQueue";
-import { sendWhatsappReplyDetailed } from "@/lib/whatsapp/sendMessage";
+import { processWhatsappQueued } from "@/lib/whatsapp/processQueued";
 
 export const runtime = "nodejs";
 const MAX_MESSAGE_LENGTH = 4000;
@@ -117,68 +107,7 @@ export async function POST(request: NextRequest) {
 
       if (!(await claimInboundMessage(client, queued))) continue;
 
-      const business = await client
-        .from("businesses")
-        .select("id")
-        .eq("whatsapp_phone_number_id", item.phoneId)
-        .eq("is_active", true)
-        .maybeSingle();
-      if (business.error) throw business.error;
-      if (!business.data) {
-        await markInboundDone(client, queued.id);
-        continue;
-      }
-
-      const businessId = business.data.id;
-      try {
-        if (queued.reply_sent_at) {
-          // Sent on an earlier attempt; only the final ack was lost.
-          await markInboundDone(client, queued.id);
-          continue;
-        }
-
-        // Outbox: a reply persisted by an earlier attempt is re-sent as-is.
-        // Otherwise process (idempotent on the inbound key), persist the
-        // reply, THEN send, so a crash after the send can never regenerate
-        // the answer or duplicate the stored rows.
-        let replyText = queued.reply_text;
-        if (replyText === null) {
-          const result = await withConversationLease(client, `wa:${businessId}:${item.from}`, () =>
-            processIncomingMessage(client, businessId, `wa_${item.from}`, item.text, "whatsapp", `wa:${item.id}`),
-          );
-          if (result.silent) {
-            await markInboundDone(client, queued.id);
-            continue;
-          }
-          replyText = result.reply;
-          await saveInboundReply(client, queued.id, replyText);
-        }
-
-        const gate = decideSend(queued);
-        if (gate.action === "abandon") {
-          console.error(`WhatsApp reply for queue row ${queued.id} has an unconfirmed delivery after its one re-send; closing without another send.`);
-          await markSendAbandoned(client, queued.id);
-          continue;
-        }
-        await markSendStarted(client, queued.id, gate.resend);
-        const sent = await sendWhatsappReplyDetailed(item.phoneId, item.from, replyText);
-        if (sent.outcome === "rejected") {
-          // Definitely not delivered, so the retry starts clean.
-          await markSendRejected(client, queued.id);
-          throw new Error("WhatsApp rejected the reply.");
-        }
-        // "unknown" leaves send_started_at set: the next attempt treats it as
-        // ambiguous and re-sends at most once.
-        if (sent.outcome === "unknown") throw new Error("WhatsApp send outcome unknown.");
-        await markInboundSent(client, queued.id, sent.messageId);
-      } catch (error) {
-        await markInboundFailed(
-          client,
-          queued.id,
-          error instanceof Error ? error.message : "processing failed",
-        );
-        throw error;
-      }
+      await processWhatsappQueued(client, queued, item);
     }
     return NextResponse.json({ status: "received" }, { status: 200 });
   } catch (error) {

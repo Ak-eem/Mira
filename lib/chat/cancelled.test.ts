@@ -118,7 +118,8 @@ async function run() {
   // The email webhook's human-inbox branch (AI replies off) used to run before the
   // switched-off check, so cancelled/expired businesses still got messages stored.
   const { readFileSync } = await import("node:fs");
-  const route = readFileSync("app/api/webhooks/email/route.ts", "utf8");
+  // The per-email processing lives in lib/email/processQueued.ts (shared by the webhook and the admin retry).
+  const route = readFileSync("lib/email/processQueued.ts", "utf8");
   const gate = route.indexOf("await isBusinessSwitchedOff(");
   const human = route.indexOf("await captureForHuman(");
   check(gate !== -1 && human !== -1 && gate < human, "email webhook: switched-off check runs before the human-inbox capture");
