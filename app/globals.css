@@ -457,3 +457,28 @@ html {
     }
   }
 }
+
+
+/* Analytics bars: each bar grows up from the baseline with a small overshoot,
+   staggered left to right via --bar-delay; its value label fades in after it. */
+.bar-grow {
+  transform-origin: bottom;
+  animation: bar-grow 850ms cubic-bezier(0.34, 1.4, 0.64, 1) var(--bar-delay, 0ms) both;
+}
+.bar-label {
+  animation: bar-label 400ms var(--ease-out) calc(var(--bar-delay, 0ms) + 450ms) both;
+}
+@keyframes bar-grow {
+  from { transform: scaleY(0); opacity: 0.4; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+@keyframes bar-label {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .bar-grow,
+  .bar-label {
+    animation: none;
+  }
+}
