@@ -275,6 +275,7 @@ html {
   --animate-fade: fade 220ms var(--ease-out) both;
   --animate-pop: pop 260ms var(--ease-out) both;
   --animate-draw: draw 1100ms var(--ease-out) both;
+  --animate-grow: grow 700ms var(--ease-out) both;
   --animate-area: fade 900ms var(--ease-out) 350ms both;
 
   @keyframes rise {
@@ -284,6 +285,10 @@ html {
   @keyframes fade {
     from { opacity: 0; }
     to { opacity: 1; }
+  }
+  @keyframes grow {
+    from { transform: scaleY(0); }
+    to { transform: scaleY(1); }
   }
   @keyframes draw {
     from { stroke-dashoffset: 1; }

@@ -2,9 +2,8 @@ import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Check, Circle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
-import { naira } from "@/lib/site/format";
 import { getOrderTakingEnabled } from "@/lib/orderSettings";
-import { ActivityChart, type ChartPoint } from "./ActivityChart";
+import { ActivityPanel, type ChartPoint, type ChartMetric } from "./ActivityChart";
 import { DataTable, type Column, type Row } from "./DataTable";
 
 type OrderRow = {
@@ -203,6 +202,27 @@ export default async function PortalDashboardPage({
   const orderSeries = dailySeries(now, orderRows.map((r) => ({ at: r.created_at, value: Number(r.total ?? 0) })));
   const showOrders = orderTakingEnabled || orderRows.length > 0;
 
+  const chartMetrics: ChartMetric[] = [
+    {
+      id: "conversations",
+      title: "Conversations",
+      kind: "count",
+      points: conversationSeries,
+      emptyMessage: "Your activity shows up here once customers start chatting with Mira.",
+    },
+    ...(showOrders
+      ? [
+          {
+            id: "sales",
+            title: "Sales",
+            kind: "money" as const,
+            points: orderSeries,
+            emptyMessage: "Order value appears here after Mira takes your first order.",
+          },
+        ]
+      : []),
+  ];
+
   const orderTableRows: Row[] = [...orderRows].reverse().slice(0, 8).map((order) => {
     const items = order.order_items ?? [];
     const first = items[0];
@@ -342,23 +362,7 @@ export default async function PortalDashboardPage({
         </Link>
       </div>
 
-      <div className={showOrders ? "grid gap-4 lg:grid-cols-2" : ""}>
-        <ActivityChart
-          title="Conversations"
-          subtitle="Last 30 days"
-          points={conversationSeries}
-          emptyMessage="Your activity shows up here once customers start chatting with Mira."
-        />
-        {showOrders && (
-          <ActivityChart
-            title="Sales from orders"
-            subtitle="Placed, shipped and delivered, last 30 days"
-            points={orderSeries}
-            format={naira}
-            emptyMessage="Order value appears here after Mira takes your first order."
-          />
-        )}
-      </div>
+      <ActivityPanel metrics={chartMetrics} />
 
       {showOrders && (
         <div className="grid gap-4 lg:grid-cols-2">
