@@ -1,5 +1,5 @@
 import { notFound, redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getRequestClient, getRequestUser } from "@/lib/supabase/request";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { getBusinessEntitlement } from "@/lib/billing";
 import { subscriptionLabel } from "@/lib/plans";
@@ -7,23 +7,22 @@ import { PortalSidebar } from "./PortalSidebar";
 
 export default async function PortalBusinessLayout({ children, params }: { children: React.ReactNode; params: Promise<{ businessId: string }> }) {
   const { businessId } = await params;
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   if (!user) redirect(`/portal/login?next=${encodeURIComponent(`/portal/${businessId}`)}`);
 
-  const owner = await getCurrentBusinessOwner();
+  // Membership, entitlement and the inbox badge don't depend on each other, so they
+  // run together (one round-trip of waiting instead of three). RLS still scopes the
+  // two business-specific reads to what this user may see.
+  const supabase = await getRequestClient();
+  const [owner, access, { count: needsYou }] = await Promise.all([
+    getCurrentBusinessOwner(),
+    getBusinessEntitlement(businessId),
+    supabase.from("conversations").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("needs_human", true),
+  ]);
   if (!owner) redirect("/portal");
   const business = owner.businesses.find((item) => item.id === businessId);
   if (!business) notFound();
-
-  const access = await getBusinessEntitlement(businessId);
   if (!access.entitled) redirect(`/portal/upgrade?businessId=${encodeURIComponent(businessId)}`);
-
-  const { count: needsYou } = await supabase
-    .from("conversations")
-    .select("id", { count: "exact", head: true })
-    .eq("business_id", businessId)
-    .eq("needs_human", true);
 
   const isOwner = business.role === "owner";
   const trialing = access.subscription?.status === "trialing";
@@ -37,7 +36,7 @@ export default async function PortalBusinessLayout({ children, params }: { child
         isOwner={isOwner}
         hasMultipleBusinesses={owner.businesses.length > 1}
         needsYou={needsYou ?? 0}
-        email={user.email ?? ""}
+        email={user.email}
         planLabel={`${trialing ? "Free trial · " : ""}${subscriptionLabel(access.subscription)}`}
         showUpgrade={isOwner && trialing}
       />

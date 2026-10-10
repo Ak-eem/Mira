@@ -1,4 +1,5 @@
-import { createClient } from "./server";
+import { cache } from "react";
+import { getRequestClient, getRequestUser } from "./request";
 
 export type CurrentBusinessOwner = {
   userId: string;
@@ -13,14 +14,10 @@ export type CurrentBusinessOwner = {
 // is_business_owner() RLS policies added in migration 0014. A session
 // this function returns null for genuinely cannot read or write
 // anything, regardless of what a page does with the null.
-export async function getCurrentBusinessOwner(): Promise<CurrentBusinessOwner | null> {
-  const supabase = await createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
+export const getCurrentBusinessOwner = cache(async (): Promise<CurrentBusinessOwner | null> => {
+  const user = await getRequestUser();
   if (!user) return null;
+  const supabase = await getRequestClient();
 
   const { data: memberships } = await supabase
     .from("business_owners")
@@ -42,5 +39,5 @@ export async function getCurrentBusinessOwner(): Promise<CurrentBusinessOwner | 
 
   if (businesses.length === 0) return null;
 
-  return { userId: user.id, email: user.email ?? "", businesses };
-}
+  return { userId: user.id, email: user.email, businesses };
+});

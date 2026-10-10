@@ -1,4 +1,5 @@
-import { createClient } from "./server";
+import { cache } from "react";
+import { getRequestClient } from "./request";
 
 export type CurrentAdmin = {
   id: string;
@@ -11,8 +12,8 @@ export type CurrentAdmin = {
 // actual security boundary. The real boundary is the is_platform_admin()
 // RLS policy: a non-admin session simply can't see or touch any rows,
 // regardless of what this function returns.
-export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
-  const supabase = await createClient();
+export const getCurrentAdmin = cache(async (): Promise<CurrentAdmin | null> => {
+  const supabase = await getRequestClient();
 
   const {
     data: { user },
@@ -27,4 +28,4 @@ export async function getCurrentAdmin(): Promise<CurrentAdmin | null> {
     .maybeSingle();
 
   return admin ?? null;
-}
+});

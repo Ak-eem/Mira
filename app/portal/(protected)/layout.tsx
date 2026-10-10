@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/supabase/request";
 import { Logo } from "@/components/site/ui";
 import { HeaderAccount } from "./HeaderAccount";
 
@@ -12,10 +12,7 @@ export default async function PortalLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
 
   if (!user) {
     redirect("/portal/login?next=/portal");
@@ -29,7 +26,7 @@ export default async function PortalLayout({
             <Logo />
             <span className="text-sm text-muted">for Business</span>
           </Link>
-          <HeaderAccount email={user.email ?? ""} />
+          <HeaderAccount email={user.email} />
         </div>
       </header>
       <main>{children}</main>

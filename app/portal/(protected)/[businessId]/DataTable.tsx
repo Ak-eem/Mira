@@ -159,6 +159,8 @@ export function DataTable({
                   <tr
                     key={row.id}
                     onClick={row.href ? () => router.push(row.href as string) : undefined}
+                    onMouseEnter={row.href ? () => router.prefetch(row.href as string) : undefined}
+                    onTouchStart={row.href ? () => router.prefetch(row.href as string) : undefined}
                     className={`transition hover:bg-mist/60 ${row.href ? "cursor-pointer" : ""}`}
                   >
                     {columns.map((column) => (
