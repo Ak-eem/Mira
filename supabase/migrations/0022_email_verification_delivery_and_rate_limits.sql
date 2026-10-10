@@ -35,6 +35,7 @@ declare
   v_oldest timestamptz;
   v_bucket record;
   v_key text;
+  v_limit integer;
 begin
   if v_email = '' or p_code_hash = '' then raise exception 'email and code hash are required'; end if;
   perform pg_advisory_xact_lock(hashtextextended('email_verification_rate_limits', 0));
@@ -58,7 +59,10 @@ begin
       update public.email_verification_rate_limits set window_started_at = v_now, request_count = 0 where bucket_key = v_key;
       v_bucket.request_count := 0;
     end if;
-    if v_bucket.bucket_key is not null and v_bucket.request_count >= case when v_key = 'global' then 1000 when v_key = 'provider:resend' then 500 else 20 end then
+    -- The limit is computed before the IF: a CASE...THEN inside an IF condition ends the
+    -- condition early in PL/pgSQL ("syntax error at end of input") and the function never gets created.
+    v_limit := case when v_key = 'global' then 1000 when v_key = 'provider:resend' then 500 else 20 end;
+    if v_bucket.bucket_key is not null and v_bucket.request_count >= v_limit then
       return query select false,
         case when v_key = 'global' then 'global_rate_limit' when v_key = 'provider:resend' then 'provider_rate_limit' else 'hourly_rate_limit' end,
         greatest(1, ceil(extract(epoch from (coalesce(v_bucket.window_started_at, v_now) + interval '1 hour' - v_now)))::integer), null::uuid; return;
