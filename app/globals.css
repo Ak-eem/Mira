@@ -173,7 +173,7 @@ html {
 }
 
 .glass-panel-strong {
-  background-color: rgba(255, 253, 248, 0.92);
+  background-color: rgba(255, 253, 248, 0.97);
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
   border: 1px solid rgba(15, 42, 34, 0.14);

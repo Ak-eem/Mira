@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { ArrowRight, ArrowUpDown, ChevronDown, ChevronUp, Search } from "lucide-react";
 import { Badge } from "@/components/site/ui";
@@ -69,6 +70,7 @@ export function DataTable({
   filterPlaceholder: string;
   emptyMessage: string;
 }) {
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<{ key: string; dir: "asc" | "desc" } | null>(null);
 
@@ -154,16 +156,28 @@ export function DataTable({
               </thead>
               <tbody className="divide-y divide-line">
                 {visible.map((row) => (
-                  <tr key={row.id} className="transition hover:bg-mist/60">
+                  <tr
+                    key={row.id}
+                    onClick={row.href ? () => router.push(row.href as string) : undefined}
+                    className={`transition hover:bg-mist/60 ${row.href ? "cursor-pointer" : ""}`}
+                  >
                     {columns.map((column) => (
                       <td key={column.key} className={`max-w-[14rem] px-5 py-3 ${column.align === "right" ? "text-right" : ""}`}>
-                        <Cell column={column} row={row} />
+                        {column.kind === "customer" && row.href ? (
+                          // A real link on the name keeps keyboard, middle-click and screen readers working;
+                          // clicking anywhere else on the row also opens it.
+                          <Link href={row.href} onClick={(e) => e.stopPropagation()} className="block hover:underline">
+                            <Cell column={column} row={row} />
+                          </Link>
+                        ) : (
+                          <Cell column={column} row={row} />
+                        )}
                       </td>
                     ))}
                     {hasLinks && (
                       <td className="px-5 py-3 text-right">
                         {row.href && (
-                          <Link href={row.href} aria-label={`Open ${title.toLowerCase()} item`} className="inline-flex text-muted hover:text-ink">
+                          <Link href={row.href} onClick={(e) => e.stopPropagation()} aria-label={`Open ${title.toLowerCase()} item`} className="inline-flex text-muted hover:text-ink">
                             <ArrowRight className="h-4 w-4" aria-hidden="true" />
                           </Link>
                         )}

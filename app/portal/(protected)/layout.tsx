@@ -2,7 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { Logo } from "@/components/site/ui";
-import { SignOutButton } from "./SignOutButton";
+import { HeaderAccount } from "./HeaderAccount";
 
 // This layout only guards authentication. Business ownership is handled by the
 // page below so authenticated users without a linked business get a useful
@@ -29,10 +29,7 @@ export default async function PortalLayout({
             <Logo />
             <span className="text-sm text-muted">for Business</span>
           </Link>
-          <div className="flex items-center gap-4">
-            <span className="hidden text-sm text-slate-400 sm:inline">{user.email}</span>
-            <SignOutButton />
-          </div>
+          <HeaderAccount email={user.email ?? ""} />
         </div>
       </header>
       <main>{children}</main>

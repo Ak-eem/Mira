@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SignOutButton } from "../SignOutButton";
 import { useState } from "react";
 import {
   Bell,
@@ -33,6 +34,9 @@ export function PortalSidebar({
   isOwner,
   hasMultipleBusinesses,
   needsYou,
+  email,
+  planLabel,
+  showUpgrade,
 }: {
   businessId: string;
   businessName: string;
@@ -40,6 +44,9 @@ export function PortalSidebar({
   isOwner: boolean;
   hasMultipleBusinesses: boolean;
   needsYou: number;
+  email: string;
+  planLabel: string;
+  showUpgrade: boolean;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -137,6 +144,24 @@ export function PortalSidebar({
           );
         })}
       </nav>
+
+      <div className="space-y-3 border-t border-line pt-3">
+        <div className="rounded-xl bg-lime/70 p-3 text-xs text-ink">
+          <p className="font-medium">{planLabel}</p>
+          {showUpgrade && (
+            <Link
+              href={`/portal/upgrade?businessId=${encodeURIComponent(businessId)}`}
+              className="mt-2 inline-flex rounded-full bg-marigold px-3 py-1 text-xs font-semibold text-ink transition hover:brightness-95"
+            >
+              Upgrade
+            </Link>
+          )}
+        </div>
+        <div className="px-1">
+          <p className="truncate text-xs text-muted">{email}</p>
+          <SignOutButton />
+        </div>
+      </div>
     </div>
   );
 
