@@ -1,15 +1,17 @@
 import { createClient } from "@/lib/supabase/server";
+import { memoizeFor, timed } from "@/lib/perf";
 
 export type HealthStatus = "Operational" | "Degraded" | "Down" | "Not configured";
 export type HealthCheck = { status: HealthStatus; checkedAt: string };
 export type SystemHealth = { database: HealthCheck; aiProvider: HealthCheck; backgroundJobs: HealthCheck };
 
-async function checkAiProvider(checkedAt: string): Promise<HealthCheck> {
+async function pingAiProvider(): Promise<HealthCheck> {
+  const checkedAt = new Date().toISOString();
   const provider = process.env.AI_PROVIDER === "gemini" ? "gemini" : "groq";
   const apiKey = (provider === "gemini" ? process.env.LLM_API_KEY : process.env.GROQ_API_KEY)?.trim();
   if (!apiKey) return { status: "Not configured", checkedAt };
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5_000);
+  const timeout = setTimeout(() => controller.abort(), 2_500);
   try {
     const url = provider === "gemini"
       ? `https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`
@@ -28,6 +30,10 @@ async function checkAiProvider(checkedAt: string): Promise<HealthCheck> {
   }
 }
 
+// The provider ping is a live call to Groq/Gemini. It used to run on every analytics page view and could hold
+// the page for 5 seconds; one result per minute per server instance is plenty for a status light.
+const checkAiProvider = memoizeFor(60_000, pingAiProvider);
+
 export async function getSystemHealth(): Promise<SystemHealth> {
   const checkedAt = new Date().toISOString();
   const supabase = await createClient();
@@ -39,7 +45,7 @@ export async function getSystemHealth(): Promise<SystemHealth> {
   const cronAge = cronCheckedAt ? Date.now() - new Date(cronCheckedAt).getTime() : Number.POSITIVE_INFINITY;
   return {
     database: { status: databaseError ? "Down" : "Operational", checkedAt },
-    aiProvider: await checkAiProvider(checkedAt),
+    aiProvider: await timed("health:ai-provider", checkAiProvider()),
     backgroundJobs: {
       status: cronError || !cronCheckedAt ? "Down" : cronAge > 48 * 60 * 60 * 1000 ? "Degraded" : "Operational",
       checkedAt: cronCheckedAt ?? checkedAt,

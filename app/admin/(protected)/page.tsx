@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { timed } from "@/lib/perf";
 import type { Business } from "@/lib/types";
 import type { BusinessSubscription, SubscriptionStatus } from "@/lib/plans";
 import { AnalyticsStripAsync } from "./AnalyticsStripAsync";
@@ -22,7 +23,7 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
   const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const pageSize = 20;
   const supabase = await createClient();
-  const [{ data: businesses, error: businessesError }, { data: subscriptions, error: subscriptionsError }, { data: flagged, error: flaggedError, count: flaggedCount }] = await Promise.all([
+  const [{ data: businesses, error: businessesError }, { data: subscriptions, error: subscriptionsError }, { data: flagged, error: flaggedError, count: flaggedCount }] = await timed("admin:dashboard-queries", Promise.all([
     supabase
       .from("businesses")
       .select("id, name")
@@ -40,7 +41,7 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
       .order("started_at", { ascending: true })
       .range((page - 1) * pageSize, page * pageSize - 1)
       .returns<FlaggedConversation[]>(),
-  ]);
+  ]));
   const businessNameById = new Map((businesses ?? []).map((b) => [b.id, b.name]));
   const unclaimedFlagged = flagged ?? [];
 

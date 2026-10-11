@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { timed } from "@/lib/perf";
 import { loadIssues, type Issue } from "@/lib/admin/issues";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { ErrorNotice } from "@/components/ErrorNotice";
@@ -30,7 +31,7 @@ function Row({ issue }: { issue: Issue }) {
 export async function SystemIssues() {
   let issues: Issue[];
   try {
-    issues = await loadIssues(createServiceRoleClient());
+    issues = await timed("admin:issues", loadIssues(createServiceRoleClient()));
   } catch (error) {
     return <ErrorNotice what="check for system problems" error={error} />;
   }
