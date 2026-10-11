@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import type { Business } from "@/lib/types";
 import type { BusinessSubscription, SubscriptionStatus } from "@/lib/plans";
 import { AnalyticsStripAsync } from "./AnalyticsStripAsync";
+import { SystemIssues, SystemIssuesSkeleton } from "./SystemIssues";
+import { ErrorNotice } from "@/components/ErrorNotice";
+import { Skeleton } from "@/components/Skeleton";
 
 type FlaggedConversation = {
   id: string;
@@ -56,10 +59,10 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
   return (
     <div className="space-y-8">
       {(businessesError || subscriptionsError || flaggedError) && (
-        <div className="space-y-1 text-sm text-red-600">
-          {businessesError && <p>Couldn&apos;t load businesses: {businessesError.message}</p>}
-          {subscriptionsError && <p>Couldn&apos;t load subscriptions: {subscriptionsError.message}</p>}
-          {flaggedError && <p>Couldn&apos;t load flagged conversations: {flaggedError.message}</p>}
+        <div className="space-y-3">
+          {businessesError && <ErrorNotice what="load businesses" error={businessesError} />}
+          {subscriptionsError && <ErrorNotice what="load subscriptions" error={subscriptionsError} />}
+          {flaggedError && <ErrorNotice what="load flagged conversations" error={flaggedError} />}
         </div>
       )}
       <div>
@@ -93,6 +96,10 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
           </div>
         </div>
       </div>
+
+      <Suspense fallback={<SystemIssuesSkeleton />}>
+        <SystemIssues />
+      </Suspense>
 
       <Suspense fallback={<AnalyticsStripSkeleton />}>
         <AnalyticsStripAsync />
@@ -157,11 +164,11 @@ export default async function AdminDashboardPage({ searchParams }: { searchParam
 function AnalyticsStripSkeleton() {
   return (
     <div className="glass-panel rounded-xl p-5" aria-hidden="true">
-      <div className="grid animate-pulse gap-5 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-center">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-center">
         {Array.from({ length: 5 }, (_, index) => (
           <div key={index} className={index === 4 ? "lg:justify-self-end" : undefined}>
-            <div className="h-3 w-24 rounded-sm bg-slate-200" />
-            <div className="mt-2 h-7 w-20 rounded-sm bg-slate-200" />
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="mt-2 h-7 w-20" />
           </div>
         ))}
       </div>
