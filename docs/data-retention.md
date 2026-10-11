@@ -48,3 +48,12 @@ Notes:
 Do it as a dry run first: a job that only *lists* due businesses (for example to an admin
 page or an email), and only after weeks of it listing the right ones, add the delete. An
 unattended job that permanently deletes tenant data is the one place a bug costs a customer.
+
+## Backups (not yet specified)
+
+Deleting a business removes it from the live database. **Supabase also keeps database backups for a period that depends on your plan, and rows you delete stay in those backups until they expire.** Mira cannot remove data from Supabase's backups.
+
+Before launch:
+1. Open Supabase > Database > Backups and note what your plan keeps and for how long.
+2. Make the Terms and Privacy Policy say so plainly, for example: "Deleted data may remain in encrypted backups for up to N days, after which it is destroyed." Use the real N from step 1; do not promise immediate deletion from backups.
+3. Have the wording reviewed by a lawyer.

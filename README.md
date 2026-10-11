@@ -9,7 +9,7 @@ Mira is a vertical-agnostic AI customer-service platform for any business that t
 - Per-business AI grounded in that business's data
 - WhatsApp Cloud API and embeddable web chat widget
 - Products catalog with stock-aware answers
-- Order status logging (currently manual: a business logs orders in the portal; Mira answers status questions against those records, it doesn't create orders itself yet)
+- Orders: Mira records orders customers place in chat (on by default for new businesses; each order waits for staff confirmation) and answers status questions from those records. It does not take payment or arrange delivery.
 - Business insights dashboard
 - Multi-language responses and loose product-name matching, both handled by the underlying LLM's own language and semantic understanding rather than a dedicated translation or fuzzy-search engine
 - Row-level security (RLS) for tenant isolation
@@ -25,6 +25,13 @@ Mira is a vertical-agnostic AI customer-service platform for any business that t
 - Gemini 3.6 Flash
 - Groq / openai/gpt-oss-120b
 - Vercel
+
+## Documentation
+
+- `docs/deployment.md`: going live, step by step (Supabase, Vercel, email, Paystack, WhatsApp)
+- `docs/owner-guide.md`: a plain-language guide for business owners
+- `docs/costs.md`: what running Mira costs, including WhatsApp message fees
+- `docs/paystack-setup.md`, `docs/alerts.md`, `docs/data-retention.md`
 
 ## Live demo
 
@@ -65,7 +72,7 @@ Open http://localhost:3000 in your browser.
 - Retrieval and response generation are grounded in business-specific data so the AI can be refined for each vertical without making Mira industry-specific.
 - WhatsApp Cloud API and the web chat widget provide customer-facing channels, while dashboards give businesses operational and insight tooling.
 - Supabase Postgres, Auth, and RLS enforce tenant isolation at the data layer.
-- Gemini and Groq/Llama provide complementary model paths, with fallback for more resilient responses.
+- Gemini and Groq provide complementary model paths, with fallback for more resilient responses.
 
 ## License
 
