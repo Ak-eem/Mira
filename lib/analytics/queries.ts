@@ -12,6 +12,19 @@ export type CountInsight = { label: string; count: number };
 export type UnansweredInsight = { total: number; top: CountInsight[] };
 export type RateInsight = { resolved: number; total: number; percentage: number };
 
+export type RecentAiError = {
+  id: string;
+  provider: string;
+  error_code: string | null;
+  error_message: string | null;
+  latency_ms: number | null;
+  channel: string | null;
+  business_id: string | null;
+  business_name: string | null;
+  conversation_id: string | null;
+  created_at: string;
+};
+
 export type AnalyticsSnapshot = {
   range: AnalyticsRange;
   from: string;
@@ -34,7 +47,7 @@ export type AnalyticsSnapshot = {
   satisfaction: number | null;
   conversationsOverTime: AnalyticsPoint[];
   providerBreakdown: AnalyticsPoint[];
-  recentErrors: Array<{ id: string; provider: string; error_code: string | null; created_at: string }>;
+  recentErrors: RecentAiError[];
   // Business-scoped only -- empty for the platform-wide (businessId=null)
   // snapshot, since "popular products" and "unanswered questions" don't
   // mean anything aggregated across unrelated businesses' catalogs.
@@ -113,7 +126,7 @@ async function getAnalyticsSnapshotWithClient(
     conversationScope(supabase.from("conversations").select("id", { count: "exact", head: true }).eq("status", "closed")),
     conversationScope(supabase.from("conversations").select("id, started_at, needs_human")).order("started_at", { ascending: true }).order("id", { ascending: true }),
     supabase.rpc("get_ai_response_aggregate", { p_business_id: businessId, p_from: fromIso, p_to: toIso }),
-    scoped(supabase.from("ai_response_telemetry").select("id, provider, error_code, created_at").eq("success", false).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(8)),
+    fetchRecentAiErrors(supabase, scoped, fromIso, toIso),
     businessId
       ? supabase.from("conversations").select("customer_rating").eq("business_id", businessId).not("customer_rating", "is", null).gte("customer_rated_at", fromIso).lte("customer_rated_at", toIso)
       : supabase.from("conversations").select("customer_rating").not("customer_rating", "is", null).gte("customer_rated_at", fromIso).lte("customer_rated_at", toIso),
@@ -373,4 +386,40 @@ export async function getReopenRate(businessId: string, requestedRange?: string)
   }).length;
   const total = inRange.length;
   return { resolved: reopened, total, percentage: total ? Math.round((reopened / total) * 100) : 0 };
+}
+const ERROR_COLUMNS = "id, provider, error_code, latency_ms, channel, business_id, conversation_id, created_at";
+
+// Latest failed AI replies, with the extra detail an admin needs to understand each one. error_message comes
+// from migration 0058; until that is applied the query falls back to the older columns instead of failing.
+async function fetchRecentAiErrors(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  scoped: <T>(query: T) => T,
+  fromIso: string,
+  toIso: string,
+): Promise<{ data: RecentAiError[]; error: { message: string } | null }> {
+  const run = (columns: string) =>
+     
+    (scoped(supabase.from("ai_response_telemetry").select(columns) as any) as any)
+      .eq("success", false)
+      .gte("created_at", fromIso)
+      .lte("created_at", toIso)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(8);
+  let result = await run(`${ERROR_COLUMNS}, error_message`);
+  if (result.error && (result.error.code === "42703" || result.error.code === "PGRST204" || /error_message/.test(result.error.message ?? ""))) {
+    result = await run(ERROR_COLUMNS);
+  }
+  if (result.error) return { data: [], error: result.error };
+  const rows = (result.data ?? []) as Array<Omit<RecentAiError, "business_name" | "error_message"> & { error_message?: string | null }>;
+  const ids = [...new Set(rows.map((row) => row.business_id).filter((id): id is string => Boolean(id)))];
+  const names = new Map<string, string>();
+  if (ids.length > 0) {
+    const { data } = await supabase.from("businesses").select("id, name").in("id", ids);
+    for (const business of (data ?? []) as Array<{ id: string; name: string }>) names.set(business.id, business.name);
+  }
+  return {
+    data: rows.map((row) => ({ ...row, error_message: row.error_message ?? null, business_name: row.business_id ? names.get(row.business_id) ?? null : null })),
+    error: null,
+  };
 }
