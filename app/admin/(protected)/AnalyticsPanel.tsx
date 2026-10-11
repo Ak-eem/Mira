@@ -1,3 +1,4 @@
+import type React from "react";
 import Link from "next/link";
 import type { AnalyticsRange, AnalyticsSnapshot } from "@/lib/analytics/queries";
 import { getSystemHealth } from "@/lib/systemHealth";
@@ -20,22 +21,29 @@ function Metric({ label, value, detail }: { label: string; value: string | numbe
 }
 
 function BarChart({ title, points, suffix = "" }: { title: string; points: Array<{ label: string; value: number; secondary?: number }>; suffix?: string }) {
-  const maximum = Math.max(...points.map((point) => point.value), 1);
+  const maximum = Math.max(1, ...points.map((point) => point.value), ...points.map((point) => point.secondary ?? 0));
+  const barHeight = (value: number) => `${Math.max((value / maximum) * 100, value ? 4 : 0)}%`;
   return (
     <section className="glass-panel rounded-xl p-5">
       <h2 className="mb-4 text-sm font-semibold text-slate-800">{title}</h2>
       {points.length === 0 ? (
         <p className="text-sm text-slate-500">No data in this period.</p>
       ) : (
-        <div className="flex h-40 items-end gap-2">
-          {points.map((point) => (
-            <div key={point.label} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-              <span className="text-[10px] text-slate-500">{point.value}{suffix}</span>
+        <div className="relative flex h-40 items-end gap-2">
+          {/* faint gridlines so the bars have something to grow against */}
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-5 top-4 flex flex-col justify-between">
+            <span className="h-px bg-slate-200/70" />
+            <span className="h-px bg-slate-200/70" />
+            <span className="h-px bg-slate-200/70" />
+          </div>
+          {points.map((point, index) => (
+            <div key={point.label} className="bar-col group relative flex min-w-0 flex-1 flex-col items-center gap-1" style={{ "--bar-delay": `${Math.min(index, 14) * 55}ms` } as React.CSSProperties} title={`${point.label}: ${point.value}${suffix}${point.secondary !== undefined ? ` / ${point.secondary}` : ""}`}>
+              <span className="bar-label text-[10px] font-medium tabular-nums text-slate-500 transition-colors group-hover:text-slate-900">{point.value}{suffix}</span>
               <div className="flex h-28 w-full items-end gap-0.5">
-                <div className="w-full rounded-t bg-accent/80" style={{ height: `${Math.max((point.value / maximum) * 100, point.value ? 4 : 0)}%` }} />
-                {point.secondary !== undefined && <div className="w-full rounded-t bg-amber-400/80" style={{ height: `${Math.max((point.secondary / maximum) * 100, point.secondary ? 4 : 0)}%` }} />}
+                <div className="bar-grow w-full rounded-t bg-linear-to-t from-accent to-accent/55 transition-[filter,transform] duration-200 group-hover:brightness-110 group-hover:-translate-y-0.5" style={{ height: barHeight(point.value) }} />
+                {point.secondary !== undefined && <div className="bar-grow w-full rounded-t bg-linear-to-t from-amber-500 to-amber-300/70 transition-[filter,transform] duration-200 group-hover:brightness-110 group-hover:-translate-y-0.5" style={{ height: barHeight(point.secondary) }} />}
               </div>
-              <span className="max-w-full truncate text-[10px] text-slate-400">{point.label}</span>
+              <span className="max-w-full truncate text-[10px] text-slate-400 transition-colors group-hover:text-slate-700">{point.label}</span>
             </div>
           ))}
         </div>
