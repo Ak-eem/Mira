@@ -63,9 +63,10 @@ You will touch five services. Only the first three are required.
    `https://YOUR_DOMAIN/api/webhooks/email` and set `RESEND_WEBHOOK_SECRET`.
 4. `CONTACT_TO_EMAIL` receives the landing-page contact form; `CUSTOM_REQUEST_TO_EMAIL`
    receives portal custom requests.
-5. **Handoff alerts:** when a customer needs a person, the business owner and team are emailed
-   a link to the conversation. This uses the same Resend setup. Set `HANDOFF_EMAILS_DISABLED=true`
-   to turn it off.
+5. **Handoff alerts:** when a customer needs a person, the business's **team members** (not the
+   owner) are emailed a link to the conversation. A business with no team members gets no
+   email; the owner still sees it on the dashboard. This uses the same Resend setup. Set
+   `HANDOFF_EMAILS_DISABLED=true` to turn it off.
 
 ## 4. WhatsApp (optional)
 
@@ -104,7 +105,7 @@ webhook end to end, then switch to live keys and the live webhook URL.
 - Open `/admin/login` with your platform admin account.
 - Open `/portal/signup`, create a test business, and confirm you land in the dashboard.
 - Open the business's chat page (the **Try your Mira** button) and send a message.
-- Ask for "a human" in the chat and confirm the alert email arrives.
+- Add a team member to the test business, ask for "a human" in the chat, and confirm the alert email reaches them.
 
 ## 7. What it costs to run
 

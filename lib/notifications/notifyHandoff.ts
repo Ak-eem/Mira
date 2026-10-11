@@ -29,7 +29,9 @@ async function send({ businessId, conversationId, dedupeKey, reason }: Input): P
   const supabase = createServiceRoleClient();
   const [{ data: business }, { data: members }] = await Promise.all([
     supabase.from("businesses").select("name").eq("id", businessId).maybeSingle(),
-    supabase.from("business_owners").select("user_id").eq("business_id", businessId).limit(MAX_RECIPIENTS),
+    // Team members only (role "staff"): they are the ones who answer customers. The owner
+    // still sees the conversation on the dashboard but is not emailed.
+    supabase.from("business_owners").select("user_id").eq("business_id", businessId).eq("role", "staff").limit(MAX_RECIPIENTS),
   ]);
   if (!business || !members?.length) return;
 
