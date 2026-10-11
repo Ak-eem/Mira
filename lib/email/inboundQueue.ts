@@ -32,6 +32,7 @@ export async function claimInboundMessage(client: Client, row: Pick<QueueRow, "i
   // real gate and re-checks the cap against the current DB value.
   if (row.attempts >= MAX_INBOUND_ATTEMPTS) {
     console.error(`Email queue row ${row.id} exceeded ${MAX_INBOUND_ATTEMPTS} attempts; not claiming.`);
+    void alertQueueGaveUp(client, "Email", row.id);
     return false;
   }
   // One atomic UPDATE in the database (migration 0050): increments attempts
@@ -76,4 +77,19 @@ export async function markInboundFailed(client: Client, id: string, message: str
     .update({ status: "failed", locked_at: null, available_at: new Date(Date.now() + 30_000).toISOString(), last_error: message.slice(0, 2000) })
     .eq("id", id);
   if (error) console.error("Could not mark email queue row failed:", error);
+}
+// Fire-and-forget operator alert. Imported lazily so this module (and its unit tests) never load the email
+// client, and wrapped so a broken alert path can never affect message handling.
+async function alertQueueGaveUp(client: Client, channel: string, rowId: string): Promise<void> {
+  try {
+    const { sendAlert } = await import("../alerts");
+    await sendAlert(client, {
+      key: "queue-gave-up",
+      subject: `${channel} message abandoned after ${MAX_INBOUND_ATTEMPTS} failed attempts`,
+      lines: [`${channel} queue row ${rowId} was not answered and will not be retried automatically. Open /admin/queue to retry it.`],
+      cooldownMinutes: 120,
+    });
+  } catch {
+    // alerting is best effort
+  }
 }
