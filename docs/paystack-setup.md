@@ -6,7 +6,7 @@ Create `.env.local` (never commit it):
 
 ```env
 NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=your-supabase-publishable-key
 SUPABASE_SERVICE_ROLE_KEY=your-supabase-service-role-key
 PAYSTACK_SECRET_KEY=sk_test_your-test-secret-key
 PAYSTACK_BASE_AMOUNT_NGN=50000
@@ -18,8 +18,8 @@ The single `base` plan costs NGN 50,000 per month. The server automatically appl
 
 ## Database and routes
 
-1. Run `20260919144928_paystack_subscriptions.sql` in the Supabase SQL editor.
-2. Put the route files in the matching Next.js App Router locations, and adjust the `@/lib/...` aliases if your project uses different paths.
+1. Run `0044_paystack_subscriptions.sql` and `0049_paystack_activation_owner_check.sql` (and every migration before them) in the Supabase SQL editor, in numeric order.
+2. The routes already live in `app/api/paystack/` (checkout, verify, webhook); nothing to copy.
 3. In the Paystack Dashboard, open **Settings → API Keys & Webhooks → Webhook URL** and set it to `https://YOUR_DOMAIN.example.com/api/paystack/webhook`. Deploy the webhook route over HTTPS and do not put authentication middleware in front of it; its HMAC signature is the authentication.
 4. Paystack redirects customers to `/subscribe` with a `reference`; `SubscribeButton` polls the authenticated verify route while the webhook remains the source of asynchronous activation.
 
