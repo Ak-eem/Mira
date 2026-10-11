@@ -287,7 +287,7 @@ export default async function PortalDashboardPage({
     {
       done: knowledge > 0,
       title: "Teach Mira about your business",
-      description: "Import from your website, or add products, FAQs and policies.",
+      description: "Import from your website, or add your products, hours and FAQs.",
       href: `${base}/settings#import-website`,
     },
     {

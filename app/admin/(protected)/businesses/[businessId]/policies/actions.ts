@@ -1,12 +1,12 @@
 "use server";
 
-import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
+import { getCurrentEditor } from "@/lib/supabase/editor-auth";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/activityLog";
 
 export async function createPolicy(input: { businessId: string; title: string; content: string }) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated." };
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated." };
 
   const title = input.title.trim();
   const content = input.content.trim();
@@ -26,8 +26,8 @@ export async function createPolicy(input: { businessId: string; title: string; c
 }
 
 export async function updatePolicy(input: { policyId: string; title: string; content: string }) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated." };
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated." };
 
   const title = input.title.trim();
   const content = input.content.trim();
@@ -51,8 +51,8 @@ export async function updatePolicy(input: { policyId: string; title: string; con
 }
 
 export async function deletePolicy(policyId: string) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated." };
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated." };
 
   const supabase = await createClient();
 

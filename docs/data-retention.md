@@ -43,6 +43,15 @@ Notes:
 - Expired trials are not "cancelled", so the query does not list them. Decide separately
   how long to keep an unpaid trial's data, and say so in the Privacy Policy if it matters.
 
+## Open item: database backups
+
+Deleting a business removes its rows from the live database. It does **not** by itself
+remove copies held in Supabase backups, which expire on the backup schedule of your
+Supabase plan. This document does not state that period because it depends on your plan:
+look it up in the Supabase dashboard and make sure the Privacy Policy says the same
+thing. Until it does, the Privacy Policy should not promise that data is gone from
+backups on a fixed day.
+
 ## If you want this automated later
 
 Do it as a dry run first: a job that only *lists* due businesses (for example to an admin
