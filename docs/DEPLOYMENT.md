@@ -86,14 +86,27 @@ this list as what Mira needs from it.
 **Reliability you should know about**
 
 - Every inbound message is stored in `whatsapp_inbound_queue` before it is processed, and the
-  message ID is unique, so redelivered webhooks are not processed twice.
-- If processing fails the webhook answers 500 and Meta retries. **Nothing in this repo drains
-  stuck queue rows on a schedule** (see `docs/p1-concurrency-and-limits.md`). If you run
-  WhatsApp for paying businesses, add a small job that re-claims `pending` and `failed` rows,
-  and test it in staging first.
+  message ID is unique, so redelivered webhooks are not processed twice. A message gets at
+  most 5 attempts.
+- If processing fails the webhook answers 500 and Meta retries.
+- **Unreplied-message check.** Messages that were stored but never answered (a crash, a
+  timeout) are found and finished automatically:
+  - after each new WhatsApp message, the app quietly retries up to 3 older stuck ones, so it
+    heals itself with no setup;
+  - for faster recovery on a quiet system, call `GET /api/cron/whatsapp-unreplied` every few
+    minutes with `Authorization: Bearer <CRON_SECRET>`. It is not in `vercel.json` because the
+    free Hobby plan limits how many cron jobs you can have and how often they run.
+  It scans the whole platform's queue in one pass (every business) but handles each message
+  separately inside its own customer's conversation, using the same lock and outbox rules as
+  the live webhook, so it cannot double-send or mix customers up.
+- **Admin dashboard:** a card shows how many WhatsApp messages are still being retried and how
+  many gave up after every attempt. Those customers got no reply and need a person to follow up.
 - WhatsApp has no idempotency key for sending. After an uncertain send the app re-sends once
   rather than leave the customer without an answer, so a very occasional duplicate reply is
-  possible. This is a deliberate trade-off (see `CHANGES.md`).
+  possible. A message already delivered cannot be pulled back by Mira: as far as we could find,
+  the official WhatsApp API has no way for a business to delete a message after it is sent
+  (deleting exists only inside the WhatsApp Business app). Check Meta's current docs before
+  relying on that either way.
 
 ## 5. Paystack
 

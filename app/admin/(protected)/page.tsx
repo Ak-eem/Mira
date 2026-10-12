@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { Business } from "@/lib/types";
 import type { BusinessSubscription, SubscriptionStatus } from "@/lib/plans";
 import { AnalyticsStripAsync } from "./AnalyticsStripAsync";
+import { UnrepliedWhatsApp } from "./UnrepliedWhatsApp";
 
 // Uses the RLS-respecting client (not service-role) — every query here only
 // returns rows because the current session passes is_platform_admin().
@@ -67,6 +68,10 @@ export default async function AdminDashboardPage() {
 
       <Suspense fallback={<AnalyticsStripSkeleton />}>
         <AnalyticsStripAsync />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <UnrepliedWhatsApp />
       </Suspense>
 
       <div className="glass-panel rounded-xl p-5">
