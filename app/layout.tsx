@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
+import { FooterGate } from "@/components/FooterGate";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const viewport: Viewport = {
   themeColor: "#f3ecdd",
@@ -18,7 +20,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={GeistSans.variable}>
-      <body className="bg-slate-50 text-slate-900">{children}</body>
+      <body className="bg-slate-50 text-slate-900">
+        {children}
+        <FooterGate>
+          <SiteFooter />
+        </FooterGate>
+      </body>
     </html>
   );
 }
