@@ -38,7 +38,7 @@ type RecapSnapshot = {
   note?: string | null;
 };
 
-export type HandledReply = { reply: string; messageId: string };
+export type HandledReply = { reply: string; messageId: string; /** True only when this turn created an order. */ orderPlaced?: boolean };
 
 /**
  * Turns the model's "customer wants these items" signal into a real order,
@@ -113,7 +113,7 @@ export async function processOrderRequest(
       if (prefError) console.error("email consent upsert failed:", prefError);
     }
 
-    return { reply: replyText, messageId: row.message_id };
+    return { reply: replyText, messageId: row.message_id, orderPlaced: true };
   }
 
   const { data: catalog, error: catalogError } = await supabase

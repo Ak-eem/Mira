@@ -1,4 +1,6 @@
 import "server-only";
+import { after } from "next/server";
+import { notifyHandoff } from "@/lib/notifications";
 import { Resend } from "resend";
 import { processIncomingMessage } from "@/lib/chat/processIncomingMessage";
 import { isBusinessSwitchedOff } from "@/lib/chat/businessStatus";
@@ -69,6 +71,7 @@ async function captureForHuman(client: Client, businessId: string, sender: strin
     .update({ needs_human: true, last_message_at: new Date().toISOString() })
     .eq("id", conversationId);
   if (updated.error) throw updated.error;
+  after(() => notifyHandoff({ businessId, conversationId: conversationId as string, reason: "email" }));
 }
 
 

@@ -5,6 +5,7 @@ import { composeReply } from "@/lib/ai/composeReply";
 import { loadPriorMessages } from "@/lib/chat/history";
 import { classifyIntent } from "@/lib/ai/classifyIntent";
 import { recordAiResponseTelemetry } from "@/lib/analytics/recordTelemetry";
+import { notifyHandoff } from "@/lib/notifications";
 import { after } from "next/server";
 import { getOfflineGateReply } from "@/lib/chat/offlineReply";
 import { getHandoffReply, getPausedReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
@@ -407,6 +408,9 @@ export async function processMessage(
       throw new ProcessMessageError("Something went wrong. Please try again.", 500);
     }
 
+    // Tell the owners, so a waiting customer is not left until somebody happens to open the dashboard.
+    if (savedHandoff.newlyFlagged) after(() => notifyHandoff({ businessId, conversationId: conversation.id, reason }));
+
     return { reply: handoffText, messageId: savedHandoff.messageId, productImages: [] };
   }
 
@@ -488,6 +492,8 @@ export async function processMessage(
       latencyMs: Date.now() - aiStartedAt,
       metadata: aiMetadata,
     }));
+
+    if (handled.orderPlaced) after(() => notifyHandoff({ businessId, conversationId, reason: "order" }));
 
     return { reply: handled.reply, messageId: handled.messageId, productImages: [] };
   }

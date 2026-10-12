@@ -32,6 +32,17 @@ export function renderAlertHtml(alert: Alert): string {
   return `<div style="font-family:system-ui,sans-serif;font-size:14px;color:#0f172a"><p><strong>${escape(alert.subject)}</strong></p><ul>${items}</ul><p style="color:#64748b;font-size:12px">Sent by Mira. The same alert is not repeated for ${Math.round((alert.cooldownMinutes ?? 360) / 60)} hour(s).</p></div>`;
 }
 
+/** True while `key` was stamped less than `minutes` ago. */
+export async function cooldownActive(client: AlertClient, key: string, minutes: number, now: Date): Promise<boolean> {
+  const { data: last } = await client.from("system_health_checks").select("checked_at").eq("check_name", `alert:${key}`).maybeSingle();
+  return Boolean(last?.checked_at && now.getTime() - new Date(last.checked_at).getTime() < minutes * 60_000);
+}
+
+export async function stampCooldown(client: AlertClient, key: string, now: Date): Promise<void> {
+  const { error } = await client.from("system_health_checks").upsert({ check_name: `alert:${key}`, checked_at: now.toISOString() });
+  if (error) console.error("Could not record alert cooldown:", error);
+}
+
 export async function sendAlertCore(client: AlertClient, alert: Alert, deps: AlertDeps): Promise<AlertResult> {
   try {
     if (!deps.to) {
