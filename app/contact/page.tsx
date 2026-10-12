@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { BUSINESS_ADDRESS, BUSINESS_LEGAL_NAME, CONTACT_EMAIL } from "@/lib/site/business";
+import { BUSINESS_ADDRESS, BUSINESS_LEGAL_NAME } from "@/lib/site/business";
 
 export const metadata = {
   title: "Contact | Mira",
@@ -30,12 +30,6 @@ export default function ContactPage() {
               <dt className="text-sm font-semibold text-slate-500">Registered address</dt>
               <dd className="mt-1 text-slate-900">
                 <address className="not-italic">{BUSINESS_ADDRESS}</address>
-              </dd>
-            </div>
-            <div>
-              <dt className="text-sm font-semibold text-slate-500">Email</dt>
-              <dd className="mt-1">
-                <a href={`mailto:${CONTACT_EMAIL}`} className="font-medium text-accent underline-offset-4 hover:underline">{CONTACT_EMAIL}</a>
               </dd>
             </div>
           </dl>
