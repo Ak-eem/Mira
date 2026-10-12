@@ -22,7 +22,7 @@ You will touch five services. Only the first three are required.
 2. **Apply every file in `supabase/migrations/` in numeric order**, in the SQL editor or with
    the Supabase CLI (`supabase db push`). Don't skip any. Several features quietly fail
    without their migration (for example `0054` for owner settings, `0056` for cancelling a
-   subscription, `0057` for owners editing their own products and hours).
+   subscription, `0060` for owners editing their own products and hours).
 3. **Authentication → URL Configuration:** add `https://YOUR_DOMAIN/auth/callback` and
    `http://localhost:3000/auth/callback` to Redirect URLs. For Google sign-in, follow the
    steps in `.env.example`. If email confirmation is on in Supabase, read

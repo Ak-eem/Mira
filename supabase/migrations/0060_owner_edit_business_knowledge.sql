@@ -1,59 +1,67 @@
-LS0gQnVzaW5lc3Mgb3duZXJzIGNhbiBlZGl0IHdoYXQgTWlyYSBrbm93cyBh
-Ym91dCB0aGVpciBvd24gYnVzaW5lc3MuCi0tCi0tIFVudGlsIG5vdyBwcm9k
-dWN0cywgc2VydmljZXMsIEZBUXMsIHBvbGljaWVzIGFuZCBvcGVuaW5nIGhv
-dXJzIHdlcmUgcmVhZC1vbmx5Ci0tIGZvciBvd25lcnMgKDAwMTQ6ICJvd25l
-cnMgcmVhZCBvd24gLi4uIik7IGFsbCBlZGl0aW5nIHdhcyBwbGF0Zm9ybS1h
-ZG1pbiB3b3JrLgotLSBUaGF0IGFsc28gbWVhbnQgdGhlIG93bmVyIEludmVu
-dG9yeSBhc3Npc3RhbnQsIHdoaWNoIHdyaXRlcyBwcm9kdWN0cyB3aXRoIHRo
-ZQotLSBvd25lcidzIG93biBsb2dpbiwgd2FzIHNpbGVudGx5IHJlZnVzZWQg
-YnkgUm93IExldmVsIFNlY3VyaXR5IChzYW1lIGNsYXNzIG9mIGJ1ZwotLSAw
-MDU0IGZpeGVkIGZvciBidXNpbmVzcyBzZXR0aW5ncykuCi0tCi0tIFRoZXNl
-IHBvbGljaWVzIGFyZSByb3ctc2NvcGVkIHRvIHRoZSBvd25lcidzIG93biBi
-dXNpbmVzcywgc28gdW5saWtlIHRoZQotLSBgYnVzaW5lc3Nlc2AgdGFibGUg
-KHdoaWNoIGhhcyBzZW5zaXRpdmUgY29sdW1ucywgaGVuY2UgMDA1NCdzIG5h
-cnJvdyBmdW5jdGlvbnMpCi0tIHBsYWluIHBvbGljaWVzIGFyZSBlbm91Z2gu
-IE9ubHkgdGhlICdvd25lcicgcm9sZSBtYXkgd3JpdGU7ICdzdGFmZicga2Vl
-cCByZWFkLW9ubHkgYWNjZXNzLiBQcm9kdWN0IHBob3RvcyBsaXZlIHVuZGVy
-IDxidXNpbmVzc19pZD4vIGluIHRoZQotLSBwcm9kdWN0LWltYWdlcyBidWNr
-ZXQsIHNvIHRoZSBzdG9yYWdlIHBvbGljeSBpcyBzY29wZWQgdG8gdGhhdCBm
-b2xkZXIuCi0tCi0tIFNhZmUgdG8gcmUtcnVuLgoKY3JlYXRlIG9yIHJlcGxh
-Y2UgZnVuY3Rpb24gaXNfYnVzaW5lc3Nfb3duZXJfcm9sZSh0YXJnZXRfYnVz
-aW5lc3NfaWQgdXVpZCkKcmV0dXJucyBib29sZWFuCmxhbmd1YWdlIHNx
-bApzdGFibGUKc2VjdXJpdHkgZGVmaW5lcgpzZXQgc2VhcmNoX3BhdGggPSBw
-dWJsaWMKYXMgJCQKICBzZWxlY3QgZXhpc3RzICgKICAgIHNlbGVjdCAxIGZy
-b20gYnVzaW5lc3Nfb3duZXJzCiAgICB3aGVyZSBidXNpbmVzc19pZCA9IHRh
-cmdldF9idXNpbmVzc19pZAogICAgICBhbmQgdXNlcl9pZCA9IGF1dGgudWlk
-KCkKICAgICAgYW5kIHJvbGUgPSAnb3duZXInCiAgKTsKJCQ7CgpkbyAkJApk
-ZWNsYXJlCiAgdCB0ZXh0OwpiZWdpbgogIGZvcmVhY2ggdCBpbiBhcnJheSBh
-cnJheVsncHJvZHVjdHMnLCAnc2VydmljZXMnLCAnZmFxcycsICdwb2xpY2ll
-cycsICdidXNpbmVzc19ob3VycyddIGxvb3AKICAgIGV4ZWN1dGUgZm9ybWF0
-KCdkcm9wIHBvbGljeSBpZiBleGlzdHMgJUkgb24gJUknLCAnb3duZXJzIGlu
-c2VydCBvd24gJyB8fCB0LCB0KTsKICAgIGV4ZWN1dGUgZm9ybWF0KCdkcm9w
-IHBvbGljeSBpZiBleGlzdHMgJUkgb24gJUknLCAnb3duZXJzIHVwZGF0ZSBv
-d24gJyB8fCB0LCB0KTsKICAgIGV4ZWN1dGUgZm9ybWF0KCdkcm9wIHBvbGlj
-eSBpZiBleGlzdHMgJUkgb24gJUknLCAnb3duZXJzIGRlbGV0ZSBvd24gJyB8
-fCB0LCB0KTsKICAgIGV4ZWN1dGUgZm9ybWF0KCdjcmVhdGUgcG9saWN5ICVJ
-IG9uICVJIGZvciBpbnNlcnQgd2l0aCBjaGVjayAoaXNfYnVzaW5lc3Nfb3du
-ZXJfcm9sZShidXNpbmVzc19pZCkpJywgJ293bmVycyBpbnNlcnQgb3duICcg
-fHwgdCwgdCk7CiAgICBleGVjdXRlIGZvcm1hdCgnY3JlYXRlIHBvbGljeSAl
-SSBvbiAlSSBmb3IgdXBkYXRlIHVzaW5nIChpc19idXNpbmVzc19vd25lcl9y
-b2xlKGJ1c2luZXNzX2lkKSkgd2l0aCBjaGVjayAoaXNfYnVzaW5lc3Nfb3du
-ZXJfcm9sZShidXNpbmVzc19pZCkpJywgJ293bmVycyB1cGRhdGUgb3duICcg
-fHwgdCwgdCk7CiAgICBleGVjdXRlIGZvcm1hdCgnY3JlYXRlIHBvbGljeSAl
-SSBvbiAlSSBmb3IgZGVsZXRlIHVzaW5nIChpc19idXNpbmVzc19vd25lcl9y
-b2xlKGJ1c2luZXNzX2lkKSknLCAnb3duZXJzIGRlbGV0ZSBvd24gJyB8fCB0
-LCB0KTsKICBlbmQgbG9vcDsKZW5kCiQkOwoKZHJvcCBwb2xpY3kgaWYgZXhp
-c3RzICJvd25lcnMgbWFuYWdlIG93biBwcm9kdWN0IGltYWdlcyIgb24gc3Rv
-cmFnZS5vYmplY3RzOwpjcmVhdGUgcG9saWN5ICJvd25lcnMgbWFuYWdlIG93
-biBwcm9kdWN0IGltYWdlcyIKICBvbiBzdG9yYWdlLm9iamVjdHMgZm9yIGFs
-bAogIHVzaW5nICgKICAgIGJ1Y2tldF9pZCA9ICdwcm9kdWN0LWltYWdlcycK
-ICAgIGFuZCBleGlzdHMgKAogICAgICBzZWxlY3QgMSBmcm9tIGJ1c2luZXNz
-X293bmVycyBibwogICAgICB3aGVyZSBiby51c2VyX2lkID0gYXV0aC51aWQo
-KQogICAgICAgIGFuZCBiby5yb2xlID0gJ293bmVyJwogICAgICAgIGFuZCBi
-by5idXNpbmVzc19pZDo6dGV4dCA9IChzdG9yYWdlLmZvbGRlcm5hbWUobmFt
-ZSkpWzFdCiAgICApCiAgKQogIHdpdGggY2hlY2sgKAogICAgYnVja2V0X2lk
-ID0gJ3Byb2R1Y3QtaW1hZ2VzJwogICAgYW5kIGV4aXN0cyAoCiAgICAgIHNl
-bGVjdCAxIGZyb20gYnVzaW5lc3Nfb3duZXJzIGJvCiAgICAgIHdoZXJlIGJv
-LnVzZXJfaWQgPSBhdXRoLnVpZCgpCiAgICAgICAgYW5kIGJvLnJvbGUgPSAn
-b3duZXInCiAgICAgICAgYW5kIGJvLmJ1c2luZXNzX2lkOjp0ZXh0ID0gKHN0
-b3JhZ2UuZm9sZGVybmFtZShuYW1lKSlbMV0KICAgICkKICApOwo=
+-- Business owners can edit what Mira knows about their own business.
+--
+-- Until now products, services, FAQs, policies and opening hours were read-only
+-- for owners (0014: "owners read own ..."); all editing was platform-admin work.
+-- That also meant the owner Inventory assistant, which writes products with the
+-- owner's own login, was silently refused by Row Level Security (same class of bug
+-- 0054 fixed for business settings).
+--
+-- These policies are row-scoped to the owner's own business, so unlike the
+-- `businesses` table (which has sensitive columns, hence 0054's narrow functions)
+-- plain policies are enough. Only the 'owner' role may write; 'staff' keep
+-- read-only access. Product photos live under <business_id>/ in the
+-- product-images bucket, so the storage policy is scoped to that folder.
+--
+-- Safe to re-run.
+
+create or replace function is_business_owner_role(target_business_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1 from business_owners
+    where business_id = target_business_id
+      and user_id = auth.uid()
+      and role = 'owner'
+  );
+$$;
+
+do $$
+declare
+  t text;
+begin
+  foreach t in array array['products', 'services', 'faqs', 'policies', 'business_hours'] loop
+    execute format('drop policy if exists %I on %I', 'owners insert own ' || t, t);
+    execute format('drop policy if exists %I on %I', 'owners update own ' || t, t);
+    execute format('drop policy if exists %I on %I', 'owners delete own ' || t, t);
+    execute format('create policy %I on %I for insert with check (is_business_owner_role(business_id))', 'owners insert own ' || t, t);
+    execute format('create policy %I on %I for update using (is_business_owner_role(business_id)) with check (is_business_owner_role(business_id))', 'owners update own ' || t, t);
+    execute format('create policy %I on %I for delete using (is_business_owner_role(business_id))', 'owners delete own ' || t, t);
+  end loop;
+end
+$$;
+
+drop policy if exists "owners manage own product images" on storage.objects;
+create policy "owners manage own product images"
+  on storage.objects for all
+  using (
+    bucket_id = 'product-images'
+    and exists (
+      select 1 from business_owners bo
+      where bo.user_id = auth.uid()
+        and bo.role = 'owner'
+        and bo.business_id::text = (storage.foldername(name))[1]
+    )
+  )
+  with check (
+    bucket_id = 'product-images'
+    and exists (
+      select 1 from business_owners bo
+      where bo.user_id = auth.uid()
+        and bo.role = 'owner'
+        and bo.business_id::text = (storage.foldername(name))[1]
+    )
+  );
