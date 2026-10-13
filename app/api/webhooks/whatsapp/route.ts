@@ -2,8 +2,11 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { after, NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
-import { enqueueInboundMessage, claimInboundMessage } from "@/lib/whatsapp/inboundQueue";
-import { processClaimedInbound } from "@/lib/whatsapp/processQueued";
+import {
+  enqueueInboundMessage,
+  claimInboundMessage,
+} from "@/lib/whatsapp/inboundQueue";
+import { processWhatsappQueued } from "@/lib/whatsapp/processQueued";
 import { sweepUnrepliedWhatsApp } from "@/lib/whatsapp/sweepUnreplied";
 
 export const runtime = "nodejs";
@@ -105,7 +108,7 @@ export async function POST(request: NextRequest) {
 
       if (!(await claimInboundMessage(client, queued))) continue;
 
-      await processClaimedInbound(client, queued, item);
+      await processWhatsappQueued(client, queued, item);
     }
     // Self-healing without a scheduler: after answering, quietly finish any older message
     // that got stuck (a crash, a timeout). Runs after the response, a few rows at most.

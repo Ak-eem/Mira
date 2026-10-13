@@ -1,6 +1,8 @@
+import { ErrorNotice } from "@/components/ErrorNotice";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Check, Circle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { timed } from "@/lib/perf";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { getOrderTakingEnabled } from "@/lib/orderSettings";
 import { ActivityPanel, type ChartPoint, type ChartMetric } from "./ActivityChart";
@@ -136,7 +138,7 @@ export default async function PortalDashboardPage({
   const count = (table: string) => supabase.from(table).select("id", { count: "exact", head: true }).eq("business_id", businessId);
 
   const [
-    { count: conversationCount },
+    { count: conversationCount, error: conversationCountError },
     { count: previousConversationCount },
     { count: totalConversations },
     { count: needsHumanCount },
@@ -145,8 +147,8 @@ export default async function PortalDashboardPage({
     { count: nudgesDelivered },
     { count: nudgesReplied },
     { count: nudgesOptedOut },
-    { data: business },
-    { data: recent },
+    { data: business, error: businessError },
+    { data: recent, error: recentError },
     { count: productCount },
     { count: serviceCount },
     { count: faqCount },
@@ -155,7 +157,7 @@ export default async function PortalDashboardPage({
     conversationRows,
     orderRows,
     orderTakingEnabled,
-  ] = await Promise.all([
+  ] = await timed("portal:home-queries", Promise.all([
     count("conversations").gte("started_at", thirtyDaysAgo),
     count("conversations").gte("started_at", sixtyDaysAgo).lt("started_at", thirtyDaysAgo),
     count("conversations"),
@@ -196,7 +198,7 @@ export default async function PortalDashboardPage({
         .range(from, to),
     ),
     getOrderTakingEnabled(businessId),
-  ]);
+  ]));
 
   const conversationSeries = dailySeries(now, conversationRows.map((r) => ({ at: r.started_at, value: 1 })));
   const orderSeries = dailySeries(now, orderRows.map((r) => ({ at: r.created_at, value: Number(r.total ?? 0) })));
@@ -303,6 +305,7 @@ export default async function PortalDashboardPage({
 
   return (
     <div className="space-y-6">
+      {(businessError ?? recentError ?? conversationCountError) && <ErrorNotice what="load your dashboard" error={businessError ?? recentError ?? conversationCountError} />}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight text-ink">Welcome back</h1>

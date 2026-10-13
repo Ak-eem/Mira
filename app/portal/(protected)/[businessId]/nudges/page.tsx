@@ -1,3 +1,4 @@
+import { ErrorNotice } from "@/components/ErrorNotice";
 import { createClient } from "@/lib/supabase/server";
 import { NudgesPanel } from "./NudgesPanel";
 
@@ -9,7 +10,7 @@ export default async function NudgesPage({
   const { businessId } = await params;
   const supabase = await createClient();
 
-  const [{ data: rules }, { data: subscription }, { data: nudgeSends }] = await Promise.all([
+  const [{ data: rules, error: rulesError }, { data: subscription }, { data: nudgeSends, error: sendsError }] = await Promise.all([
     supabase
       .from("nudge_rules")
       .select("trigger_type, template_name, condition_json, is_active")
@@ -44,6 +45,8 @@ export default async function NudgesPage({
 
   return (
     <div className="space-y-6">
+      {rulesError && <ErrorNotice what="load your nudge rules" error={rulesError} />}
+      {sendsError && <ErrorNotice what="load your nudge history" error={sendsError} />}
       {!subscription?.nudges_addon && (
         <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 shadow-xs">
           The Nudges add-on isn&apos;t active on your plan yet — rules can be set up below, but nothing sends until

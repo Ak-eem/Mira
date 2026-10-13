@@ -1,6 +1,6 @@
 import type { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { claimInboundMessage, MAX_INBOUND_ATTEMPTS, type QueueRow } from "./inboundQueue";
-import { itemFromQueueRow, type InboundItem } from "./queueItem";
+import { buildWhatsappItem } from "@/lib/queue/rowPayload";
 
 type Client = ReturnType<typeof createServiceRoleClient>;
 
@@ -14,14 +14,14 @@ type Options = {
   // Leave very recent rows alone: the webhook that stored them is probably still working.
   minAgeSeconds?: number;
   budgetMs?: number;
-  process?: (client: Client, row: QueueRow, item: InboundItem) => Promise<void>;
+  process?: (client: Client, row: QueueRow, item: { id: string; from: string; text: string; phoneId: string }) => Promise<void>;
 };
 
 // Finds WhatsApp messages Mira never finished answering and finishes them.
 //
 // Scope: it looks at the whole platform's queue in one pass (every business), but each
 // message is handled on its own, inside its own customer's conversation, using the same
-// claim, lock and outbox rules as the live webhook. One stuck customer never blocks
+// claim, lock and outbox rules as the live webhook (and the admin Retry button). One stuck customer never blocks
 // another, two sweeps (or a sweep and the webhook) can't process the same message twice,
 // and a message that has used all its attempts is left alone and shown to the admin
 // instead of being retried forever.
@@ -49,7 +49,7 @@ export async function sweepUnrepliedWhatsApp(client: Client, options: Options = 
   for (const row of rows) {
     if (Date.now() - started > budgetMs) break;
 
-    const item = itemFromQueueRow(row);
+    const item = buildWhatsappItem(row);
     if (!item) {
       // Nothing to answer (no sender). Close it so it is not picked up forever.
       await client.from("whatsapp_inbound_queue").update({ status: "done", locked_at: null, last_error: "Unreadable stored message; closed by the unreplied-message sweep." }).eq("id", row.id);
@@ -64,11 +64,11 @@ export async function sweepUnrepliedWhatsApp(client: Client, options: Options = 
       continue;
     }
     try {
-      process ??= (await import("./processQueued")).processClaimedInbound;
+      process ??= (await import("./processQueued")).processWhatsappQueued;
       await process(client, row, item);
       result.recovered++;
     } catch (error) {
-      // processClaimedInbound has already recorded the failure on the row.
+      // processWhatsappQueued has already recorded the failure on the row.
       console.error(`Unreplied-message sweep could not finish queue row ${row.id}:`, error);
       result.failed++;
     }

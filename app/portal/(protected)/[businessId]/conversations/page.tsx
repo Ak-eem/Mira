@@ -1,3 +1,4 @@
+import { ErrorNotice } from "@/components/ErrorNotice";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getRequestUser } from "@/lib/supabase/request";
@@ -61,7 +62,7 @@ export default async function PortalConversationsPage({
       .neq("claimed_by", currentUserEmail);
   }
 
-  const { data: conversations } = await conversationsQuery
+  const { data: conversations, error: conversationsError } = await conversationsQuery
     .order("needs_human", { ascending: false })
     .order("last_message_at", { ascending: false })
     .limit(50);
@@ -111,7 +112,8 @@ export default async function PortalConversationsPage({
         </nav>
       </div>
 
-      {(!conversations || conversations.length === 0) && (
+      {conversationsError && <ErrorNotice what="load your conversations" error={conversationsError} />}
+      {!conversationsError && (!conversations || conversations.length === 0) && (
         <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-xs">
           No conversations match this filter.
         </p>

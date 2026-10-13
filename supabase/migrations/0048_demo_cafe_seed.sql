@@ -46,6 +46,13 @@ declare
 begin
   select id into demo_business_id from businesses where slug = 'mira-demo-cafe';
 
+  -- The paywall trigger (0027) rejects writes to a business with no active subscription, so on a
+  -- fresh database the inserts below failed with SUBSCRIPTION_REQUIRED. Give the demo business an
+  -- active subscription row; an existing row (for example one set up by hand) is left alone.
+  insert into business_subscriptions (business_id, status)
+  values (demo_business_id, 'active')
+  on conflict (business_id) do nothing;
+
   delete from business_hours where business_id = demo_business_id;
   delete from faqs where business_id = demo_business_id;
   delete from policies where business_id = demo_business_id;

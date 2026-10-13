@@ -1,3 +1,4 @@
+import "server-only";
 import { processIncomingMessage } from "@/lib/chat/processIncomingMessage";
 import { withConversationLease } from "@/lib/chat/durable";
 import type { createServiceRoleClient } from "@/lib/supabase/service-role";
@@ -11,17 +12,18 @@ import {
   markSendRejected,
   markSendAbandoned,
   type QueueRow,
-} from "./inboundQueue";
-import { sendWhatsappReplyDetailed } from "./sendMessage";
+} from "@/lib/whatsapp/inboundQueue";
+import { sendWhatsappReplyDetailed } from "@/lib/whatsapp/sendMessage";
 
 type Client = ReturnType<typeof createServiceRoleClient>;
-import type { InboundItem } from "./queueItem";
+export type WhatsappItem = { id: string; from: string; text: string; phoneId: string };
 
-// Everything that happens to one claimed WhatsApp message: find the business, answer
-// (or reuse the answer a previous attempt already saved), send, record the result.
-// Shared by the webhook and by the unreplied-message sweep, so both behave identically
-// and neither can send a reply the other has already sent.
-export async function processClaimedInbound(client: Client, queued: QueueRow, item: InboundItem): Promise<void> {
+/**
+ * Everything that happens to one claimed inbound WhatsApp message: find the business, run the AI pipeline
+ * (once), persist the reply, send it, record the send. Shared by the Meta webhook and the admin retry button.
+ * On failure the row is marked failed and the error is rethrown.
+ */
+export async function processWhatsappQueued(client: Client, queued: QueueRow, item: WhatsappItem): Promise<void> {
   const business = await client
     .from("businesses")
     .select("id")
@@ -77,7 +79,11 @@ export async function processClaimedInbound(client: Client, queued: QueueRow, it
     if (sent.outcome === "unknown") throw new Error("WhatsApp send outcome unknown.");
     await markInboundSent(client, queued.id, sent.messageId);
   } catch (error) {
-    await markInboundFailed(client, queued.id, error instanceof Error ? error.message : "processing failed");
+    await markInboundFailed(
+      client,
+      queued.id,
+      error instanceof Error ? error.message : "processing failed",
+    );
     throw error;
   }
 }

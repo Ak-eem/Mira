@@ -1,5 +1,5 @@
 import { sweepUnrepliedWhatsApp } from "./sweepUnreplied";
-import { itemFromQueueRow } from "./queueItem";
+import { buildWhatsappItem } from "../queue/rowPayload";
 import { MAX_INBOUND_ATTEMPTS } from "./inboundQueue";
 
 function check(condition: boolean, message: string): void {
@@ -64,9 +64,9 @@ function fakeClient(rows: Row[], claimable: Set<string>) {
 
 async function run() {
   // --- Rebuilding a message from what the webhook stored
-  const item = itemFromQueueRow(row("a", "2348012345678"));
+  const item = buildWhatsappItem(row("a", "2348012345678"));
   check(item?.from === "2348012345678" && item?.text === "hello from a" && item?.phoneId === "phone-a" && item?.id === "wamid.a", "a stored message is rebuilt with sender, text, number and message id");
-  check(itemFromQueueRow(row("b", null)) === null, "a stored message with no sender is reported as unreadable, not guessed at");
+  check(buildWhatsappItem(row("b", null)) === null, "a stored message with no sender is reported as unreadable, not guessed at");
 
   // --- Scope and selection: whole queue, only retryable rows, oldest first, never rows at the attempt cap
   {

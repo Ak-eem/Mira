@@ -1,0 +1,23 @@
+name: database tests
+on:
+  pull_request:
+    paths: ["supabase/**", ".github/workflows/db-tests.yml"]
+  push:
+    branches: [main]
+    paths: ["supabase/**"]
+jobs:
+  tenant-isolation:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env: { POSTGRES_PASSWORD: postgres, POSTGRES_DB: mira_test }
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Migrations apply cleanly and tenants are isolated
+        run: supabase/tests/run.sh
+        env:
+          DATABASE_URL: postgres://postgres:postgres@localhost:5432/mira_test

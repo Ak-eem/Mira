@@ -1,16 +1,19 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { timed } from "@/lib/perf";
 import type { Business } from "@/lib/types";
 import type { BusinessSubscription, SubscriptionStatus } from "@/lib/plans";
 import { AnalyticsStripAsync } from "./AnalyticsStripAsync";
-import { UnrepliedWhatsApp } from "./UnrepliedWhatsApp";
+import { SystemIssues, SystemIssuesSkeleton } from "./SystemIssues";
+import { ErrorNotice } from "@/components/ErrorNotice";
+import { Skeleton } from "@/components/Skeleton";
 
 // Uses the RLS-respecting client (not service-role) — every query here only
 // returns rows because the current session passes is_platform_admin().
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
-  const [{ data: businesses, error: businessesError }, { data: subscriptions, error: subscriptionsError }] = await Promise.all([
+  const [{ data: businesses, error: businessesError }, { data: subscriptions, error: subscriptionsError }] = await timed("admin:dashboard-queries", Promise.all([
     supabase
       .from("businesses")
       .select("id, name")
@@ -20,7 +23,7 @@ export default async function AdminDashboardPage() {
       .select("business_id, plan, status, trial_started_at, trial_ends_at")
       .order("updated_at", { ascending: false })
       .returns<(BusinessSubscription & { business_id: string })[]>(),
-  ]);
+  ]));
 
   const counts = { trialing: 0, active: 0, past_due: 0, cancelled: 0 };
   const latestSubscriptionByBusiness = new Map<string, BusinessSubscription & { business_id: string }>();
@@ -37,9 +40,9 @@ export default async function AdminDashboardPage() {
   return (
     <div className="space-y-8">
       {(businessesError || subscriptionsError) && (
-        <div className="space-y-1 text-sm text-red-600">
-          {businessesError && <p>Couldn&apos;t load businesses: {businessesError.message}</p>}
-          {subscriptionsError && <p>Couldn&apos;t load subscriptions: {subscriptionsError.message}</p>}
+        <div className="space-y-3">
+          {businessesError && <ErrorNotice what="load businesses" error={businessesError} />}
+          {subscriptionsError && <ErrorNotice what="load subscriptions" error={subscriptionsError} />}
         </div>
       )}
       <div>
@@ -66,12 +69,12 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      <Suspense fallback={<AnalyticsStripSkeleton />}>
-        <AnalyticsStripAsync />
+      <Suspense fallback={<SystemIssuesSkeleton />}>
+        <SystemIssues />
       </Suspense>
 
-      <Suspense fallback={null}>
-        <UnrepliedWhatsApp />
+      <Suspense fallback={<AnalyticsStripSkeleton />}>
+        <AnalyticsStripAsync />
       </Suspense>
 
       <div className="glass-panel rounded-xl p-5">
@@ -98,11 +101,11 @@ export default async function AdminDashboardPage() {
 function AnalyticsStripSkeleton() {
   return (
     <div className="glass-panel rounded-xl p-5" aria-hidden="true">
-      <div className="grid animate-pulse gap-5 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-center">
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-[repeat(4,minmax(0,1fr))_auto] lg:items-center">
         {Array.from({ length: 5 }, (_, index) => (
           <div key={index} className={index === 4 ? "lg:justify-self-end" : undefined}>
-            <div className="h-3 w-24 rounded-sm bg-slate-200" />
-            <div className="mt-2 h-7 w-20 rounded-sm bg-slate-200" />
+            <Skeleton className="h-3 w-24" />
+            <Skeleton className="mt-2 h-7 w-20" />
           </div>
         ))}
       </div>

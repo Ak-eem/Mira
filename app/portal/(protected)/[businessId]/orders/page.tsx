@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { ErrorNotice } from "@/components/ErrorNotice";
 import { OrdersPanel } from "./OrdersPanel";
 import { listRecentConversations } from "./actions";
 
@@ -10,7 +11,7 @@ export default async function OrdersPage({
   const { businessId } = await params;
   const supabase = await createClient();
 
-  const [{ data: orders }, recentConversations] = await Promise.all([
+  const [{ data: orders, error: ordersError }, recentConversations] = await Promise.all([
     supabase
       .from("orders")
       .select("id, customer_identifier, status, source, note, total, status_changed_at, order_items(name, quantity, unit_price)")
@@ -27,6 +28,7 @@ export default async function OrdersPage({
         switched on in Settings. Orders Mira takes wait for your confirmation. This is also what Nudges (order
         shipped / abandoned cart) reads from.
       </div>
+      {ordersError && <ErrorNotice what="load your orders" error={ordersError} />}
       <OrdersPanel businessId={businessId} orders={orders ?? []} recentConversations={recentConversations} />
     </div>
   );

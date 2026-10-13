@@ -1,6 +1,8 @@
+import type React from "react";
 import Link from "next/link";
 import type { AnalyticsRange, AnalyticsSnapshot } from "@/lib/analytics/queries";
-import { getSystemHealth } from "@/lib/systemHealth";
+import { Suspense } from "react";
+import { SystemHealthCard, SystemHealthSkeleton } from "./SystemHealthCard";
 
 const RANGE_OPTIONS: Array<{ value: AnalyticsRange; label: string }> = [
   { value: "today", label: "Today" },
@@ -20,22 +22,29 @@ function Metric({ label, value, detail }: { label: string; value: string | numbe
 }
 
 function BarChart({ title, points, suffix = "" }: { title: string; points: Array<{ label: string; value: number; secondary?: number }>; suffix?: string }) {
-  const maximum = Math.max(...points.map((point) => point.value), 1);
+  const maximum = Math.max(1, ...points.map((point) => point.value), ...points.map((point) => point.secondary ?? 0));
+  const barHeight = (value: number) => `${Math.max((value / maximum) * 100, value ? 4 : 0)}%`;
   return (
     <section className="glass-panel rounded-xl p-5">
       <h2 className="mb-4 text-sm font-semibold text-slate-800">{title}</h2>
       {points.length === 0 ? (
         <p className="text-sm text-slate-500">No data in this period.</p>
       ) : (
-        <div className="flex h-40 items-end gap-2">
-          {points.map((point) => (
-            <div key={point.label} className="flex min-w-0 flex-1 flex-col items-center gap-1">
-              <span className="text-[10px] text-slate-500">{point.value}{suffix}</span>
+        <div className="relative flex h-40 items-end gap-2">
+          {/* faint gridlines so the bars have something to grow against */}
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-5 top-4 flex flex-col justify-between">
+            <span className="h-px bg-slate-200/70" />
+            <span className="h-px bg-slate-200/70" />
+            <span className="h-px bg-slate-200/70" />
+          </div>
+          {points.map((point, index) => (
+            <div key={point.label} className="bar-col group relative flex min-w-0 flex-1 flex-col items-center gap-1" style={{ "--bar-delay": `${Math.min(index, 14) * 55}ms` } as React.CSSProperties} title={`${point.label}: ${point.value}${suffix}${point.secondary !== undefined ? ` / ${point.secondary}` : ""}`}>
+              <span className="bar-label text-[10px] font-medium tabular-nums text-slate-500 transition-colors group-hover:text-slate-900">{point.value}{suffix}</span>
               <div className="flex h-28 w-full items-end gap-0.5">
-                <div className="w-full rounded-t bg-accent/80" style={{ height: `${Math.max((point.value / maximum) * 100, point.value ? 4 : 0)}%` }} />
-                {point.secondary !== undefined && <div className="w-full rounded-t bg-amber-400/80" style={{ height: `${Math.max((point.secondary / maximum) * 100, point.secondary ? 4 : 0)}%` }} />}
+                <div className="bar-grow w-full rounded-t bg-linear-to-t from-accent to-accent/55 transition-[filter,transform] duration-200 group-hover:brightness-110 group-hover:-translate-y-0.5" style={{ height: barHeight(point.value) }} />
+                {point.secondary !== undefined && <div className="bar-grow w-full rounded-t bg-linear-to-t from-amber-500 to-amber-300/70 transition-[filter,transform] duration-200 group-hover:brightness-110 group-hover:-translate-y-0.5" style={{ height: barHeight(point.secondary) }} />}
               </div>
-              <span className="max-w-full truncate text-[10px] text-slate-400">{point.label}</span>
+              <span className="max-w-full truncate text-[10px] text-slate-400 transition-colors group-hover:text-slate-700">{point.label}</span>
             </div>
           ))}
         </div>
@@ -44,12 +53,11 @@ function BarChart({ title, points, suffix = "" }: { title: string; points: Array
   );
 }
 
-export async function AnalyticsPanel({ snapshot, baseHref, businessName }: { snapshot: AnalyticsSnapshot; baseHref: string; businessName?: string }) {
+export function AnalyticsPanel({ snapshot, baseHref, businessName }: { snapshot: AnalyticsSnapshot; baseHref: string; businessName?: string }) {
   const successRate = snapshot.successfulResponses + snapshot.failedResponses > 0
     ? `${Math.round((snapshot.successfulResponses / (snapshot.successfulResponses + snapshot.failedResponses)) * 100)}%`
     : "-";
   const escalationRate = snapshot.conversations > 0 ? `${Math.round((snapshot.humanHelp / snapshot.conversations) * 100)}%` : "-";
-  const systemHealth = await getSystemHealth();
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -134,10 +142,9 @@ export async function AnalyticsPanel({ snapshot, baseHref, businessName }: { sna
         </div>
       )}
 
-      <section className="glass-panel rounded-xl p-5">
-        <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold text-slate-800">System health</h2><span className="rounded-full bg-emerald-100 px-2 py-1 text-xs font-medium text-emerald-700">{systemHealth.database.status}</span></div>
-        <div className="grid gap-3 text-sm sm:grid-cols-3"><p><span className="text-slate-500">Database</span><br /><span className="font-medium text-slate-700">{systemHealth.database.status}</span><br /><time className="text-xs text-slate-400">Checked {new Date(systemHealth.database.checkedAt).toLocaleString()}</time></p><p><span className="text-slate-500">AI providers</span><br /><span className="font-medium text-slate-700">{systemHealth.aiProvider.status}</span><br /><time className="text-xs text-slate-400">Checked {new Date(systemHealth.aiProvider.checkedAt).toLocaleString()}</time></p><p><span className="text-slate-500">Background jobs</span><br /><span className="font-medium text-slate-700">{systemHealth.backgroundJobs.status}</span><br /><time className="text-xs text-slate-400">Checked {new Date(systemHealth.backgroundJobs.checkedAt).toLocaleString()}</time></p></div>
-      </section>
+      <Suspense fallback={<SystemHealthSkeleton />}>
+        <SystemHealthCard />
+      </Suspense>
 
       {snapshot.recentErrors.length > 0 && <section className="rounded-xl border border-red-200 bg-red-50/70 p-5"><h2 className="mb-3 text-sm font-semibold text-red-900">Recent AI errors</h2><ul className="space-y-2 text-sm text-red-800">{snapshot.recentErrors.map((error) => <li key={error.id} className="flex justify-between gap-3"><span>{error.provider}: {error.error_code ?? "Provider error"}</span><time className="text-xs text-red-600">{new Date(error.created_at).toLocaleString()}</time></li>)}</ul></section>}
     </div>
