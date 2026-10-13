@@ -1,6 +1,6 @@
 "use server";
 
-import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
+import { getCurrentEditor } from "@/lib/supabase/editor-auth";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/activityLog";
 import { applyProductUpdate, applyProductCreate } from "@/lib/products";
@@ -15,8 +15,8 @@ export async function createProduct(input: {
   availabilityNote: string;
   source?: "admin_ui" | "command_center";
 }) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated.", id: null };
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated.", id: null };
 
   return applyProductCreate({
     businessId: input.businessId,
@@ -27,7 +27,7 @@ export async function createProduct(input: {
     isAvailable: input.isAvailable,
     availabilityNote: input.availabilityNote,
     source: input.source ?? "admin_ui",
-    actorLabel: admin.email,
+    actorLabel: editor.email,
   });
 }
 
@@ -41,8 +41,8 @@ export async function updateProduct(input: {
   availabilityNote: string;
   source?: "admin_ui" | "command_center";
 }) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated." };
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated." };
 
   return applyProductUpdate({
     productId: input.productId,
@@ -53,13 +53,13 @@ export async function updateProduct(input: {
     isAvailable: input.isAvailable,
     availabilityNote: input.availabilityNote,
     source: input.source ?? "admin_ui",
-    actorLabel: admin.email,
+    actorLabel: editor.email,
   });
 }
 
 export async function deleteProduct(productId: string) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated." };
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated." };
 
   const supabase = await createClient();
 
@@ -95,8 +95,8 @@ const IMAGE_EXTENSION_BY_TYPE: Record<string, string> = {
 };
 
 export async function uploadProductImage(productId: string, formData: FormData) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated." };
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated." };
 
   const file = formData.get("image");
   if (!(file instanceof File) || file.size === 0) {
@@ -151,8 +151,8 @@ export async function uploadProductImage(productId: string, formData: FormData) 
 }
 
 export async function removeProductImage(productId: string) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated." };
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated." };
 
   const supabase = await createClient();
 

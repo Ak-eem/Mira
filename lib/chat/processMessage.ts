@@ -1,3 +1,4 @@
+import { notifyHandoff } from "@/lib/notifications/notifyHandoff";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
 import { isFallbackReply } from "@/lib/ai/buildPrompt";
@@ -68,7 +69,14 @@ async function recordAssistantReply(
   if (error) return { data: null, error };
   const row = (Array.isArray(data) ? data[0] : data) as { message_id?: string; newly_flagged?: boolean } | null | undefined;
   if (!row?.message_id) return { data: null, error: new Error("record_assistant_reply returned no row") };
-  return { data: { messageId: row.message_id, newlyFlagged: Boolean(row.newly_flagged) }, error: null };
+  const newlyFlagged = Boolean(row.newly_flagged);
+  if (newlyFlagged) {
+    // Tell the business a person is needed (email); the dashboard badge alone means
+    // nobody finds out unless they are looking at it.
+    const reason = typeof args.snapshot?.reason === "string" ? args.snapshot.reason : null;
+    await notifyHandoff({ businessId: args.businessId, conversationId: args.conversationId, dedupeKey: row.message_id, reason });
+  }
+  return { data: { messageId: row.message_id, newlyFlagged }, error: null };
 }
 
 /** The reply already recorded for a previous attempt at this inbound message, if any. */

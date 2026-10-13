@@ -1,6 +1,7 @@
 import { ErrorNotice } from "@/components/ErrorNotice";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/supabase/request";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import AssignmentControls from "./AssignmentControls";
 
@@ -32,9 +33,7 @@ export default async function PortalConversationsPage({
           : "all";
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   const currentUserId = user?.id ?? "";
   const currentUserEmail = user?.email ?? "";
   const owner = await getCurrentBusinessOwner();

@@ -59,6 +59,8 @@ npm run dev
 
 Open http://localhost:3000 in your browser.
 
+You also need to apply the SQL files in `supabase/migrations/` to your Supabase project, in numeric order, before the app works. **Putting Mira live (Vercel, Supabase, email, WhatsApp, Paystack, first admin) is covered step by step in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).**
+
 ## Architecture highlights
 
 - A multi-tenant foundation separates each business's data, configuration, catalog, orders, and conversations.

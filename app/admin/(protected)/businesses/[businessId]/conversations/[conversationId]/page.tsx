@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { resolveHandoff, takeOverConversation, handBackToAI, endConversation } from "../actions";
 import { linkifyContent } from "@/lib/linkify";
-import { ReplyForm } from "./ReplyForm";
 import { LiveRefresh } from "./LiveRefresh";
 
 type MessageContextSnapshot = {
@@ -53,11 +51,6 @@ export default async function ConversationThreadPage({
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true });
 
-  const resolveHandoffForConversation = resolveHandoff.bind(null, businessId, conversationId);
-  const takeOverForConversation = takeOverConversation.bind(null, businessId, conversationId);
-  const handBackForConversation = handBackToAI.bind(null, businessId, conversationId);
-  const endForConversation = endConversation.bind(null, businessId, conversationId);
-
   const messageIds = (messages ?? []).map((m) => m.id);
   const { data: feedbackRows } = messageIds.length
     ? await supabase.from("message_feedback").select("message_id, source, rating, reason").in("message_id", messageIds)
@@ -101,59 +94,11 @@ export default async function ConversationThreadPage({
         )}
       </h1>
 
-      {conversation.needs_human && !isClaimed && (
-        <div className="mb-6 flex flex-col gap-3 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-medium text-amber-800">
-            🚩 This customer asked for a person (or Mira got stuck) — take over when you&apos;re ready.
-          </p>
-          <div className="flex shrink-0 gap-2">
-            <form action={resolveHandoffForConversation}>
-              <button
-                type="submit"
-                className="rounded-sm border border-amber-400 bg-white px-3 py-1.5 text-xs font-medium text-amber-800 hover:bg-amber-100"
-              >
-                Dismiss
-              </button>
-            </form>
-            <form action={takeOverForConversation}>
-              <button
-                type="submit"
-                className="rounded-sm bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700"
-              >
-                Take over
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {isClaimed && (
-        <div className="mb-6 flex flex-col gap-3 rounded-lg border border-sky-300 bg-sky-50 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-medium text-sky-800">
-            👤 {conversation.claimed_by} is handling this conversation — Mira is silent until it&apos;s handed back or ended.
-          </p>
-          <div className="flex shrink-0 gap-2">
-            <form action={handBackForConversation}>
-              <button
-                type="submit"
-                className="rounded-sm border border-sky-400 bg-white px-3 py-1.5 text-xs font-medium text-sky-800 hover:bg-sky-100"
-              >
-                Hand back to Mira
-              </button>
-            </form>
-            <form action={endForConversation}>
-              <button
-                type="submit"
-                className="rounded-sm bg-slate-700 px-3 py-1.5 text-xs font-medium text-white hover:bg-slate-800"
-              >
-                End conversation
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {!conversation.needs_human && !isClaimed && <div className="mb-6" />}
+      <p className="mb-6 rounded-lg border border-slate-200 bg-white/60 px-4 py-2.5 text-sm text-slate-600">
+        Read-only view. Replying, taking over and ending conversations is done by the business owner; Mira answers automatically otherwise.
+        {conversation.needs_human && !isClaimed && " This customer is waiting for a person."}
+        {isClaimed && ` ${conversation.claimed_by} is handling it.`}
+      </p>
 
       <div className="space-y-3">
         {messages?.map((m) => {
@@ -224,7 +169,6 @@ export default async function ConversationThreadPage({
         )}
       </div>
 
-      {isClaimed && <ReplyForm businessId={businessId} conversationId={conversationId} />}
     </div>
   );
 }

@@ -6,7 +6,12 @@ import { SignOutButton } from "../SignOutButton";
 import { useState } from "react";
 import {
   Bell,
+  Briefcase,
+  Clock,
   ClipboardCheck,
+  HelpCircle,
+  Tag,
+  ScrollText,
   LayoutDashboard,
   Menu,
   MessageSquare,
@@ -65,6 +70,16 @@ export function PortalSidebar({
       items: [
         { href: `${base}/orders`, label: "Orders", icon: ShoppingBag },
         { href: `${base}/inventory`, label: "Inventory assistant", icon: Package },
+      ],
+    },
+    {
+      label: "Your business",
+      items: [
+        { href: `${base}/products`, label: "Products", icon: Tag, ownerOnly: true },
+        { href: `${base}/services`, label: "Services", icon: Briefcase, ownerOnly: true },
+        { href: `${base}/faqs`, label: "FAQs", icon: HelpCircle, ownerOnly: true },
+        { href: `${base}/policies`, label: "Policies", icon: ScrollText, ownerOnly: true },
+        { href: `${base}/hours`, label: "Opening hours", icon: Clock, ownerOnly: true },
       ],
     },
     {
