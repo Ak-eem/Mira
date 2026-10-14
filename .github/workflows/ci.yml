@@ -16,7 +16,13 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # @supabase/realtime-js (pulled in by supabase-js, including via
+          # createServiceRoleClient() -- it builds a RealtimeClient even if
+          # nothing subscribes to a channel) declares "node": ">=22.0.0" in
+          # its own package.json. Node 20 here made any test or route that
+          # touches the Supabase client crash on native WebSocket. Keep in
+          # sync with the "engines" field in package.json.
+          node-version: 22
           cache: npm
 
       - name: Install dependencies
