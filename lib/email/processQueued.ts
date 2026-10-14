@@ -96,7 +96,7 @@ export async function processEmailQueued(client: Client, queued: Pick<QueueRow, 
 
   const business = await client
     .from("businesses")
-    .select("id,email_responses_enabled")
+    .select("id,is_active,email_responses_enabled")
     .eq("email_inbound_address", toAddress) // column is constrained lowercase (migration 0040); ilike would treat "_" as a wildcard
     .maybeSingle();
   if (business.error) throw business.error;
@@ -105,6 +105,14 @@ export async function processEmailQueued(client: Client, queued: Pick<QueueRow, 
     return;
   }
   const routedBusiness = business.data;
+
+  // Same gate as web chat (is_active + isLocked via isBusinessSwitchedOff), applied
+  // before the email is fetched, the AI runs, or any reply (even a persisted one)
+  // is sent. Closes the queue row quietly; a DB error throws and the webhook retries.
+  if (!routedBusiness.is_active || (await isBusinessSwitchedOff(client, routedBusiness.id))) {
+    await markInboundDone(client, queued.id);
+    return;
+  }
 
   // Outbox: a reply persisted by an earlier attempt is re-sent as-is, with
   // no re-fetch of the email and no second trip through the AI pipeline.
