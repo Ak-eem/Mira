@@ -29,7 +29,7 @@ return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
 
   const { data: subscription, error: subscriptionError } = await client
     .from("business_subscriptions")
-    .select("owner_id,plan,status,trial_started_at,trial_ends_at")
+    .select("owner_id,plan,status,trial_started_at,trial_ends_at,expires_at")
     .eq("business_id", business.data.id)
     .maybeSingle();
   if (subscriptionError) return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
