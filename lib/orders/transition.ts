@@ -18,6 +18,7 @@ type OrderRow = {
   customer_identifier: string;
   conversation_id: string | null;
   total: number | null;
+  stock_released_at: string | null;
   order_items: { name: string; quantity: number }[] | null;
 };
 
@@ -41,6 +42,9 @@ const THREAD_NOTICE: Partial<Record<OrderStatus, (business: string) => string>> 
  *  4. customer ping (WhatsApp direct, email if consented)
  *  5. delivered closes the conversation via the shared closeConversation
  *
+ * Stock: an AI order reserves stock when placed (place_order_atomic) and a database
+ * trigger returns it when the order becomes cancelled, so nothing here touches stock.
+ *
  * Effects 2-5 are best-effort: the status change already happened and must
  * never be undone by a Resend or Meta outage.
  */
@@ -61,7 +65,7 @@ export async function transitionOrderStatus(
 
   const { data: order, error: loadError } = await supabase
     .from("orders")
-    .select("id, status, customer_identifier, conversation_id, total, order_items(name, quantity)")
+    .select("id, status, customer_identifier, conversation_id, total, stock_released_at, order_items(name, quantity)")
     .eq("id", orderId)
     .eq("business_id", businessId)
     .maybeSingle<OrderRow>();
@@ -74,6 +78,12 @@ export async function transitionOrderStatus(
     return { ok: false, error: "Order not found." };
   }
   if (order.status === to) return { ok: true, changed: false };
+
+  // Cancelling an order gives its reserved stock back (DB trigger, migration 0061), so
+  // those units may already be sold. A cancelled order can't be re-opened; place a new one.
+  if (order.stock_released_at && to !== "cancelled") {
+    return { ok: false, error: "This order was cancelled and its stock released. Place a new order instead." };
+  }
 
   if (actor === "customer" && (to !== "delivered" || !CUSTOMER_DELIVERABLE_STATUSES.includes(order.status))) {
     return { ok: false, error: "This order can't be marked delivered yet." };
