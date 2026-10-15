@@ -190,7 +190,7 @@ function FeatureCatalog() {
 }
 
 function FeatureOrders() {
-  const steps = ['Cart', 'Placed', 'Shipped', 'Delivered']
+  const steps = ['Placed', 'Confirmed', 'Shipped', 'Delivered']
   const [at, setAt] = useState(2)
   useEffect(() => {
     const t = setInterval(() => setAt((a) => (a + 1) % 4), 1600)
@@ -230,9 +230,11 @@ function FeatureInsights() {
       <div className="flex flex-col items-center gap-2 rounded-[22px] glass-strong p-4">
         <Ring value={0.29} size={72} />
         <span className="text-center text-[11px] leading-tight text-muted">
-          fewer delivery
+          of questions are
           <br />
-          complaints
+          about delivery
+          <br />
+          (example data)
         </span>
       </div>
     </div>
@@ -242,7 +244,7 @@ function FeatureInsights() {
 const FEATURES = [
   { chip: 'Chat assistant', title: 'Answers in seconds, from your own data', body: 'Prices, sizes, stock, delivery fees, opening hours. Mira only says what your business has told it, and passes anything else to you.', tone: 'glass-lime', visual: <FeatureChat /> },
   { chip: 'Product catalog', title: 'Prices and stock, always current', body: 'Add products once. Flip availability from your phone and the assistant stops offering what you’ve sold out of.', tone: 'glass-strong', visual: <FeatureCatalog /> },
-  { chip: 'Order management', title: 'From cart to doorstep, in one list', body: 'Every order moves cart → placed → shipped → delivered, and customers can ask the assistant where theirs is.', tone: 'glass-lime', visual: <FeatureOrders /> },
+  { chip: 'Order management', title: 'From order to doorstep, in one list', body: 'Every order moves placed → confirmed → shipped → delivered, and customers can ask the assistant where theirs is.', tone: 'glass-lime', visual: <FeatureOrders /> },
   { chip: 'Insights dashboard', title: 'Know what customers really want', body: 'See recurring complaints, the questions asked most, and which products are hot or sitting still.', tone: 'glass-strong', visual: <FeatureInsights /> },
 ]
 
@@ -341,10 +343,11 @@ export function Steps() {
 const INCLUDED = [
   '24/7 chat assistant on your website',
   'Product catalog with prices and stock',
-  'Order tracking: cart → placed → shipped → delivered',
+  'Order tracking: placed → confirmed → shipped → delivered',
   'Insights: complaints, top questions, hot and slow products',
   'FAQs, policies, opening hours and promotions',
-  'Unlimited conversations',
+  'Website chat conversations included',
+  'WhatsApp message fees are billed by Meta',
 ]
 
 export function Pricing({ price = 50000 }: { price?: number }) {
