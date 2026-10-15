@@ -16,6 +16,7 @@ const SECTION_LIMITS = {
   closures: 300,
   faqs: 900,
   policies: 550,
+  school: 500,
 } as const;
 
 type CachedContext = {
@@ -53,6 +54,7 @@ export type BusinessContext = {
     ai_tone: string | null;
     ai_instructions: string | null;
     ai_order_taking: boolean;
+    business_type: string;
   };
   contextText: string;
   products: { id: string; name: string; image_url: string | null }[];
@@ -173,7 +175,7 @@ export async function buildBusinessContext(
   ] = await Promise.all([
     supabase
       .from("businesses")
-      .select("id,name,currency,timezone,ai_tone,ai_instructions,ai_order_taking,hours_note,social_links")
+      .select("id,name,currency,timezone,ai_tone,ai_instructions,ai_order_taking,hours_note,social_links,business_type")
       .eq("id", businessId)
       .eq("is_active", true)
       .maybeSingle(),
@@ -284,6 +286,50 @@ export async function buildBusinessContext(
   const contactLinks = buildContactLinks(business.social_links);
   const policyLines = (policies ?? []).map((policy) => `${policy.title}:\n${policy.content}`);
 
+  // Business-wide school info only -- the current session, its terms, and
+  // class names. Deliberately NOT per-student: this object is cached and
+  // shared across every customer's conversation for up to CONTEXT_TTL_MS,
+  // so anything guardian- or student-specific must never go here (see
+  // getSchoolGuardianContext below, which is per-message and never
+  // cached). Only queried for business_type 'school', so every other
+  // business pays nothing extra.
+  let schoolLines: string[] = [];
+  if (business.business_type === "school") {
+    const { data: currentSession } = await supabase
+      .from("school_academic_sessions")
+      .select("id,name,start_date,end_date")
+      .eq("business_id", businessId)
+      .eq("is_current", true)
+      .maybeSingle();
+
+    if (currentSession) {
+      schoolLines.push(`Current academic session: ${currentSession.name} (${currentSession.start_date} to ${currentSession.end_date})`);
+
+      const { data: terms } = await supabase
+        .from("school_terms")
+        .select("name,start_date,end_date")
+        .eq("business_id", businessId)
+        .eq("academic_session_id", currentSession.id)
+        .order("sequence", { ascending: true });
+
+      for (const term of terms ?? []) {
+        schoolLines.push(`- ${term.name}: ${term.start_date} to ${term.end_date}`);
+      }
+    } else {
+      schoolLines.push("No academic session is currently marked active.");
+    }
+
+    const { data: classes } = await supabase
+      .from("school_classes")
+      .select("name,arm")
+      .eq("business_id", businessId)
+      .order("name", { ascending: true });
+
+    if (classes && classes.length > 0) {
+      schoolLines.push(`Classes: ${classes.map((c) => `${c.name} ${c.arm}`).join(", ")}`);
+    }
+  }
+
   const sections = [
     section("Business", [
       `Name: ${business.name}`,
@@ -323,6 +369,9 @@ export async function buildBusinessContext(
       policyLines.length > 0 ? policyLines : ["(none)"],
       SECTION_LIMITS.policies,
     ),
+    ...(business.business_type === "school"
+      ? [section("School calendar", schoolLines.length > 0 ? schoolLines : ["(not yet set up)"], SECTION_LIMITS.school)]
+      : []),
   ];
 
   const value: BusinessContext = {
@@ -333,6 +382,7 @@ export async function buildBusinessContext(
       ai_tone: sanitizedTone || null,
       ai_instructions: sanitizedInstructions || null,
       ai_order_taking: business.ai_order_taking === true,
+      business_type: business.business_type,
     },
     contextText: fitContext(sections, businessId),
     products: products.map((p) => ({ id: p.id, name: p.name, image_url: p.image_url })),
@@ -340,4 +390,78 @@ export async function buildBusinessContext(
 
   if (!promptOverride) cacheContext(businessId, value);
   return value;
+}
+
+/**
+ * Whether a message is eligible for a per-guardian school lookup at all.
+ * Pulled out as its own pure function so the gating logic (not just the
+ * DB call) has direct test coverage: WhatsApp only, school businesses
+ * only, and a real wa_ session token. Any one of these being false means
+ * no guardian data should be looked up or attached to the reply.
+ */
+export function isSchoolGuardianLookupEligible(args: {
+  channel: string;
+  businessType: string | null | undefined;
+  sessionToken: string;
+}): boolean {
+  return args.channel === "whatsapp" && args.businessType === "school" && args.sessionToken.startsWith("wa_");
+}
+
+/**
+ * Per-student fee/guardian context for ONE WhatsApp conversation.
+ *
+ * PRIVACY BOUNDARY -- read before changing this function:
+ * This is deliberately separate from buildBusinessContext() and is NEVER
+ * written into its cache. buildBusinessContext's result is shared across
+ * every customer conversation for a business for up to CONTEXT_TTL_MS;
+ * mixing a specific guardian's child's fee data into that shared,
+ * cached object would let it leak into another family's conversation
+ * within the same cache window. This function is called fresh, per
+ * message, and its result is used for exactly one reply.
+ *
+ * The actual guardian match is done by find_school_student_by_guardian_phone(),
+ * a SECURITY DEFINER SQL function (migration 0063) that scopes the lookup
+ * to business_id + a normalized phone match inside the database, before
+ * any row leaves Postgres. This function does not and must not attempt
+ * the matching itself in TypeScript.
+ */
+export async function getSchoolGuardianContext(
+  businessId: string,
+  rawPhone: string,
+): Promise<string | null> {
+  const supabase = createServiceRoleClient();
+
+  const { data: studentRows, error: studentError } = await supabase.rpc(
+    "find_school_student_by_guardian_phone",
+    { p_business_id: businessId, p_phone: rawPhone },
+  );
+
+  if (studentError) {
+    console.error("find_school_student_by_guardian_phone failed:", studentError);
+    return null;
+  }
+  const student = (Array.isArray(studentRows) ? studentRows[0] : studentRows) as
+    | { student_id: string; full_name: string; admission_no: string; class_id: string; class_name: string; class_arm: string }
+    | null
+    | undefined;
+  if (!student) return null;
+
+  const { data: feeRowsRaw, error: feeError } = await supabase.rpc(
+    "get_school_student_fee_status",
+    { p_business_id: businessId, p_student_id: student.student_id },
+  );
+  if (feeError) console.error("get_school_student_fee_status failed:", feeError);
+
+  const feeRows = (feeRowsRaw ?? []) as { term_name: string; session_name: string; amount_due: number }[];
+  const feeLines = feeRows.map(
+    (row) => `- ${row.term_name} (${row.session_name}): ${row.amount_due}`,
+  );
+
+  return [
+    `<GUARDIAN_STUDENT_CONTEXT>`,
+    `The person you are replying to is the registered guardian of exactly one student. Only ever discuss THIS student -- never speculate about, compare to, or mention any other student, even if asked.`,
+    `Student: ${student.full_name} (${student.admission_no}), Class: ${student.class_name} ${student.class_arm}`,
+    feeLines.length > 0 ? `Fee schedule for the current session:\n${feeLines.join("\n")}` : `No fee schedule is set up yet for this class/session.`,
+    `</GUARDIAN_STUDENT_CONTEXT>`,
+  ].join("\n");
 }

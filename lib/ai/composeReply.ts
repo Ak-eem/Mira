@@ -20,8 +20,19 @@ export async function composeReply(args: {
   message: string;
   orderTool?: boolean;
   disableTools?: boolean;
+  // A guardian's matched student/fee context (see
+  // getSchoolGuardianContext in lib/ai/buildContext.ts). Deliberately
+  // separate from `context`: `context` is cached and shared across every
+  // conversation for a business, and this is per-conversation, resolved
+  // fresh on every call. It is appended to the prompt here, after
+  // buildSystemPrompt runs on the cacheable context, so it can never end
+  // up inside anything cached or shared with another customer.
+  extraSystemContext?: string | null;
 }) {
-  const systemPrompt = buildSystemPrompt(args.context);
+  const baseSystemPrompt = buildSystemPrompt(args.context);
+  const systemPrompt = args.extraSystemContext
+    ? `${baseSystemPrompt}\n\n${args.extraSystemContext}`
+    : baseSystemPrompt;
   const llmMessages = buildMessages(args.history, args.message);
   return generateReplyWithMetadata(systemPrompt, llmMessages, {
     orderTool: args.orderTool,

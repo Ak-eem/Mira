@@ -2,6 +2,7 @@ import { notifyHandoff } from "@/lib/notifications/notifyHandoff";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
 import { isFallbackReply } from "@/lib/ai/buildPrompt";
+import { getSchoolGuardianContext, isSchoolGuardianLookupEligible } from "@/lib/ai/buildContext";
 import { composeReply } from "@/lib/ai/composeReply";
 import { loadPriorMessages } from "@/lib/chat/history";
 import { classifyIntent } from "@/lib/ai/classifyIntent";
@@ -435,6 +436,18 @@ export async function processMessage(
   // errors can be a missing-env-var name or a raw provider error body (see
   // lib/ai/generateReply.ts). The real error is already fully logged
   // above, so nothing is lost by keeping it out of the thrown message.
+  // Only resolved for a school business on WhatsApp, where a real phone
+  // number is available from the session token (`wa_<digits>`). Fetched
+  // fresh on every message -- see getSchoolGuardianContext's own comment
+  // for why this must never be folded into the cached `context` object
+  // above. A lookup failure or no-match is silent (null): a guardian not
+  // on file for any student just gets the normal business-wide reply,
+  // same as any other customer -- this is additive context, not a gate.
+  let schoolGuardianContext: string | null = null;
+  if (isSchoolGuardianLookupEligible({ channel, businessType: context.business?.business_type, sessionToken })) {
+    schoolGuardianContext = await getSchoolGuardianContext(businessId, sessionToken.slice(3));
+  }
+
   let replyText: string;
   let aiMetadata;
   let orderRequest: Awaited<ReturnType<typeof composeReply>>["orderRequest"];
@@ -445,6 +458,7 @@ export async function processMessage(
       history,
       message: trimmedMessage,
       orderTool: context.business?.ai_order_taking === true,
+      extraSystemContext: schoolGuardianContext,
     });
     replyText = result.text;
     aiMetadata = result.metadata;
