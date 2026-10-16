@@ -111,8 +111,8 @@ function StoreScreen() {
           <ProductImage name="Website chat" tint="mist" className="h-24 rounded-[18px]" />
         </div>
       </div>
-      {/* Mira, as a frosted sheet over the store */}
-      <div className="glass-strong absolute inset-x-[6px] top-[118px] bottom-[6px] flex flex-col overflow-hidden rounded-[30px] pb-3">
+      {/* Mira, as a frosted sheet over the store. Nearly opaque so the store's text underneath does not show through and collide with the chat. */}
+      <div className="glass-strong absolute inset-x-[6px] top-[100px] bottom-[6px] flex flex-col overflow-hidden rounded-[30px] pb-3" style={{ background: 'rgb(251 249 244 / 0.94)', backdropFilter: 'blur(28px) saturate(1.2)', WebkitBackdropFilter: 'blur(28px) saturate(1.2)' }}>
         <ChatPanel chat={chat} />
       </div>
     </div>
@@ -290,13 +290,13 @@ export function Hero({ price = 50000 }: { price?: number }) {
             <div className="flex items-center gap-3 pr-2">
               <IconDot name="bolt" />
               <span className="text-left text-[12px] leading-tight text-muted">
-                <span className="block text-[14px] font-medium text-ink">1.2s average reply</span>
+                <span className="block text-[14px] font-medium text-ink">Replies in seconds</span>
                 day and night
               </span>
             </div>
           </FloatCard>
 
-          <FloatCard depth={1.1} delay={940} className="top-[74%] -left-[60px] hidden md:block lg:-left-[170px]">
+          <FloatCard depth={1.1} delay={940} className="top-[74%] -left-[110px] hidden md:block lg:-left-[250px]">
             <div className="flex flex-col gap-1.5 text-left text-[13px]">
               <span className="self-end rounded-[14px] rounded-br-md bg-ink px-3 py-1.5 text-white">Where’s my order?</span>
               <span className="flex items-center gap-1.5 rounded-[14px] rounded-bl-md bg-white/80 px-3 py-1.5">

@@ -52,16 +52,17 @@ return;
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(165,243,252,0.4),transparent_42%)]" />
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link href="/" className="text-2xl font-semibold tracking-tight text-slate-900">
-            Mira <span className="font-normal text-accent">Admin</span>
+          <Link href="/" className="text-sm font-semibold tracking-tight text-slate-600 transition hover:text-accent">
+            Mira <span className="font-normal text-accent">for Business</span>
           </Link>
-          <p className="mt-3 text-sm text-slate-600">Sign in to manage your businesses and customer conversations.</p>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">Log in</h1>
+          <p className="mt-2 text-sm text-slate-600">Manage your business and customer conversations.</p>
         </div>
 
         <div className="space-y-5 rounded-4xl border border-white/80 bg-white/65 p-7 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl sm:p-8">
           <GoogleAuthButton next="/portal" />
 
-          <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+          <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-500">
             <span className="h-px flex-1 bg-slate-200" />
             or
             <span className="h-px flex-1 bg-slate-200" />
@@ -69,8 +70,8 @@ return;
 
           <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700">Email</label>
-            <input
+            <label htmlFor="field-email" className="block text-sm font-medium text-slate-700">Email</label>
+            <input id="field-email"
               type="email"
               className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
               value={email}
@@ -80,9 +81,9 @@ return;
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Password</label>
+            <label htmlFor="field-password" className="block text-sm font-medium text-slate-700">Password</label>
             <div className="relative mt-2">
-              <input
+              <input id="field-password"
                 type={showPassword ? "text" : "password"}
                 className="w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 pr-12 text-sm outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
                 value={password}
@@ -143,8 +144,8 @@ return;
               Create one
             </Link>
           </p>
-          <Link href="/admin/login" className="mt-3 inline-block text-xs text-slate-400 transition hover:text-accent">
-            Existing admin login
+          <Link href="/admin/login" className="mt-2 inline-flex min-h-10 items-center text-xs text-slate-500 transition hover:text-accent">
+            Platform admin sign-in
           </Link>
         </div>
       </div>

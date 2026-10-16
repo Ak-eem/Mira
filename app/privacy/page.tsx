@@ -8,7 +8,7 @@ export const metadata = {
 
 export default function PrivacyPolicyPage() {
   return (
-    <main className="min-h-screen bg-slate-50 text-slate-900">
+    <main className="min-h-screen overflow-x-clip bg-slate-50 text-slate-900">
       {/* Background Gradient */}
       <div className="relative isolate">
         <div className="hero-ambient absolute inset-x-0 top-0 -z-10 h-112 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_48%),radial-gradient(circle_at_top_right,rgba(165,243,252,0.4),transparent_42%)]" />

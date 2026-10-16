@@ -165,16 +165,17 @@ export default function SignupPage() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(165,243,252,0.4),transparent_42%)]" />
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">
-          <Link href="/" className="text-2xl font-semibold tracking-tight text-slate-900">
+          <Link href="/" className="text-sm font-semibold tracking-tight text-slate-600 transition hover:text-accent">
             Mira <span className="font-normal text-accent">for Business</span>
           </Link>
-          <p className="mt-3 text-sm text-slate-600">Create your account and get your business ready for what’s next.</p>
+          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">Create your account</h1>
+          <p className="mt-2 text-sm text-slate-600">Get your business ready for what’s next.</p>
         </div>
 
         <div className="space-y-5 rounded-4xl border border-white/80 bg-white/65 p-7 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl sm:p-8">
           <GoogleAuthButton next="/portal/signup/complete" label="Sign up with Google" />
 
-          <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+          <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-500">
             <span className="h-px flex-1 bg-slate-200" />
             or
             <span className="h-px flex-1 bg-slate-200" />
@@ -182,8 +183,8 @@ export default function SignupPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-sm font-medium text-slate-700">Email</label>
-            <input
+            <label htmlFor="field-email" className="block text-sm font-medium text-slate-700">Email</label>
+            <input id="field-email"
               type="email"
               className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
               value={email}
@@ -202,7 +203,7 @@ export default function SignupPage() {
                 type="button"
                 onClick={sendVerification}
                 disabled={verificationBusy || !email}
-                className="mt-2 text-sm font-semibold text-accent transition hover:underline disabled:opacity-50"
+                className="mt-1 inline-flex min-h-10 items-center text-sm font-semibold text-accent transition hover:underline disabled:opacity-50"
               >
                 {verificationBusy ? "Sending…" : verificationSent ? "Resend code" : "Send verification code"}
               </button>
@@ -211,8 +212,8 @@ export default function SignupPage() {
 
           {verificationSent && !emailVerified && (
             <div>
-              <label className="block text-sm font-medium text-slate-700">6-digit verification code</label>
-              <div className="mt-2">
+              <p id="otp-label" className="block text-sm font-medium text-slate-700">6-digit verification code</p>
+              <div className="mt-2" role="group" aria-labelledby="otp-label">
                 <CodeSlots
                   length={6}
                   value={otp}
@@ -247,8 +248,8 @@ export default function SignupPage() {
           {emailVerified && <p className="text-sm text-green-600">Email verified. You can create your account.</p>}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Password</label>
-            <input
+            <label htmlFor="field-password" className="block text-sm font-medium text-slate-700">Password</label>
+            <input id="field-password"
               type="password"
               className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
               value={password}
@@ -259,8 +260,8 @@ export default function SignupPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">Confirm password</label>
-            <input
+            <label htmlFor="field-confirm-password" className="block text-sm font-medium text-slate-700">Confirm password</label>
+            <input id="field-confirm-password"
               type="password"
               className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
               value={confirmPassword}
