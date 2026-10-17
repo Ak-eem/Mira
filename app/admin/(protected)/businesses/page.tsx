@@ -12,6 +12,8 @@ const STATUS_STYLES: Record<SubscriptionStatus, string> = {
 
 // Uses the RLS-respecting client (not service-role) — every query here only
 // returns rows because the current session passes is_platform_admin().
+export const metadata = { title: "Businesses" };
+
 export default async function AdminBusinessesPage({ searchParams }: { searchParams: Promise<{ page?: string; q?: string; status?: string }> }) {
   const params = await searchParams;
   const search = params.q?.trim() ?? "";

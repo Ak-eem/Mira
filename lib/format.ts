@@ -18,3 +18,8 @@ export function formatRelativeTime(iso: string): string {
 
   return new Date(iso).toLocaleDateString();
 }
+
+/** "16 Oct 2026, 1:38 pm" in Lagos time, whatever the viewer's browser or the server's locale is. */
+export function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("en-NG", { timeZone: "Africa/Lagos", day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit" });
+}

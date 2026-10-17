@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelativeTime } from "@/lib/format";
+import { ErrorNotice } from "@/components/ErrorNotice";
 
 type ActivityRow = {
   id: string;
@@ -11,6 +12,8 @@ type ActivityRow = {
   source: "admin_ui" | "command_center";
   created_at: string;
 };
+
+export const metadata = { title: "Activity" };
 
 export default async function PlatformActivityPage() {
   const supabase = await createClient();
@@ -34,8 +37,8 @@ export default async function PlatformActivityPage() {
         promotions, and closures being created, edited, or removed.
       </p>
 
-      {error && <p className="text-sm text-red-600">Couldn&apos;t load activity: {error.message}</p>}
-      {businessesError && <p className="text-sm text-red-600">Couldn&apos;t load business names: {businessesError.message}</p>}
+      {error && <ErrorNotice what="load activity" error={error} />}
+      {businessesError && <ErrorNotice what="load business names" error={businessesError} />}
 
       {!error && !businessesError && (!activity || activity.length === 0) && (
         <p className="text-sm text-slate-500">Nothing has changed yet.</p>

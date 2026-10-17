@@ -1,5 +1,6 @@
 import { getSystemHealth, type HealthStatus } from "@/lib/systemHealth";
 import { timed } from "@/lib/perf";
+import { formatDateTime } from "@/lib/format";
 import { ErrorNotice } from "@/components/ErrorNotice";
 import { Skeleton } from "@/components/Skeleton";
 
@@ -17,7 +18,7 @@ function Item({ label, check }: { label: string; check: { status: HealthStatus; 
       <p className="mt-0.5 flex items-center gap-2">
         <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${BADGE[check.status]}`}>{check.status}</span>
       </p>
-      <time className="text-xs text-slate-400">Checked {new Date(check.checkedAt).toLocaleString()}</time>
+      <time className="text-xs text-slate-400">Checked {formatDateTime(check.checkedAt)}</time>
     </div>
   );
 }
