@@ -27,10 +27,10 @@ function BarChart({ title, points, suffix = "" }: { title: string; points: Array
   return (
     <section className="glass-panel rounded-xl p-5">
       <h2 className="mb-4 text-sm font-semibold text-slate-800">{title}</h2>
-      {points.length === 0 ? (
-        <p className="text-sm text-slate-500">No data in this period.</p>
+      {points.length === 0 || points.every((point) => point.value === 0 && (point.secondary ?? 0) === 0) ? (
+        <p className="text-sm text-slate-500">Nothing to show for this period yet.</p>
       ) : (
-        <div className="relative flex h-40 items-end gap-2">
+        <div className="relative flex h-40 items-end justify-center gap-2">
           {/* faint gridlines so the bars have something to grow against */}
           <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-5 top-4 flex flex-col justify-between">
             <span className="h-px bg-slate-200/70" />
@@ -38,7 +38,7 @@ function BarChart({ title, points, suffix = "" }: { title: string; points: Array
             <span className="h-px bg-slate-200/70" />
           </div>
           {points.map((point, index) => (
-            <div key={point.label} className="bar-col group relative flex min-w-0 flex-1 flex-col items-center gap-1" style={{ "--bar-delay": `${Math.min(index, 14) * 55}ms` } as React.CSSProperties} title={`${point.label}: ${point.value}${suffix}${point.secondary !== undefined ? ` / ${point.secondary}` : ""}`}>
+            <div key={point.label} className="bar-col group relative flex min-w-0 max-w-24 flex-1 flex-col items-center gap-1" style={{ "--bar-delay": `${Math.min(index, 14) * 55}ms` } as React.CSSProperties} title={`${point.label}: ${point.value}${suffix}${point.secondary !== undefined ? ` / ${point.secondary}` : ""}`}>
               <span className="bar-label text-[10px] font-medium tabular-nums text-slate-500 transition-colors group-hover:text-slate-900">{point.value}{suffix}</span>
               <div className="flex h-28 w-full items-end gap-0.5">
                 <div className="bar-grow w-full rounded-t bg-linear-to-t from-accent to-accent/55 transition-[filter,transform] duration-200 group-hover:brightness-110 group-hover:-translate-y-0.5" style={{ height: barHeight(point.value) }} />

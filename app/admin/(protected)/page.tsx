@@ -6,11 +6,14 @@ import type { Business } from "@/lib/types";
 import type { BusinessSubscription, SubscriptionStatus } from "@/lib/plans";
 import { AnalyticsStripAsync } from "./AnalyticsStripAsync";
 import { SystemIssues, SystemIssuesSkeleton } from "./SystemIssues";
+import { countSubscriptions } from "@/lib/admin/subscriptionCounts";
 import { ErrorNotice } from "@/components/ErrorNotice";
 import { Skeleton } from "@/components/Skeleton";
 
 // Uses the RLS-respecting client (not service-role) — every query here only
 // returns rows because the current session passes is_platform_admin().
+export const metadata = { title: "Dashboard" };
+
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
   const [{ data: businesses, error: businessesError }, { data: subscriptions, error: subscriptionsError }] = await timed("admin:dashboard-queries", Promise.all([
@@ -25,17 +28,13 @@ export default async function AdminDashboardPage() {
       .returns<(BusinessSubscription & { business_id: string })[]>(),
   ]));
 
-  const counts = { trialing: 0, active: 0, past_due: 0, cancelled: 0 };
   const latestSubscriptionByBusiness = new Map<string, BusinessSubscription & { business_id: string }>();
   for (const subscription of subscriptions ?? []) {
     if (!latestSubscriptionByBusiness.has(subscription.business_id)) {
       latestSubscriptionByBusiness.set(subscription.business_id, subscription);
     }
   }
-  for (const subscription of latestSubscriptionByBusiness.values()) {
-    const status = subscription.status as SubscriptionStatus;
-    counts[status] += 1;
-  }
+  const counts = countSubscriptions([...latestSubscriptionByBusiness.values()]);
 
   return (
     <div className="space-y-8">
@@ -53,18 +52,18 @@ export default async function AdminDashboardPage() {
             <p className="mt-1 text-sm text-slate-500">Businesses</p>
           </div>
           <div className="glass-panel rounded-xl p-5">
-            <p className="text-3xl font-semibold tracking-tight text-sky-700">{subscriptionsError ? "-" : counts.trialing}</p>
+            <p className="text-3xl font-semibold tracking-tight text-sky-700">{subscriptionsError ? "-" : counts.onTrial}</p>
             <p className="mt-1 text-sm text-slate-500">On trial</p>
           </div>
           <div className="glass-panel rounded-xl p-5">
             <p className="text-3xl font-semibold tracking-tight text-emerald-700">{subscriptionsError ? "-" : counts.active}</p>
             <p className="mt-1 text-sm text-slate-500">Active plan</p>
           </div>
-          <div className={`rounded-xl p-5 transition ${counts.past_due + counts.cancelled > 0 ? "border border-amber-300/50 bg-amber-50/70 backdrop-blur-md" : "glass-panel"}`}>
-            <p className={`text-3xl font-semibold tracking-tight ${counts.past_due + counts.cancelled > 0 ? "text-amber-700" : "text-slate-900"}`}>
-              {subscriptionsError ? "-" : counts.past_due + counts.cancelled}
+          <div className={`rounded-xl p-5 transition ${counts.needsPayment > 0 ? "border border-amber-300/50 bg-amber-50/70 backdrop-blur-md" : "glass-panel"}`}>
+            <p className={`text-3xl font-semibold tracking-tight ${counts.needsPayment > 0 ? "text-amber-700" : "text-slate-900"}`}>
+              {subscriptionsError ? "-" : counts.needsPayment}
             </p>
-            <p className={`mt-1 text-sm ${counts.past_due + counts.cancelled > 0 ? "text-amber-700" : "text-slate-500"}`}>Past due or cancelled</p>
+            <p className={`mt-1 text-sm ${counts.needsPayment > 0 ? "text-amber-700" : "text-slate-500"}`}>Need payment (trial ended, past due or cancelled)</p>
           </div>
         </div>
       </div>

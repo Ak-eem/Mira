@@ -4,6 +4,8 @@ import { retryMessageAction } from "./actions";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Message queue" };
+
 export default async function QueuePage({ searchParams }: { searchParams: Promise<{ result?: string }> }) {
   const { result } = await searchParams;
   let rows: Awaited<ReturnType<typeof findStuckRows>> = [];
