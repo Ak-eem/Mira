@@ -7,6 +7,7 @@ import { composeReply } from "@/lib/ai/composeReply";
 import { loadPriorMessages } from "@/lib/chat/history";
 import { classifyIntent } from "@/lib/ai/classifyIntent";
 import { recordAiResponseTelemetry } from "@/lib/analytics/recordTelemetry";
+import { errorCodeFor, errorDetailFor, providerFor } from "@/lib/ai/providerError";
 import { after } from "next/server";
 import { getOfflineGateReply } from "@/lib/chat/offlineReply";
 import { getHandoffReply, getPausedReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
@@ -471,7 +472,9 @@ export async function processMessage(
       channel,
       success: false,
       latencyMs: Date.now() - aiStartedAt,
-      errorCode: err instanceof Error ? err.name : "unknown",
+      errorCode: errorCodeFor(err),
+      errorMessage: errorDetailFor(err),
+      provider: providerFor(err),
     }));
     throw new ProcessMessageError("The assistant is unavailable right now.", 502);
   }

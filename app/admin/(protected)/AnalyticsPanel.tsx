@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { AnalyticsRange, AnalyticsSnapshot } from "@/lib/analytics/queries";
 import { Suspense } from "react";
 import { SystemHealthCard, SystemHealthSkeleton } from "./SystemHealthCard";
+import { RecentAiErrors } from "./RecentAiErrors";
 
 const RANGE_OPTIONS: Array<{ value: AnalyticsRange; label: string }> = [
   { value: "today", label: "Today" },
@@ -146,7 +147,7 @@ export function AnalyticsPanel({ snapshot, baseHref, businessName }: { snapshot:
         <SystemHealthCard />
       </Suspense>
 
-      {snapshot.recentErrors.length > 0 && <section className="rounded-xl border border-red-200 bg-red-50/70 p-5"><h2 className="mb-3 text-sm font-semibold text-red-900">Recent AI errors</h2><ul className="space-y-2 text-sm text-red-800">{snapshot.recentErrors.map((error) => <li key={error.id} className="flex justify-between gap-3"><span>{error.provider}: {error.error_code ?? "Provider error"}</span><time className="text-xs text-red-600">{new Date(error.created_at).toLocaleString()}</time></li>)}</ul></section>}
+      <RecentAiErrors errors={snapshot.recentErrors} />
     </div>
   );
 }
