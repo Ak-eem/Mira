@@ -77,16 +77,22 @@ export function Nav() {
   )
 }
 
-export function Ring({ value, size = 64 }: { value: number; size?: number }) {
+export function Ring({ value, size = 64, label }: { value: number; size?: number; label?: string }) {
   const r = size / 2 - 4
   const c = 2 * Math.PI * r
+  const percent = Math.round(value * 100)
   return (
-    <span className="relative grid shrink-0 place-items-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
+    <span
+      className="relative grid shrink-0 place-items-center"
+      style={{ width: size, height: size }}
+      role="img"
+      aria-label={label ? `${percent}% ${label}` : `${percent}%`}
+    >
+      <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-lime)" strokeWidth={5} />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-ink)" strokeWidth={2} strokeDasharray={`${c * value} ${c}`} strokeLinecap="round" />
       </svg>
-      <span className="absolute text-[15px] font-medium tabular-nums">{Math.round(value * 100)}%</span>
+      <span aria-hidden="true" className="absolute text-[15px] font-medium tabular-nums">{percent}%</span>
     </span>
   )
 }
@@ -124,16 +130,23 @@ export function Industries() {
       >
         BUILT FOR
       </h2>
-      <div className="mx-auto -mt-[4vw] flex max-w-[1240px] snap-x snap-mandatory items-end gap-4 overflow-x-auto px-5 pb-4 sm:px-8 lg:-mt-14 [scrollbar-width:none]">
-        {INDUSTRIES.map((i) => (
-          <figure key={i.name} className="flex w-[64vw] shrink-0 snap-start flex-col gap-2 sm:w-[260px] lg:w-auto lg:flex-1">
-            <figcaption className="text-[13px] text-muted">{i.name}</figcaption>
-            <div className={cx('group relative overflow-hidden rounded-[22px]', i.h)}>
-              <ProductImage name={i.name} tint={i.tint} className="absolute inset-0 transition-transform duration-300 group-hover:scale-[1.03]" />
-              <span className="glass absolute right-3 bottom-3 left-3 rounded-[16px] px-3 py-2.5 text-[13px] leading-snug">{i.q}</span>
-            </div>
-          </figure>
-        ))}
+      <div className="relative mx-auto max-w-[1240px]">
+        <div className="-mt-[4vw] flex snap-x snap-mandatory items-end gap-4 overflow-x-auto px-5 pb-4 sm:px-8 lg:-mt-14 [scrollbar-width:none]">
+          {INDUSTRIES.map((i) => (
+            <figure key={i.name} className="flex w-[64vw] shrink-0 snap-start flex-col gap-2 sm:w-[260px] lg:w-auto lg:flex-1">
+              <figcaption className="text-[13px] text-muted">{i.name}</figcaption>
+              <div className={cx('group relative overflow-hidden rounded-[22px]', i.h)}>
+                <ProductImage name={i.name} tint={i.tint} className="absolute inset-0 transition-transform duration-300 group-hover:scale-[1.03]" />
+                <span className="glass absolute right-3 bottom-3 left-3 rounded-[16px] px-3 py-2.5 text-[13px] leading-snug">{i.q}</span>
+              </div>
+            </figure>
+          ))}
+        </div>
+        {/* Hints there's more to scroll to on touch screens (hidden scrollbar + no
+            dedicated indicator otherwise). The row fills the available width with
+            no overflow from lg up, so the fade is dropped there rather than sitting
+            uselessly over the last card's edge. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-14 bg-gradient-to-l from-surface to-transparent lg:hidden" />
       </div>
       <div className="mt-10 overflow-hidden border-y border-line/80 bg-surface/50 py-4" aria-hidden="true">
         <div className="marquee flex w-max gap-10 text-[15px] text-muted">
@@ -228,8 +241,8 @@ function FeatureInsights() {
         </div>
       </div>
       <div className="flex flex-col items-center gap-2 rounded-[22px] glass-strong p-4">
-        <Ring value={0.29} size={72} />
-        <span className="text-center text-[11px] leading-tight text-muted">
+        <Ring value={0.29} size={72} label="of questions are about delivery (example data)" />
+        <span aria-hidden="true" className="text-center text-[11px] leading-tight text-muted">
           of questions are
           <br />
           about delivery
@@ -244,7 +257,7 @@ function FeatureInsights() {
 const FEATURES = [
   { chip: 'Chat assistant', title: 'Answers in seconds, from your own data', body: 'Prices, sizes, stock, delivery fees, opening hours. Mira only says what your business has told it, and passes anything else to you.', tone: 'glass-lime', visual: <FeatureChat /> },
   { chip: 'Product catalog', title: 'Prices and stock, always current', body: 'Add products once. Flip availability from your phone and the assistant stops offering what you’ve sold out of.', tone: 'glass-strong', visual: <FeatureCatalog /> },
-  { chip: 'Order management', title: 'From order to doorstep, in one list', body: 'Every order moves placed → confirmed → shipped → delivered, and customers can ask the assistant where theirs is.', tone: 'glass-lime', visual: <FeatureOrders /> },
+  { chip: 'Order management', title: 'From order to doorstep, in one list', body: 'Mark orders placed, confirmed, shipped or delivered from your phone, and customers can ask the assistant where theirs is.', tone: 'glass-lime', visual: <FeatureOrders /> },
   { chip: 'Insights dashboard', title: 'Know what customers really want', body: 'See recurring complaints, the questions asked most, and which products are hot or sitting still.', tone: 'glass-strong', visual: <FeatureInsights /> },
 ]
 
@@ -343,7 +356,7 @@ export function Steps() {
 const INCLUDED = [
   '24/7 chat assistant on your website',
   'Product catalog with prices and stock',
-  'Order tracking: placed → confirmed → shipped → delivered',
+  'Order status customers can ask about: placed, confirmed, shipped, delivered',
   'Insights: complaints, top questions, hot and slow products',
   'FAQs, policies, opening hours and promotions',
   'Website chat conversations included',
