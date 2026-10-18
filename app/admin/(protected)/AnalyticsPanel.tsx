@@ -4,6 +4,7 @@ import type { AnalyticsRange, AnalyticsSnapshot } from "@/lib/analytics/queries"
 import { Suspense } from "react";
 import { SystemHealthCard, SystemHealthSkeleton } from "./SystemHealthCard";
 import { RecentAiErrors } from "./RecentAiErrors";
+import { InteractiveBarChart } from "./InteractiveBarChart";
 
 const RANGE_OPTIONS: Array<{ value: AnalyticsRange; label: string }> = [
   { value: "today", label: "Today" },
@@ -22,36 +23,8 @@ function Metric({ label, value, detail }: { label: string; value: string | numbe
   );
 }
 
-function BarChart({ title, points, suffix = "" }: { title: string; points: Array<{ label: string; value: number; secondary?: number }>; suffix?: string }) {
-  const maximum = Math.max(1, ...points.map((point) => point.value), ...points.map((point) => point.secondary ?? 0));
-  const barHeight = (value: number) => `${Math.max((value / maximum) * 100, value ? 4 : 0)}%`;
-  return (
-    <section className="glass-panel rounded-xl p-5">
-      <h2 className="mb-4 text-sm font-semibold text-slate-800">{title}</h2>
-      {points.length === 0 || points.every((point) => point.value === 0 && (point.secondary ?? 0) === 0) ? (
-        <p className="text-sm text-slate-500">Nothing to show for this period yet.</p>
-      ) : (
-        <div className="relative flex h-40 items-end justify-center gap-2">
-          {/* faint gridlines so the bars have something to grow against */}
-          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-5 top-4 flex flex-col justify-between">
-            <span className="h-px bg-slate-200/70" />
-            <span className="h-px bg-slate-200/70" />
-            <span className="h-px bg-slate-200/70" />
-          </div>
-          {points.map((point, index) => (
-            <div key={point.label} className="bar-col group relative flex min-w-0 max-w-24 flex-1 flex-col items-center gap-1" style={{ "--bar-delay": `${Math.min(index, 14) * 55}ms` } as React.CSSProperties} title={`${point.label}: ${point.value}${suffix}${point.secondary !== undefined ? ` / ${point.secondary}` : ""}`}>
-              <span className="bar-label text-[10px] font-medium tabular-nums text-slate-500 transition-colors group-hover:text-slate-900">{point.value}{suffix}</span>
-              <div className="flex h-28 w-full items-end gap-0.5">
-                <div className="bar-grow w-full rounded-t bg-linear-to-t from-accent to-accent/55 transition-[filter,transform] duration-200 group-hover:brightness-110 group-hover:-translate-y-0.5" style={{ height: barHeight(point.value) }} />
-                {point.secondary !== undefined && <div className="bar-grow w-full rounded-t bg-linear-to-t from-amber-500 to-amber-300/70 transition-[filter,transform] duration-200 group-hover:brightness-110 group-hover:-translate-y-0.5" style={{ height: barHeight(point.secondary) }} />}
-              </div>
-              <span className="max-w-full truncate text-[10px] text-slate-400 transition-colors group-hover:text-slate-700">{point.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
-  );
+function BarChart(props: { title: string; points: Array<{ label: string; value: number; secondary?: number }>; seriesNames?: string[]; suffix?: string }) {
+  return <InteractiveBarChart {...props} />;
 }
 
 export function AnalyticsPanel({ snapshot, baseHref, businessName }: { snapshot: AnalyticsSnapshot; baseHref: string; businessName?: string }) {
@@ -93,9 +66,9 @@ export function AnalyticsPanel({ snapshot, baseHref, businessName }: { snapshot:
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <BarChart title="Conversations over time" points={snapshot.conversationsOverTime} />
-        <BarChart title="Human help over time" points={snapshot.conversationsOverTime.map((point) => ({ label: point.label, value: point.secondary ?? 0 }))} />
-        <BarChart title="AI provider usage" points={snapshot.providerBreakdown} />
+        <BarChart title="Conversations over time" seriesNames={["Conversations", "Human help"]} points={snapshot.conversationsOverTime} />
+        <BarChart title="Human help over time" seriesNames={["Human help requests"]} points={snapshot.conversationsOverTime.map((point) => ({ label: point.label, value: point.secondary ?? 0 }))} />
+        <BarChart title="AI provider usage" seriesNames={["AI replies"]} points={snapshot.providerBreakdown} />
         <section className="glass-panel rounded-xl p-5">
           <h2 className="mb-4 text-sm font-semibold text-slate-800">AI performance</h2>
           <dl className="grid grid-cols-2 gap-4 text-sm">

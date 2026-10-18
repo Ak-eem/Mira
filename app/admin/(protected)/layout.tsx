@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { DashboardLink } from "@/components/DashboardLink";
 import { redirect } from "next/navigation";
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { AdminSidebar } from "./AdminSidebar";
@@ -27,9 +27,9 @@ export default async function AdminLayout({
     <div className="mira-wash min-h-screen">
       <header className="glass-panel-strong sticky top-0 z-10 flex items-center justify-between gap-3 px-6 py-3">
         <div className="flex min-w-0 items-center gap-4">
-          <Link href="/" className="font-semibold text-slate-900" aria-label="Mira home">
+          <DashboardLink scope="admin" className="font-semibold text-slate-900">
             Mira <span className="font-normal text-accent">Admin</span>
-          </Link>
+          </DashboardLink>
           <span className="truncate text-sm text-slate-500">{admin.email}</span>
         </div>
         <AdminSignOutButton />

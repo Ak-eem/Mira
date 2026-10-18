@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/activityLog";
+import { describeSubscriptionChange } from "@/lib/activitySummaries";
 
 export async function updateSubscription(input: {
   businessId: string;
@@ -25,6 +26,11 @@ export async function updateSubscription(input: {
   }
 
   const supabase = await createClient();
+  const { data: before } = await supabase
+    .from("business_subscriptions")
+    .select("plan, status, nudges_addon, nudges_tier, max_nudges_per_customer_per_week")
+    .eq("business_id", input.businessId)
+    .maybeSingle();
   const { error } = await supabase.from("business_subscriptions").upsert(
     {
       business_id: input.businessId,
@@ -40,7 +46,14 @@ export async function updateSubscription(input: {
 
   if (error) return { error: error.message };
 
-  await logActivity(input.businessId, "business", input.businessId, "updated", "Subscription/plan updated");
+  const change = describeSubscriptionChange(before, {
+    plan: input.plan,
+    status: input.status,
+    nudges_addon: input.nudgesAddon,
+    nudges_tier: input.nudgesAddon ? input.nudgesTier : null,
+    max_nudges_per_customer_per_week: maxPerWeek,
+  });
+  await logActivity(input.businessId, "business", input.businessId, "updated", `${change} (by ${admin.email})`);
   revalidatePath(`/admin/businesses/${input.businessId}/settings`);
   return { error: null };
 }
