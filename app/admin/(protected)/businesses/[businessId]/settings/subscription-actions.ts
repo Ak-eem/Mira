@@ -12,7 +12,7 @@ export async function updateSubscription(input: {
   nudgesAddon: boolean;
   nudgesTier: "basic" | "plus" | "";
   maxNudgesPerCustomerPerWeek: string;
-  status: "active" | "past_due" | "cancelled";
+  status: "trialing" | "active" | "past_due" | "cancelled";
 }): Promise<{ error: string | null }> {
   const admin = await getCurrentAdmin();
   if (!admin) return { error: "Not authenticated." };

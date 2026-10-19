@@ -37,7 +37,7 @@ export default async function PortalBusinessLayout({ children, params }: { child
         hasMultipleBusinesses={owner.businesses.length > 1}
         needsYou={needsYou ?? 0}
         email={user.email}
-        planLabel={`${trialing ? "Free trial · " : ""}${subscriptionLabel(access.subscription)}`}
+        planLabel={subscriptionLabel(access.subscription)}
         showUpgrade={isOwner && trialing}
       />
       <div className="min-w-0 flex-1">
