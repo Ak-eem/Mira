@@ -81,7 +81,7 @@ export function InteractiveBarChart({ title, points, seriesNames = ["Value"], su
                 tabIndex={0}
                 role="img"
                 aria-label={summary}
-                className={`bar-col relative flex min-w-0 max-w-24 flex-1 cursor-default flex-col items-center gap-1 rounded-md outline-none transition-opacity duration-200 focus-visible:ring-2 focus-visible:ring-accent/40 motion-reduce:transition-none ${dimmed ? "opacity-45" : ""}`}
+                className={`bar-col relative flex min-w-0 max-w-24 flex-1 cursor-default flex-col items-center gap-1 rounded-md outline-none transition-opacity duration-200 focus-visible:ring-2 focus-visible:ring-accent/40 motion-reduce:transition-none ${dimmed ? "opacity-75" : ""}`}
                 style={{ "--bar-delay": `${Math.min(index, 14) * 55}ms` } as CSSProperties}
                 onPointerEnter={(e) => show(index, e)}
                 onFocus={(e) => {
@@ -97,9 +97,9 @@ export function InteractiveBarChart({ title, points, seriesNames = ["Value"], su
               >
                 <span className={`bar-label text-[10px] font-medium tabular-nums transition-colors ${isActive ? "text-slate-900" : "text-slate-500"}`}>{point.value}{suffix}</span>
                 <div className="flex h-28 w-full items-end gap-0.5">
-                  <div className={`bar-grow w-full rounded-t bg-linear-to-t from-accent to-accent/55 transition-[filter,transform] duration-200 motion-reduce:transition-none ${isActive ? "-translate-y-1 brightness-125" : ""}`} style={{ height: barHeight(point.value) }} />
+                  <div className={`bar-grow w-full rounded-t bg-accent transition-[filter,transform] duration-200 motion-reduce:transition-none ${isActive ? "-translate-y-1 brightness-110" : ""}`} style={{ height: barHeight(point.value) }} />
                   {point.secondary !== undefined && (
-                    <div className={`bar-grow w-full rounded-t bg-linear-to-t from-amber-500 to-amber-300/70 transition-[filter,transform] duration-200 motion-reduce:transition-none ${isActive ? "-translate-y-1 brightness-110" : ""}`} style={{ height: barHeight(point.secondary) }} />
+                    <div className={`bar-grow w-full rounded-t bg-amber-400 transition-[filter,transform] duration-200 motion-reduce:transition-none ${isActive ? "-translate-y-1 brightness-110" : ""}`} style={{ height: barHeight(point.secondary) }} />
                   )}
                 </div>
                 <span className={`max-w-full truncate text-[10px] transition-colors ${isActive ? "font-medium text-slate-800" : "text-slate-500"}`}>{point.label}</span>
@@ -110,7 +110,7 @@ export function InteractiveBarChart({ title, points, seriesNames = ["Value"], su
           <div
             ref={tipRef}
             aria-hidden="true"
-            className={`pointer-events-none absolute left-0 top-0 z-20 w-max min-w-40 max-w-60 rounded-xl border border-white/80 bg-white/90 p-3 shadow-xl shadow-slate-900/10 backdrop-blur-md will-change-transform motion-reduce:transition-none ${glide ? "transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]" : "transition-opacity duration-150"} ${data ? "opacity-100" : "opacity-0"}`}
+            className={`pointer-events-none absolute left-0 top-0 z-20 w-max min-w-40 max-w-60 rounded-xl border border-white/80 bg-white p-3 shadow-xl shadow-slate-900/15 will-change-transform motion-reduce:transition-none ${glide ? "transition-[transform,opacity] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]" : "transition-opacity duration-150"} ${data ? "opacity-100" : "opacity-0"}`}
             style={{ transform: `translate3d(${pos.x}px, ${pos.y}px, 0)` }}
           >
             {data && (

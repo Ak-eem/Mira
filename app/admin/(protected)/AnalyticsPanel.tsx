@@ -11,6 +11,7 @@ const RANGE_OPTIONS: Array<{ value: AnalyticsRange; label: string }> = [
   { value: "7d", label: "Last 7 days" },
   { value: "30d", label: "Last 30 days" },
   { value: "month", label: "This month" },
+  { value: "all", label: "All time" },
 ];
 
 function Metric({ label, value, detail }: { label: string; value: string | number; detail?: string }) {
