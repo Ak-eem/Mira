@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { unstable_cache } from "next/cache";
 
-export type AnalyticsRange = "today" | "7d" | "30d" | "month";
+export type AnalyticsRange = "today" | "7d" | "30d" | "month" | "all";
 
 export type AnalyticsPoint = { label: string; value: number; secondary?: number };
 
@@ -70,11 +70,13 @@ function getRange(range: AnalyticsRange): { from: Date; to: Date } {
     from.setDate(1);
     from.setHours(0, 0, 0, 0);
   }
+  // "All" is everything Mira has ever recorded; a fixed early date keeps the same >= / <= query shape.
+  if (range === "all") return { from: new Date("2000-01-01T00:00:00.000Z"), to };
   return { from, to };
 }
 
 function safeRange(value: string | undefined): AnalyticsRange {
-  return value === "today" || value === "7d" || value === "30d" || value === "month" ? value : "7d";
+  return value === "today" || value === "7d" || value === "30d" || value === "month" || value === "all" ? value : "7d";
 }
 
 export function parseAnalyticsRange(value: string | undefined): AnalyticsRange {
@@ -83,6 +85,11 @@ export function parseAnalyticsRange(value: string | undefined): AnalyticsRange {
 
 function dayLabel(value: string): string {
   return new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+/** Bars are days normally, but a whole history would be hundreds of bars: "All" groups by month instead. */
+export function bucketLabel(value: string, range: AnalyticsRange): string {
+  return range === "all" ? new Date(value).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : dayLabel(value);
 }
 
 export async function getAnalyticsSnapshot(
@@ -180,7 +187,7 @@ async function getAnalyticsSnapshotWithClient(
   }
   const dayMap = new Map<string, { value: number; secondary: number }>();
   for (const row of conversationRows) {
-    const label = dayLabel(row.started_at);
+    const label = bucketLabel(row.started_at, range);
     const current = dayMap.get(label) ?? { value: 0, secondary: 0 };
     current.value += 1;
     if (row.needs_human) current.secondary += 1;
