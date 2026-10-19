@@ -19,7 +19,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
   const [status, setStatus] = useState(subscription?.status ?? "active");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [savedNote, setSavedNote] = useState<string | null>(null);
 
   async function handleSave() {
     setSaving(true);
@@ -33,8 +33,14 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
       status,
     });
     setSaving(false);
-    if (result.error) setError(result.error);
-    else setSavedAt(Date.now());
+    if (result.error) {
+      setSavedNote(null);
+      setError(result.error);
+    } else if (result.saved) {
+      const { plan: p, status: st, expires_at, trial_ends_at } = result.saved;
+      const ends = st === "trialing" ? trial_ends_at : expires_at;
+      setSavedNote(`Saved: ${p} · ${st}${ends ? ` · ends ${new Date(ends).toLocaleDateString()}` : ""}`);
+    }
   }
 
   return (
@@ -113,7 +119,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
           >
             {saving ? "Saving…" : "Save"}
           </button>
-          {savedAt && <span className="text-xs text-emerald-600">Saved</span>}
+          {savedNote && <span className="text-xs text-emerald-600">{savedNote}</span>}
         </div>
       </div>
     </div>

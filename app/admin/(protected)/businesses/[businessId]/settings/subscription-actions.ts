@@ -13,7 +13,7 @@ export async function updateSubscription(input: {
   nudgesTier: "basic" | "plus" | "";
   maxNudgesPerCustomerPerWeek: string;
   status: "trialing" | "active" | "past_due" | "cancelled";
-}): Promise<{ error: string | null }> {
+}): Promise<{ error: string | null; saved?: { plan: string; status: string; expires_at: string | null; trial_ends_at: string | null } }> {
   const admin = await getCurrentAdmin();
   if (!admin) return { error: "Not authenticated." };
 
@@ -46,6 +46,18 @@ export async function updateSubscription(input: {
 
   if (error) return { error: error.message };
 
+  // Read the row back so the admin sees what is actually stored, not what the form
+  // held. A save that changed nothing (or changed something else) must not look fine.
+  const { data: saved, error: readError } = await supabase
+    .from("business_subscriptions")
+    .select("plan, status, expires_at, trial_ends_at")
+    .eq("business_id", input.businessId)
+    .maybeSingle();
+  if (readError || !saved) return { error: readError?.message ?? "Saved, but the row could not be read back." };
+  if (saved.plan !== input.plan || saved.status !== input.status) {
+    return { error: `Save did not take effect: stored plan is "${saved.plan}", status "${saved.status}".` };
+  }
+
   const change = describeSubscriptionChange(before, {
     plan: input.plan,
     status: input.status,
@@ -55,5 +67,7 @@ export async function updateSubscription(input: {
   });
   await logActivity(input.businessId, "business", input.businessId, "updated", `${change} (by ${admin.email})`);
   revalidatePath(`/admin/businesses/${input.businessId}/settings`);
-  return { error: null };
+  revalidatePath("/admin/businesses");
+  revalidatePath("/portal", "layout");
+  return { error: null, saved };
 }
