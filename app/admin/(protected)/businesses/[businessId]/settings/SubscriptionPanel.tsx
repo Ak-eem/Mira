@@ -8,7 +8,7 @@ type Subscription = {
   nudges_addon: boolean;
   nudges_tier: "basic" | "plus" | null;
   max_nudges_per_customer_per_week: number;
-  status: "active" | "past_due" | "cancelled";
+  status: "trialing" | "active" | "past_due" | "cancelled";
 } | null;
 
 export function SubscriptionPanel({ businessId, subscription }: { businessId: string; subscription: Subscription }) {
@@ -61,8 +61,9 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
             <select
               className="mt-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
               value={status}
-              onChange={(e) => setStatus(e.target.value as "active" | "past_due" | "cancelled")}
+              onChange={(e) => setStatus(e.target.value as "trialing" | "active" | "past_due" | "cancelled")}
             >
+              <option value="trialing">Trialing</option>
               <option value="active">Active</option>
               <option value="past_due">Past due</option>
               <option value="cancelled">Cancelled</option>
