@@ -7,6 +7,8 @@ import { getAgentSettings } from "@/lib/agentSettings";
 import { PromptEditor } from "./PromptEditor";
 import { AgentSettingsPanel } from "./AgentSettingsPanel";
 import { OrderTakingPanel } from "./OrderTakingPanel";
+import { BrandColorPanel } from "./BrandColorPanel";
+import { getBrandColor } from "@/lib/brandSettings";
 import { GroundingPanel } from "./GroundingPanel";
 import { getGroundingSettings } from "@/lib/grounding/settings";
 import { CancelSubscriptionPanel } from "./CancelSubscriptionPanel";
@@ -28,7 +30,7 @@ export default async function PortalSettingsPage({ params }: PageProps) {
   if (!owner || !membership) redirect("/portal/login");
 
   const supabase = await createClient();
-  const [draft, active, history, agentSettings, orderTakingEnabled, { data: emailBusiness }, groundingSettings] = await Promise.all([
+  const [draft, active, history, agentSettings, orderTakingEnabled, { data: emailBusiness }, groundingSettings, brandColor] = await Promise.all([
     getCurrentDraft(businessId),
     getActiveRelease(businessId),
     getPublishedHistory(businessId),
@@ -36,6 +38,7 @@ export default async function PortalSettingsPage({ params }: PageProps) {
     getOrderTakingEnabled(businessId),
     supabase.from("businesses").select("email_inbound_address, slug").eq("id", businessId).maybeSingle(),
     getGroundingSettings(supabase, businessId),
+    getBrandColor(businessId),
   ]);
   const businessName = membership.name ?? "your business";
   const inboundAddress: string | null = emailBusiness?.email_inbound_address ?? null;
@@ -70,6 +73,13 @@ export default async function PortalSettingsPage({ params }: PageProps) {
       <OrderTakingPanel
         businessId={businessId}
         initialEnabled={orderTakingEnabled}
+        canEdit={membership.role === "owner"}
+      />
+
+      <BrandColorPanel
+        businessId={businessId}
+        businessName={businessName}
+        initialColor={brandColor}
         canEdit={membership.role === "owner"}
       />
 

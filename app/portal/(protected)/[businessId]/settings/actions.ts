@@ -8,6 +8,8 @@ import { saveDraft, publishRelease } from "@/lib/promptReleases";
 import { updateAgentSettings } from "@/lib/agentSettings";
 import { updateOrderTakingEnabled } from "@/lib/orderSettings";
 import { updateGroundingSettings } from "@/lib/groundingSettings";
+import { updateBrandColor } from "@/lib/brandSettings";
+import { checkBrandColor } from "@/lib/brandColor";
 import type { ProviderName } from "@/lib/ai/geminiFetch";
 
 // Both actions require the caller to actually be linked to this business
@@ -97,6 +99,27 @@ export async function saveOrderTaking(businessId: string, enabled: boolean) {
   }
 
   const { error } = await updateOrderTakingEnabled(businessId, enabled);
+  if (error) return { error };
+
+  revalidatePath(`/portal/${businessId}/settings`);
+  return { error: null };
+}
+
+// Owner-only: the colour customers see on the chat page and website widget. Pass null
+// to go back to Mira's default. Validated here as well as in the database.
+export async function saveBrandColor(businessId: string, color: string | null) {
+  const { owner, role } = await requireMembership(businessId);
+  if (!owner || !role) return { error: "Not authorized." };
+  if (role !== "owner") return { error: "Only the business owner can change this." };
+
+  let value: string | null = null;
+  if (color !== null) {
+    const checked = checkBrandColor(color);
+    if (!checked.ok) return { error: checked.error };
+    value = checked.color;
+  }
+
+  const { error } = await updateBrandColor(businessId, value);
   if (error) return { error };
 
   revalidatePath(`/portal/${businessId}/settings`);

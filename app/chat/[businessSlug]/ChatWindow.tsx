@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
+import { brandTheme } from "@/lib/brandColor";
 import { BusinessNotFound } from "./BusinessNotFound";
 import { Nunito } from "next/font/google";
 import { linkifyContent } from "@/lib/linkify";
@@ -112,11 +113,15 @@ export function ChatWindow({
   businessName,
   openNow,
   embedMode = false,
+  brandColor = null,
 }: {
   businessSlug: string;
   businessName: string;
   openNow: boolean | null;
   embedMode?: boolean;
+  // Owner's brand colour (#rrggbb) or null for Mira's default. Applied as CSS variables on
+  // the chat's root, so every accent-coloured element picks it up.
+  brandColor?: string | null;
 }) {
   const [visitorId] = useState(() => {
     const storageKey = `mira_visitor_${businessSlug}`;
@@ -609,9 +614,19 @@ export function ChatWindow({
     );
   }
 
+  const theme = brandColor ? brandTheme(brandColor) : null;
+  const brandStyle = theme
+    ? ({
+        "--color-accent": theme.accent,
+        "--color-accent-dark": theme.accentDark,
+        "--color-on-accent": theme.onAccent,
+      } as React.CSSProperties)
+    : undefined;
+
   return (
     <div
       className={`${embedMode ? "flex h-full flex-col" : "flex min-h-screen flex-col"} mira-wash ${nunito.className}`}
+      style={brandStyle}
     >
       <header
         className={
@@ -660,7 +675,7 @@ export function ChatWindow({
               type="button"
               onClick={confirmEndConversation}
               disabled={ending}
-              className="rounded-sm bg-accent px-2 py-1 font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+              className="rounded-sm bg-accent px-2 py-1 font-medium text-on-accent hover:bg-accent-dark disabled:opacity-50"
             >
               End chat
             </button>
@@ -678,7 +693,7 @@ export function ChatWindow({
               type="button"
               onClick={() => markOrderReceived(order.id)}
               disabled={markingOrderId === order.id}
-              className="shrink-0 rounded-sm bg-accent px-2 py-1 font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+              className="shrink-0 rounded-sm bg-accent px-2 py-1 font-medium text-on-accent hover:bg-accent-dark disabled:opacity-50"
             >
               {markingOrderId === order.id ? "Saving..." : "I received it"}
             </button>
@@ -711,7 +726,7 @@ export function ChatWindow({
                   type="button"
                   disabled={notificationSaving || !notificationEmail.trim()}
                   onClick={saveNotificationConsent}
-                  className="glass-hover rounded-sm bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+                  className="glass-hover rounded-sm bg-accent px-3 py-2 text-sm font-medium text-on-accent hover:bg-accent-dark disabled:opacity-50"
                 >
                   {notificationSaving ? "Saving..." : "Yes, notify me"}
                 </button>
@@ -760,7 +775,7 @@ export function ChatWindow({
                 {renderAssistantContent(m.content)}
               </div>
             ) : (
-              <span className="inline-block max-w-[85%] rounded-lg bg-accent px-3 py-2 text-sm text-white shadow-[0_8px_20px_-12px_rgba(15,118,110,0.6)]">
+              <span className="inline-block max-w-[85%] rounded-lg bg-accent px-3 py-2 text-sm text-on-accent shadow-[0_8px_20px_-12px_rgba(15,118,110,0.6)]">
                 {linkifyContent(m.content)}
               </span>
             )}
@@ -909,7 +924,7 @@ export function ChatWindow({
           <button
             type="submit"
             disabled={sending || !input.trim()}
-            className="glass-hover rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+            className="glass-hover rounded-sm bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-dark disabled:opacity-50"
           >
             Send
           </button>
