@@ -153,6 +153,16 @@ export default function PortalSignupPage() {
         return;
       }
 
+      // With Supabase's "Confirm email" on, signUp returns no session and the RPC
+      // below would run unauthenticated. The email is confirmed above, so sign in.
+      if (!data.session) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) {
+          setError("Account created. Sign in to finish setting up your business.");
+          return;
+        }
+      }
+
       // Businesses are admin-only to insert directly (see migration 0001) --
       // this RPC is the one sanctioned way a fresh signup creates its own
       // business and gets a 14-day trial in a single atomic call.
