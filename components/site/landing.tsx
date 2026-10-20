@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { cx, naira } from '@/lib/site/format'
+import { SUPPORT_EMAIL, SUPPORT_WHATSAPP_DISPLAY, SUPPORT_WHATSAPP_URL } from '@/lib/site/contact'
 import { Aurora, InlineIcon } from './hero'
 import GlassSurface from './GlassSurface'
 import { Icon } from './icons'
@@ -14,6 +15,7 @@ const NAV = [
   ['Features', '#features'],
   ['Industries', '#industries'],
   ['Pricing', '#pricing'],
+  ['Contact', '#contact'],
 ] as const
 
 export function Nav() {
@@ -412,9 +414,9 @@ export function Footer() {
   const [sending, setSending] = useState(false)
   const [contactError, setContactError] = useState('')
   return (
-    <footer className="mt-6 bg-mist">
+    <footer id="contact" className="mt-6 scroll-mt-24 bg-mist">
       <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-16 sm:px-8 lg:grid-cols-2 lg:py-20">
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <h2 className="flex items-center gap-5 text-[40px] leading-[1.02] font-medium tracking-[-0.035em] sm:text-[56px]">
             Let’s get
             <br />
@@ -437,7 +439,7 @@ export function Footer() {
         </div>
 
         <form
-          className="flex flex-col gap-3 rounded-card bg-surface p-6 shadow-soft"
+          className="flex min-w-0 flex-col gap-3 rounded-card bg-surface p-6 shadow-soft"
           onSubmit={async (e) => {
             e.preventDefault()
             const form = e.currentTarget
@@ -487,14 +489,38 @@ export function Footer() {
           )}
         </form>
       </div>
-      <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-4 border-t border-line px-5 py-6 text-[13px] text-muted sm:px-8">
-        <Logo className="text-ink" />
-        <span>miraapp.com.ng</span>
-        <span className="flex gap-4">
-          <a href="/login" className="hover:text-ink">
-            Log in
-          </a>
-        </span>
+      <div className="mx-auto max-w-[1240px] border-t border-line px-5 py-8 text-[13px] text-muted sm:px-8">
+        <div className="flex flex-wrap items-start justify-between gap-8">
+          <div className="flex max-w-xs flex-col gap-3">
+            <Logo className="text-ink" />
+            <p>AI customer service for Nigerian businesses. Answers on your website, WhatsApp and email, from your own products and policies.</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="font-medium text-ink">Talk to a person</p>
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-ink">
+              {SUPPORT_EMAIL}
+            </a>
+            <a href={SUPPORT_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="hover:text-ink">
+              WhatsApp {SUPPORT_WHATSAPP_DISPLAY}
+            </a>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="font-medium text-ink">Company</p>
+            <a href="/terms" className="hover:text-ink">
+              Terms of service
+            </a>
+            <a href="/privacy" className="hover:text-ink">
+              Privacy policy
+            </a>
+            <a href="/login" className="hover:text-ink">
+              Log in
+            </a>
+          </div>
+        </div>
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-5">
+          <span>© {new Date().getFullYear()} Mira · miraapp.com.ng</span>
+          <span>Payments processed securely by Paystack</span>
+        </div>
       </div>
     </footer>
   )
