@@ -1,6 +1,14 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { getRequestUser } from "@/lib/supabase/request";
 
-export default function SignupCompletePage() {
+export default async function SignupCompletePage() {
+  // Anyone who finished signup is already signed in (password signup signs them in,
+  // and so does Google), so go straight to their dashboard. The "sign in" card below
+  // is only the fallback for a session that didn't carry over.
+  const user = await getRequestUser();
+  if (user) redirect("/portal");
+
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-12 text-slate-900">
       <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(165,243,252,0.4),transparent_42%)]" />
