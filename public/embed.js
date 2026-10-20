@@ -39,6 +39,16 @@
 
   var host = document.createElement("div");
   host.id = "mira-chat-widget-host";
+  // Colours live in CSS variables on the host so the business's brand colour (returned by
+  // the status check below) can be applied without rebuilding the widget. data-primary-color
+  // on the script tag still works and is the fallback when no brand colour is set.
+  function setColors(bg, fg) {
+    if (host.style && host.style.setProperty) {
+      host.style.setProperty("--mira-bg", bg);
+      host.style.setProperty("--mira-fg", fg);
+    }
+  }
+  setColors(primaryColor, "#ffffff");
   var shadow = host.attachShadow({ mode: "open" });
 
   var style = document.createElement("style");
@@ -47,7 +57,7 @@
     ".mira-bubble {",
     "  position: fixed; bottom: 20px; right: 20px; z-index: 2147483000;",
     "  width: 56px; height: 56px; border-radius: 999px; border: none; cursor: pointer;",
-    "  background: " + primaryColor + "; box-shadow: 0 6px 20px rgba(0,0,0,0.25);",
+    "  background: var(--mira-bg); color: var(--mira-fg); box-shadow: 0 6px 20px rgba(0,0,0,0.25);",
     "  display: flex; align-items: center; justify-content: center;",
     "  transition: transform 0.15s ease;",
     "}",
@@ -65,12 +75,12 @@
     ".mira-panel.mira-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }",
     ".mira-panel-header {",
     "  display: flex; align-items: center; justify-content: space-between;",
-    "  padding: 12px 14px; background: " + primaryColor + "; color: white;",
+    "  padding: 12px 14px; background: var(--mira-bg); color: var(--mira-fg);",
     "  font: 600 14px/1.3 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;",
     "  flex-shrink: 0;",
     "}",
     ".mira-panel-close {",
-    "  background: transparent; border: none; color: white; cursor: pointer;",
+    "  background: transparent; border: none; color: inherit; cursor: pointer;",
     "  width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center;",
     "}",
     ".mira-panel-close:hover { background: rgba(255,255,255,0.15); }",
@@ -91,7 +101,7 @@
   bubble.className = "mira-bubble";
   bubble.setAttribute("aria-label", title);
   bubble.innerHTML =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
     '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' +
     "</svg>";
 
@@ -196,7 +206,12 @@
     var timer = setTimeout(function () { finish(true); }, 4000);
     fetch(origin + "/api/embed/status?slug=" + encodeURIComponent(businessSlug), { cache: "no-store" })
       .then(function (res) { return res.json(); })
-      .then(function (data) { clearTimeout(timer); finish(!(data && data.available === false)); })
+      .then(function (data) {
+        clearTimeout(timer);
+        var hex = /^#[0-9a-fA-F]{6}$/;
+        if (data && hex.test(data.brandColor) && hex.test(data.onBrandColor)) setColors(data.brandColor, data.onBrandColor);
+        finish(!(data && data.available === false));
+      })
       .catch(function () { clearTimeout(timer); finish(true); });
   }
 

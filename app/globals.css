@@ -9,6 +9,7 @@
 @theme {
   --color-accent: #0f2a22;
   --color-accent-dark: #08170f;
+  --color-on-accent: #ffffff;
   --color-marigold: #f2a900;
 
   --color-slate-50: #f7f2e7;

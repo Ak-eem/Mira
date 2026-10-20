@@ -12,6 +12,8 @@ const MIRA = "https://mira.example";
 
 // Just enough DOM for embed.js: elements that track their parent, a body, a shadow root.
 class FakeEl {
+  styleProps: Record<string, string> = {};
+  style = { setProperty: (name: string, value: string) => { this.styleProps[name] = value; } };
   parentNode: FakeEl | null = null;
   children: FakeEl[] = [];
   className = "";
@@ -92,6 +94,22 @@ async function run() {
     on.fetched[0] === `${MIRA}/api/embed/status?slug=acme%20shop`,
     "asks Mira's status endpoint for the slug (url-encoded) on the Mira origin",
   );
+
+  // Brand colour: applied from the status answer; anything that isn't a plain hex is ignored.
+  check(on.body.children[0].styleProps["--mira-bg"] === "#0f766e", "no brand colour: the widget keeps its default colour");
+  const branded = runEmbed(() =>
+    Promise.resolve({ json: () => Promise.resolve({ available: true, brandColor: "#1a7f5a", onBrandColor: "#ffffff" }) }),
+  );
+  await tick();
+  check(
+    branded.body.children[0].styleProps["--mira-bg"] === "#1a7f5a" && branded.body.children[0].styleProps["--mira-fg"] === "#ffffff",
+    "a brand colour from the status check recolours the widget",
+  );
+  const hostile = runEmbed(() =>
+    Promise.resolve({ json: () => Promise.resolve({ available: true, brandColor: "red;background:url(//evil)", onBrandColor: "#fff" }) }),
+  );
+  await tick();
+  check(hostile.body.children[0].styleProps["--mira-bg"] === "#0f766e", "a non-hex colour in the answer is ignored");
 
   // The point of the feature: a cancelled business never shows anything.
   const off = runEmbed(answer(false));
