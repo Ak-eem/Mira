@@ -125,6 +125,12 @@ return;
             </div>
           </div>
 
+          <div className="-mt-2 text-right">
+            <Link href="/forgot-password" className="text-xs font-medium text-accent transition hover:underline">
+              Forgot password?
+            </Link>
+          </div>
+
           {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
 
           <button
