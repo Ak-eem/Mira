@@ -48,7 +48,6 @@ export type RecentConversation = Awaited<ReturnType<PortalOrderActions["listRece
 
 type PortalSettingsActions = typeof import("../../app/portal/(protected)/[businessId]/settings/actions");
 export type SavePromptDraftInput = Parameters<PortalSettingsActions["savePromptDraft"]>[0];
-export type SaveAgentSettingsArgs = Parameters<PortalSettingsActions["saveAgentSettings"]>;
 export type SaveOrderTakingArgs = Parameters<PortalSettingsActions["saveOrderTaking"]>;
 export type SaveGroundingSettingsArgs = Parameters<PortalSettingsActions["saveGroundingSettings"]>;
 export type PromotePromptReleaseArgs = Parameters<PortalSettingsActions["promotePromptRelease"]>;
@@ -238,7 +237,6 @@ export const DESIGN_DASHBOARD_ADAPTER = {
     supported: [
       "savePromptDraft(input)",
       "promotePromptRelease(businessId, releaseId)",
-      "saveAgentSettings(businessId, enabled, provider)",
       "saveOrderTaking(businessId, enabled)",
       "saveGroundingSettings(businessId, reviewLevel, escalateRepeat)",
     ],

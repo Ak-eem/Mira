@@ -3,9 +3,7 @@ import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
 import { EmailForwardingGuide } from "@/components/EmailForwardingGuide";
 import { getCurrentDraft, getActiveRelease, getPublishedHistory } from "@/lib/promptReleases";
-import { getAgentSettings } from "@/lib/agentSettings";
 import { PromptEditor } from "./PromptEditor";
-import { AgentSettingsPanel } from "./AgentSettingsPanel";
 import { OrderTakingPanel } from "./OrderTakingPanel";
 import { BrandColorPanel } from "./BrandColorPanel";
 import { getBrandColor } from "@/lib/brandSettings";
@@ -30,11 +28,10 @@ export default async function PortalSettingsPage({ params }: PageProps) {
   if (!owner || !membership) redirect("/portal/login");
 
   const supabase = await createClient();
-  const [draft, active, history, agentSettings, orderTakingEnabled, { data: emailBusiness }, groundingSettings, brandColor] = await Promise.all([
+  const [draft, active, history, orderTakingEnabled, { data: emailBusiness }, groundingSettings, brandColor] = await Promise.all([
     getCurrentDraft(businessId),
     getActiveRelease(businessId),
     getPublishedHistory(businessId),
-    getAgentSettings(businessId),
     getOrderTakingEnabled(businessId),
     supabase.from("businesses").select("email_inbound_address, slug").eq("id", businessId).maybeSingle(),
     getGroundingSettings(supabase, businessId),
@@ -62,13 +59,6 @@ export default async function PortalSettingsPage({ params }: PageProps) {
           <EmbedSnippet slug={emailBusiness.slug} businessName={businessName} />
         </div>
       )}
-
-      <AgentSettingsPanel
-        businessId={businessId}
-        initialEnabled={agentSettings.enabled}
-        initialProvider={agentSettings.provider}
-        canEdit={membership.role === "owner"}
-      />
 
       <OrderTakingPanel
         businessId={businessId}

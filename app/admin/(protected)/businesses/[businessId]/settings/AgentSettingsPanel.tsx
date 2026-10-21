@@ -38,9 +38,10 @@ export function AgentSettingsPanel({
         <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Additional section</p>
         <h2 className="mt-1 text-lg font-semibold">Inventory assistant</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Owner-facing toggle -- lets the business owner have Mira make stock/price/availability
-          changes via the portal, with their confirmation required. Off by default; this doesn&apos;t
-          affect Command Center access here in admin either way.
+          Always on for owners (migration 0066) -- they have no toggle for it. Every change still
+          needs the owner&apos;s own confirmation. This switch is the platform kill switch: turn it
+          off to disable the inventory assistant for this one business. It doesn&apos;t affect
+          Command Center access here in admin either way.
         </p>
       </div>
 
