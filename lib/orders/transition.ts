@@ -8,7 +8,11 @@ import {
   type OrderStatus,
 } from "@/lib/orders/status";
 
-export type TransitionActor = "staff" | "customer";
+// "courier": a connected logistics provider's webhook (e.g. Shiip)
+// reporting a status change itself, not a human. Added alongside
+// order_shipments in migration 0064 -- see lib/logistics/shiipWebhook.ts
+// for the only current caller.
+export type TransitionActor = "staff" | "customer" | "courier";
 
 export type TransitionResult = { ok: true; changed: boolean } | { ok: false; error: string };
 
@@ -92,7 +96,7 @@ export async function transitionOrderStatus(
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = { status: to, status_changed_at: now };
   if (to === "confirmed") patch.confirmed_at = now;
-  if (to === "delivered") patch.delivered_by = actor === "customer" ? "customer" : "staff";
+  if (to === "delivered") patch.delivered_by = actor;
 
   const { data: updated, error: updateError } = await supabase
     .from("orders")
