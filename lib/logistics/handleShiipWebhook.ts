@@ -81,7 +81,7 @@ export async function handleShiipWebhook(
   // The actual join: courier_reference scoped to business_id (and
   // provider) is how this can never cross-match another business's
   // order, even if two different businesses' couriers coincidentally
-  // return the same reference string -- see migration 0064's unique
+  // return the same reference string -- see migration 0065's unique
   // index and its own comment for why that's structurally guaranteed,
   // not just convention.
   const { data: shipment, error: shipmentError } = await supabase

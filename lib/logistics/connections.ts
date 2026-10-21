@@ -5,7 +5,7 @@ type SupabaseClient = ReturnType<typeof createServiceRoleClient>;
 
 // Couriers Mira can receive delivery webhooks from. Validated here, in
 // application code, rather than as a DB CHECK: adding a courier later
-// should be a code change, not a migration (see 0064's comment on
+// should be a code change, not a migration (see 0065's comment on
 // businesses.logistics_provider).
 export const SUPPORTED_PROVIDERS = ["shiip"] as const;
 export type LogisticsProvider = (typeof SUPPORTED_PROVIDERS)[number];
@@ -177,7 +177,7 @@ export async function linkShipmentToOrder(
   });
   if (inserted.error) {
     // 23505 = the (business_id, provider, courier_reference) unique index
-    // from 0064: this reference is already linked to an order here.
+    // from 0065: this reference is already linked to an order here.
     if (inserted.error.code === "23505") return { ok: false, error: "That reference is already linked to an order." };
     console.error("linkShipmentToOrder: insert failed", inserted.error);
     return { ok: false, error: "Couldn't link that shipment. Please try again." };

@@ -10,7 +10,7 @@ import {
 
 // "courier": a connected logistics provider's webhook (e.g. Shiip)
 // reporting a status change itself, not a human. Added alongside
-// order_shipments in migration 0064 -- see lib/logistics/shiipWebhook.ts
+// order_shipments in migration 0065 -- see lib/logistics/shiipWebhook.ts
 // for the only current caller.
 export type TransitionActor = "staff" | "customer" | "courier";
 

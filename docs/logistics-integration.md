@@ -20,7 +20,7 @@ come from Shiip's published docs (developer.goshiip.com).
    which sends the usual customer notification.
 
 Isolation comes from the lookup always being scoped by `business_id`
-(and the unique index in migration 0064), not from references being
+(and the unique index in migration 0065), not from references being
 globally unique. Two businesses can hold identical reference strings
 without ever matching each other's orders.
 
