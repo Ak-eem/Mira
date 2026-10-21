@@ -36,6 +36,11 @@ export default async function HoursPage({
     <div className="max-w-lg">
       <h1 className="text-2xl font-semibold tracking-tight text-ink">Opening hours</h1>
       <p className="mb-6 mt-1 text-sm text-muted">When you are open, so Mira can answer whether you are open correctly.</p>
+      {byDay.every((day) => day.closed) && (
+        <p className="mb-4 rounded-xl border border-amber-200 bg-amber-50/70 px-4 py-3 text-sm text-amber-800">
+          You haven&apos;t set your opening hours yet. Until you do, Mira won&apos;t tell customers whether you are open or closed. Untick &quot;Closed&quot; on the days you open and set the times.
+        </p>
+      )}
       <HoursForm businessId={businessId} initialDays={byDay} />
     </div>
   );

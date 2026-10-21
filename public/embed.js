@@ -6,6 +6,9 @@
  *           data-business="your-business-slug"
  *           data-title="Chat with us"
  *           data-primary-color="#0f766e"
+ *           data-position="right"    (optional: "right" (default) or "left")
+ *           data-offset-x="20"       (optional: px from that side edge, default 20)
+ *           data-offset-y="20"       (optional: px from the bottom, default 20; raise it to clear your own buttons)
  *           defer></script>
  *
  * No dependencies, works on any site regardless of framework. Styles live
@@ -31,6 +34,18 @@
 
   var title = scriptEl.getAttribute("data-title") || "Chat with us";
   var primaryColor = scriptEl.getAttribute("data-primary-color") || "#0f766e";
+  // Where the chat button sits. Mira cannot see the host page, so a site that already has a floating button
+  // (cart, WhatsApp...) in the bottom-right corner can move this one with data-position / data-offset-*.
+  var side = scriptEl.getAttribute("data-position") === "left" ? "left" : "right";
+  function pxAttr(name, fallback) {
+    var n = parseInt(scriptEl.getAttribute(name), 10);
+    return isFinite(n) && n >= 0 && n <= 400 ? n : fallback;
+  }
+  var offsetX = pxAttr("data-offset-x", 20);
+  var offsetY = pxAttr("data-offset-y", 20);
+  var panelBottom = offsetY + 68; // the panel opens just above the button
+  // Leave at least 88px free above the panel so it never covers the host page's sticky header (and its cart icon).
+  var panelHeightCss = "min(600px, calc(100vh - " + (panelBottom + 88) + "px))";
   var origin = new URL(scriptEl.src, window.location.href).origin;
   var chatUrl = origin + "/chat/" + encodeURIComponent(businessSlug) + "?embed=1";
 
@@ -45,7 +60,7 @@
   style.textContent = [
     ":host, * { box-sizing: border-box; }",
     ".mira-bubble {",
-    "  position: fixed; bottom: 20px; right: 20px; z-index: 2147483000;",
+    "  position: fixed; bottom: " + offsetY + "px; " + side + ": " + offsetX + "px; z-index: 2147483000;",
     "  width: 56px; height: 56px; border-radius: 999px; border: none; cursor: pointer;",
     "  background: " + primaryColor + "; box-shadow: 0 6px 20px rgba(0,0,0,0.25);",
     "  display: flex; align-items: center; justify-content: center;",
@@ -55,8 +70,8 @@
     ".mira-bubble:focus-visible { outline: 2px solid white; outline-offset: 2px; }",
     ".mira-bubble svg { width: 26px; height: 26px; }",
     ".mira-panel {",
-    "  position: fixed; bottom: 88px; right: 20px; z-index: 2147483000;",
-    "  width: 380px; max-width: calc(100vw - 24px); height: 600px; max-height: calc(100vh - 120px);",
+    "  position: fixed; bottom: " + panelBottom + "px; " + side + ": " + offsetX + "px; z-index: 2147483000;",
+    "  width: 380px; max-width: calc(100vw - 24px); height: " + panelHeightCss + "; min-height: 280px;",
     "  background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.25);",
     "  display: flex; flex-direction: column; overflow: hidden;",
     "  opacity: 0; transform: translateY(12px) scale(0.98); pointer-events: none;",
@@ -77,8 +92,8 @@
     ".mira-panel iframe { flex: 1; border: none; width: 100%; height: 100%; }",
     "@media (max-width: 480px) {",
     "  .mira-panel {",
-    "    right: 12px; left: 12px; bottom: 88px; width: auto; max-width: none;",
-    "    height: calc(100vh - 120px);",
+    "    right: 12px; left: 12px; bottom: " + panelBottom + "px; width: auto; max-width: none;",
+    "    height: " + panelHeightCss + ";",
     "  }",
     "}",
     "@media (prefers-reduced-motion: reduce) {",
