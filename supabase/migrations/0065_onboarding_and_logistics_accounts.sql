@@ -26,14 +26,17 @@ CREATE TABLE IF NOT EXISTS public.business_logistics_accounts (
     id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
     business_id uuid NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
     provider text NOT NULL,
-    -- Credentials are encrypted in application code (TypeScript) before
-    -- this column is ever written, with the key held in an env var that
-    -- never touches Postgres -- see lib/logistics/credentials.ts. This
-    -- column stores ciphertext (base64), never plaintext, and nothing in
-    -- SQL ever decrypts it: anyone with only database access (a leaked
-    -- service-role key, a DB backup) gets unusable bytes, not a live
-    -- courier credential.
-    encrypted_credentials text NOT NULL,
+    -- The courier's API credentials, for the day Mira books shipments
+    -- itself. NULLABLE on purpose and unused today: delivery tracking only
+    -- needs the webhook secret below, and a credential Mira never uses is
+    -- all risk and no benefit, so it is not collected until booking exists.
+    -- When written it is encrypted in application code (TypeScript) with a
+    -- key held in an env var that never touches Postgres -- see
+    -- lib/logistics/credentials.ts. This column stores ciphertext (base64),
+    -- never plaintext, and nothing in SQL ever decrypts it: anyone with only
+    -- database access (a leaked service-role key, a DB backup) gets unusable
+    -- bytes, not a live courier credential.
+    encrypted_credentials text,
     -- Per-provider, not a single platform-wide secret (unlike Paystack):
     -- each business sets up their OWN webhook URL in their OWN Shiip
     -- dashboard, so each connection has its own signing secret. Also
@@ -55,10 +58,20 @@ CREATE INDEX IF NOT EXISTS idx_logistics_accounts_business
 
 ALTER TABLE public.business_logistics_accounts ENABLE ROW LEVEL SECURITY;
 
--- Mirrors the owner-access pattern used throughout (e.g. business_owners
--- checks in 0001/0014). Only the owning business's own members can see or
--- manage their own courier connection -- never another business's, and
--- never a plain customer's.
+-- READ-ONLY from a browser session, on purpose. Members of the owning
+-- business (owner or staff) can see that a connection exists -- the Orders
+-- page needs that to know whether to offer 'Track delivery' -- but nothing
+-- can write to this table with a user session. Writes happen only through
+-- the server actions in app/portal/.../settings/courier-actions.ts, which
+-- check the caller is the business OWNER and then use the service role.
+--
+-- Why not an owner-write policy like 0060's? is_business_owner() matches
+-- ANY row in business_owners, staff included, so a 'for all' policy on it
+-- would let a staff member's own browser session replace the webhook
+-- secret or disconnect the courier, bypassing the owner-only check.
+-- is_business_owner_role() would fix that, but with no write policy at all
+-- there is nothing to get wrong. Cross-business reads are impossible
+-- either way: every policy is scoped to the caller's own business.
 -- CREATE POLICY has no IF NOT EXISTS in Postgres (unlike tables/indexes),
 -- so each is wrapped to keep this migration safely re-runnable like every
 -- other one in this repo.
@@ -69,22 +82,15 @@ BEGIN
             FOR SELECT
             USING (is_business_owner(business_id));
     END IF;
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'business_logistics_accounts' AND policyname = 'logistics_accounts_owner_all') THEN
-        CREATE POLICY logistics_accounts_owner_all ON public.business_logistics_accounts
-            FOR ALL
-            USING (is_business_owner(business_id))
-            WITH CHECK (is_business_owner(business_id));
-    END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'business_logistics_accounts' AND policyname = 'logistics_accounts_platform_admin') THEN
         CREATE POLICY logistics_accounts_platform_admin ON public.business_logistics_accounts
-            FOR ALL
-            USING (is_platform_admin())
-            WITH CHECK (is_platform_admin());
+            FOR SELECT
+            USING (is_platform_admin());
     END IF;
 END $$;
 
 REVOKE ALL ON public.business_logistics_accounts FROM anon;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.business_logistics_accounts TO authenticated;
+GRANT SELECT ON public.business_logistics_accounts TO authenticated;
 GRANT ALL ON public.business_logistics_accounts TO service_role;
 
 -- Shipment bookings, one row per order shipped through a connected

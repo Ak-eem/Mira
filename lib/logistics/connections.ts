@@ -19,30 +19,27 @@ export type ActionResult = { ok: true } | { ok: false; error: string };
 const MAX_SECRET_LENGTH = 512;
 
 /**
- * Connects (or re-connects) a business to a courier. Credentials are
- * encrypted HERE, before anything is written -- the plaintext never
- * reaches the database or a log line. If an active connection already
- * exists it is updated in place rather than disconnected-then-recreated:
- * a single-row UPDATE can't leave a business with no connection if the
- * second step of a two-step swap failed.
+ * Connects (or re-connects) a business to a courier. Only the webhook
+ * secret is collected: it's all delivery tracking needs, and Mira doesn't
+ * call the courier's API in the link-a-reference flow, so asking for an
+ * API key as well would mean storing a credential we never use. The
+ * secret is encrypted HERE, before anything is written -- the plaintext
+ * never reaches the database or a log line. If an active connection
+ * already exists it is updated in place rather than
+ * disconnected-then-recreated: a single-row UPDATE can't leave a business
+ * with no connection if the second step of a two-step swap failed.
  */
 export async function saveConnection(
   supabase: SupabaseClient,
-  args: { businessId: string; provider: unknown; apiKey: unknown; webhookSecret: unknown },
+  args: { businessId: string; provider: unknown; webhookSecret: unknown },
 ): Promise<ActionResult> {
   if (!isSupportedProvider(args.provider)) return { ok: false, error: "Unsupported courier." };
-  const apiKey = typeof args.apiKey === "string" ? args.apiKey.trim() : "";
   const webhookSecret = typeof args.webhookSecret === "string" ? args.webhookSecret.trim() : "";
-  if (!apiKey) return { ok: false, error: "Enter your API key." };
   if (!webhookSecret) return { ok: false, error: "Enter your webhook secret." };
-  if (apiKey.length > MAX_SECRET_LENGTH || webhookSecret.length > MAX_SECRET_LENGTH) {
-    return { ok: false, error: "That value is too long." };
-  }
+  if (webhookSecret.length > MAX_SECRET_LENGTH) return { ok: false, error: "That value is too long." };
 
-  let encryptedCredentials: string;
   let encryptedWebhookSecret: string;
   try {
-    encryptedCredentials = encryptCredential(JSON.stringify({ apiKey }));
     encryptedWebhookSecret = encryptCredential(webhookSecret);
   } catch (error) {
     // Almost always a missing/malformed LOGISTICS_CREDENTIALS_KEY. The
@@ -68,7 +65,6 @@ export async function saveConnection(
     const updated = await supabase
       .from("business_logistics_accounts")
       .update({
-        encrypted_credentials: encryptedCredentials,
         encrypted_webhook_secret: encryptedWebhookSecret,
         updated_at: now,
       })
@@ -84,7 +80,6 @@ export async function saveConnection(
   const inserted = await supabase.from("business_logistics_accounts").insert({
     business_id: args.businessId,
     provider: args.provider,
-    encrypted_credentials: encryptedCredentials,
     encrypted_webhook_secret: encryptedWebhookSecret,
   });
   if (inserted.error) {

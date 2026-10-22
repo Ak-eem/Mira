@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
 import { EmailForwardingGuide } from "@/components/EmailForwardingGuide";
 import { getCurrentDraft, getActiveRelease, getPublishedHistory } from "@/lib/promptReleases";
 import { PromptEditor } from "./PromptEditor";
 import { OrderTakingPanel } from "./OrderTakingPanel";
+import { CourierPanel } from "./CourierPanel";
 import { BrandColorPanel } from "./BrandColorPanel";
 import { getBrandColor } from "@/lib/brandSettings";
 import { GroundingPanel } from "./GroundingPanel";
@@ -28,7 +30,7 @@ export default async function PortalSettingsPage({ params }: PageProps) {
   if (!owner || !membership) redirect("/portal/login");
 
   const supabase = await createClient();
-  const [draft, active, history, orderTakingEnabled, { data: emailBusiness }, groundingSettings, brandColor] = await Promise.all([
+  const [draft, active, history, orderTakingEnabled, { data: emailBusiness }, groundingSettings, brandColor, courier] = await Promise.all([
     getCurrentDraft(businessId),
     getActiveRelease(businessId),
     getPublishedHistory(businessId),
@@ -36,7 +38,22 @@ export default async function PortalSettingsPage({ params }: PageProps) {
     supabase.from("businesses").select("email_inbound_address, slug").eq("id", businessId).maybeSingle(),
     getGroundingSettings(supabase, businessId),
     getBrandColor(businessId),
+    // Non-secret columns only; the encrypted webhook secret is never read into a page.
+    supabase
+      .from("business_logistics_accounts")
+      .select("id")
+      .eq("business_id", businessId)
+      .eq("provider", "shiip")
+      .eq("status", "active")
+      .maybeSingle(),
   ]);
+  // If this read fails (e.g. the migration isn't applied yet) the panel is
+  // hidden rather than offering a connection that can't be saved.
+  const courierAvailable = !courier.error;
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "https";
+  const courierWebhookUrl = `${protocol}://${host}/api/webhooks/shiip/${businessId}`;
   const businessName = membership.name ?? "your business";
   const inboundAddress: string | null = emailBusiness?.email_inbound_address ?? null;
 
@@ -65,6 +82,15 @@ export default async function PortalSettingsPage({ params }: PageProps) {
         initialEnabled={orderTakingEnabled}
         canEdit={membership.role === "owner"}
       />
+
+      {courierAvailable && (
+        <CourierPanel
+          businessId={businessId}
+          connected={Boolean(courier.data)}
+          webhookUrl={courierWebhookUrl}
+          canEdit={membership.role === "owner"}
+        />
+      )}
 
       <BrandColorPanel
         businessId={businessId}

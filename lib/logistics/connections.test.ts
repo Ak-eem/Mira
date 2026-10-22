@@ -77,29 +77,29 @@ async function run() {
   // --- saveConnection ---
   {
     const { client, tables } = fakeDb();
-    const r = await saveConnection(client, { businessId: A, provider: "shiip", apiKey: "sk_live_PLAINTEXT_KEY", webhookSecret: "whsec_PLAINTEXT" });
+    const r = await saveConnection(client, { businessId: A, provider: "shiip", webhookSecret: "whsec_PLAINTEXT" });
     check(r.ok === true, "saves a new connection");
     const row = tables.business_logistics_accounts[0];
-    const stored = JSON.stringify(row);
-    check(!stored.includes("sk_live_PLAINTEXT_KEY") && !stored.includes("whsec_PLAINTEXT"), "plaintext api key and webhook secret never reach the stored row");
+    check(!JSON.stringify(row).includes("whsec_PLAINTEXT"), "the plaintext webhook secret never reaches the stored row");
     check(decryptCredential(row.encrypted_webhook_secret as string) === "whsec_PLAINTEXT", "the stored webhook secret decrypts back to the original");
-    check(JSON.parse(decryptCredential(row.encrypted_credentials as string)).apiKey === "sk_live_PLAINTEXT_KEY", "the stored credentials decrypt back to the original api key");
+    check(row.encrypted_credentials === undefined, "no API credential is stored at all: nothing in Mira uses one, so none is collected");
   }
   {
     const { client, tables } = fakeDb();
-    await saveConnection(client, { businessId: A, provider: "shiip", apiKey: "k1", webhookSecret: "s1" });
-    const firstCiphertext = tables.business_logistics_accounts[0].encrypted_credentials;
-    const r = await saveConnection(client, { businessId: A, provider: "shiip", apiKey: "k2", webhookSecret: "s2" });
+    await saveConnection(client, { businessId: A, provider: "shiip", webhookSecret: "s1" });
+    const first = tables.business_logistics_accounts[0].encrypted_webhook_secret;
+    const r = await saveConnection(client, { businessId: A, provider: "shiip", webhookSecret: "s2" });
     check(r.ok === true && tables.business_logistics_accounts.length === 1, "saving again updates the existing active connection in place, not a second row");
-    check(tables.business_logistics_accounts[0].encrypted_credentials !== firstCiphertext, "the in-place update actually replaced the credentials");
+    check(tables.business_logistics_accounts[0].encrypted_webhook_secret !== first, "the in-place update actually replaced the secret");
+    check(decryptCredential(tables.business_logistics_accounts[0].encrypted_webhook_secret as string) === "s2", "and the new value is the one stored");
   }
   {
     const { client } = fakeDb();
-    check((await saveConnection(client, { businessId: A, provider: "dhl", apiKey: "k", webhookSecret: "s" })).ok === false, "an unsupported courier is rejected");
-    check((await saveConnection(client, { businessId: A, provider: "shiip", apiKey: "  ", webhookSecret: "s" })).ok === false, "a blank api key is rejected");
-    check((await saveConnection(client, { businessId: A, provider: "shiip", apiKey: "k", webhookSecret: "" })).ok === false, "a blank webhook secret is rejected");
-    check((await saveConnection(client, { businessId: A, provider: "shiip", apiKey: 123, webhookSecret: "s" })).ok === false, "a non-string api key from a crafted call is rejected");
-    check((await saveConnection(client, { businessId: A, provider: "shiip", apiKey: "x".repeat(600), webhookSecret: "s" })).ok === false, "an oversized value is rejected");
+    check((await saveConnection(client, { businessId: A, provider: "dhl", webhookSecret: "s" })).ok === false, "an unsupported courier is rejected");
+    check((await saveConnection(client, { businessId: A, provider: "shiip", webhookSecret: "" })).ok === false, "a blank webhook secret is rejected");
+    check((await saveConnection(client, { businessId: A, provider: "shiip", webhookSecret: "   " })).ok === false, "a whitespace-only webhook secret is rejected");
+    check((await saveConnection(client, { businessId: A, provider: "shiip", webhookSecret: 123 })).ok === false, "a non-string secret from a crafted call is rejected");
+    check((await saveConnection(client, { businessId: A, provider: "shiip", webhookSecret: "x".repeat(600) })).ok === false, "an oversized value is rejected");
   }
   {
     const saved = process.env.LOGISTICS_CREDENTIALS_KEY;
@@ -107,7 +107,7 @@ async function run() {
     const { client, tables } = fakeDb();
     const origError = console.error;
     console.error = () => {};
-    const r = await saveConnection(client, { businessId: A, provider: "shiip", apiKey: "k", webhookSecret: "s" });
+    const r = await saveConnection(client, { businessId: A, provider: "shiip", webhookSecret: "s" });
     console.error = origError;
     check(r.ok === false && tables.business_logistics_accounts.length === 0, "with no encryption key configured, nothing is written (never falls back to storing plaintext)");
     check(r.ok === false && !/KEY|env/i.test(r.error), "the owner-facing error doesn't leak the internal reason");
