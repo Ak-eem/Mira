@@ -1,20 +1,44 @@
 BEGIN;
 
--- Onboarding: a business can now be left mid-wizard (closed the tab,
--- answered 2 of 4 questions) without losing where they got to, and the
--- portal can tell "never started" apart from "finished" apart from
--- "started and abandoned" by checking these two columns together.
-ALTER TABLE public.businesses
-    ADD COLUMN IF NOT EXISTS onboarding_completed_at timestamptz,
-    -- Free text, not a fixed enum: the real courier list will grow past
-    -- Shiip (GIGL, Kwik, DHL, Courier Plus...) and a CHECK constraint would
-    -- need a migration every time a new one is added. Validated in
-    -- application code against a known list instead; NULL means "no
-    -- courier chosen yet / does their own delivery", which is a normal,
-    -- common, permanent state -- not a placeholder waiting to be filled in.
-    ADD COLUMN IF NOT EXISTS logistics_provider text,
-    ADD COLUMN IF NOT EXISTS wants_email_channel boolean,
-    ADD COLUMN IF NOT EXISTS tracks_inventory boolean;
+-- Onboarding answers, saved in one go when the signup wizard finishes or
+-- is skipped (see complete_onboarding below). onboarding_completed_at IS
+-- NULL means "a new signup who hasn't been through setup"; once set (by
+-- finishing OR skipping) the dashboard stops sending them there.
+--
+-- Existing businesses are marked complete ONCE, at the moment the column
+-- is first added: they signed up long before this wizard existed and must
+-- not be pushed through it on their next login. The guard (did the column
+-- already exist?) is what makes that one-time -- without it, re-applying
+-- this file would mark every business that has since been created
+-- (and never onboarded) as complete too. Same hazard as 0066.
+DO $$
+DECLARE
+    had_column boolean;
+BEGIN
+    had_column := EXISTS (
+        SELECT 1
+          FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = 'businesses'
+           AND column_name = 'onboarding_completed_at'
+    );
+
+    ALTER TABLE public.businesses
+        ADD COLUMN IF NOT EXISTS onboarding_completed_at timestamptz,
+        -- Free text, not a fixed enum: the courier list will grow past
+        -- Shiip (GIGL, Kwik, DHL...) and a CHECK would need a migration
+        -- each time. Validated in application code against a known list
+        -- (lib/onboarding.ts) instead. NULL means "didn't answer / skipped";
+        -- a business that delivers itself is recorded as 'self', so those
+        -- two stay distinguishable.
+        ADD COLUMN IF NOT EXISTS logistics_provider text,
+        ADD COLUMN IF NOT EXISTS wants_email_channel boolean,
+        ADD COLUMN IF NOT EXISTS tracks_inventory boolean;
+
+    IF NOT had_column THEN
+        UPDATE public.businesses SET onboarding_completed_at = now();
+    END IF;
+END $$;
 
 -- One row per (business, courier) connection. A business could plausibly
 -- connect more than one courier over time (switch providers, use two for
@@ -159,5 +183,46 @@ END $$;
 REVOKE ALL ON public.order_shipments FROM anon;
 GRANT SELECT ON public.order_shipments TO authenticated;
 GRANT ALL ON public.order_shipments TO service_role;
+
+-- Saves the wizard's answers and marks onboarding done. Owner (or platform
+-- admin) only, the same check update_business_settings (0054) uses, and it
+-- can touch ONLY these four columns: an owner has no UPDATE on businesses,
+-- so this function is the narrow door, not a way to edit anything else.
+-- Passing every answer as NULL is how "skip for now" is recorded.
+CREATE OR REPLACE FUNCTION public.complete_onboarding(
+    p_business_id uuid,
+    p_wants_email_channel boolean DEFAULT NULL,
+    p_tracks_inventory boolean DEFAULT NULL,
+    p_logistics_provider text DEFAULT NULL
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_provider text := nullif(btrim(p_logistics_provider), '');
+BEGIN
+    IF NOT (is_platform_admin() OR is_business_admin(p_business_id)) THEN
+        RAISE EXCEPTION 'not authorized to complete onboarding for this business' USING errcode = '42501';
+    END IF;
+
+    IF v_provider IS NOT NULL AND char_length(v_provider) > 60 THEN
+        RAISE EXCEPTION 'courier name is too long' USING errcode = '22023';
+    END IF;
+
+    UPDATE public.businesses
+       SET wants_email_channel = p_wants_email_channel,
+           tracks_inventory = p_tracks_inventory,
+           logistics_provider = v_provider,
+           -- Keep the first completion time if this is run again later.
+           onboarding_completed_at = coalesce(onboarding_completed_at, now())
+     WHERE id = p_business_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.complete_onboarding(uuid, boolean, boolean, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.complete_onboarding(uuid, boolean, boolean, text) TO authenticated;
+
 
 COMMIT;

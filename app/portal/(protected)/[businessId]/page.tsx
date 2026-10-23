@@ -1,4 +1,5 @@
 import { ErrorNotice } from "@/components/ErrorNotice";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Check, Circle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
@@ -126,6 +127,22 @@ export default async function PortalDashboardPage({
   const supabase = await createClient();
   const owner = await getCurrentBusinessOwner();
   const isOwner = owner?.businesses.find((b) => b.id === businessId)?.role === "owner";
+
+  // A brand-new owner goes through setup first (migration 0065 marks every
+  // pre-existing business complete, so only new signups land here). Fails
+  // safe: if the column can't be read (migration not applied yet) nobody is
+  // redirected. Staff are never sent, and skipping setup also marks it done,
+  // so this can't trap anyone.
+  if (isOwner) {
+    const { data: onboarding, error: onboardingError } = await supabase
+      .from("businesses")
+      .select("onboarding_completed_at")
+      .eq("id", businessId)
+      .maybeSingle();
+    if (!onboardingError && onboarding && onboarding.onboarding_completed_at === null) {
+      redirect(`/portal/${businessId}/setup`);
+    }
+  }
 
   // This is a Server Component (no "use client", no hooks); it already renders fresh
   // per request. Hoisting this to module level, as the purity rule's fix suggests,
