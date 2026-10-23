@@ -5,12 +5,10 @@ import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
 import { CANCEL_CONFIRMATION_WORD } from "@/lib/cancelSubscription";
 import { saveDraft, publishRelease } from "@/lib/promptReleases";
-import { updateAgentSettings } from "@/lib/agentSettings";
 import { updateOrderTakingEnabled } from "@/lib/orderSettings";
 import { updateGroundingSettings } from "@/lib/groundingSettings";
 import { updateBrandColor } from "@/lib/brandSettings";
 import { checkBrandColor } from "@/lib/brandColor";
-import type { ProviderName } from "@/lib/ai/geminiFetch";
 
 // Both actions require the caller to actually be linked to this business
 // (any role) -- getCurrentBusinessOwner() is a UX convenience, not the
@@ -67,30 +65,9 @@ export async function promotePromptRelease(businessId: string, releaseId: string
   return { error: null, release };
 }
 
-// Controls whether the inventory assistant (app/portal/.../inventory/)
-// is allowed to write anything for this business at all, and which LLM
-// provider handles it. Owner-only -- this is a strictly more powerful
-// toggle than publish/rollback (it's the on/off switch for a whole
-// write-capable feature, not one content change), so it gets at least
-// the same protection level.
-export async function saveAgentSettings(businessId: string, enabled: boolean, provider: ProviderName) {
-  const { owner, role } = await requireMembership(businessId);
-  if (!owner || !role) return { error: "Not authorized." };
-  if (role !== "owner") {
-    return { error: "Only the business owner can change this." };
-  }
-
-  const { error } = await updateAgentSettings(businessId, enabled, provider);
-  if (error) return { error };
-
-  revalidatePath(`/portal/${businessId}/settings`);
-  revalidatePath(`/portal/${businessId}/inventory`);
-  return { error: null };
-}
-
 // Turns AI order-taking on or off for this business. Owner-only, same
 // protection level as the inventory assistant toggle: it decides whether Mira
-// may start creating orders from chat at all. Off by default.
+// may start creating orders from chat at all. On by default (0059).
 export async function saveOrderTaking(businessId: string, enabled: boolean) {
   const { owner, role } = await requireMembership(businessId);
   if (!owner || !role) return { error: "Not authorized." };

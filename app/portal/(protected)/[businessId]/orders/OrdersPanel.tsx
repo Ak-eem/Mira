@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createOrder, updateOrderStatus } from "./actions";
-import { ORDER_STATUSES, type OrderStatus } from "@/lib/orders/status";
+import { linkCourierReference } from "../settings/courier-actions";
+import { ORDER_STATUSES, OPEN_ORDER_STATUSES, type OrderStatus } from "@/lib/orders/status";
 
 type OrderItem = { name: string; quantity: number; unit_price: number | null };
 type Order = {
@@ -17,6 +19,64 @@ type Order = {
 };
 
 const STATUS_OPTIONS: readonly OrderStatus[] = ORDER_STATUSES;
+
+type Shipment = { reference: string; status: string };
+
+const SHIPMENT_LABELS: Record<string, string> = {
+  pending: "Waiting for pickup",
+  booked: "Booked",
+  picked_up: "Picked up",
+  in_transit: "On its way",
+  delivered: "Delivered",
+  failed: "Delivery failed",
+  cancelled: "Cancelled",
+};
+
+// Attach the reference Shiip gave the owner when they booked this delivery
+// in Shiip. From then on Shiip's updates reach this order on their own.
+function CourierLink({ businessId, orderId }: { businessId: string; orderId: string }) {
+  const router = useRouter();
+  const [reference, setReference] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleLink(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const result = await linkCourierReference(businessId, orderId, "shiip", reference);
+    setBusy(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setReference("");
+    router.refresh();
+  }
+
+  return (
+    <form onSubmit={handleLink} className="mt-2 space-y-1">
+      <div className="flex gap-2">
+        <input
+          value={reference}
+          onChange={(e) => setReference(e.target.value)}
+          placeholder="Shiip reference, e.g. 72d4iejm4lg0"
+          aria-label="Shiip delivery reference"
+          disabled={busy}
+          className="min-w-0 flex-1 rounded-sm border border-slate-300 px-2 py-1.5 font-mono text-xs"
+        />
+        <button
+          type="submit"
+          disabled={busy || !reference.trim()}
+          className="shrink-0 rounded-sm border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+        >
+          {busy ? "Adding…" : "Track delivery"}
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </form>
+  );
+}
 
 type RecentConversation = { identifier: string; label: string };
 
@@ -158,7 +218,17 @@ function NewOrderForm({
   );
 }
 
-function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
+function OrderRow({
+  businessId,
+  order,
+  shipment,
+  courierConnected,
+}: {
+  businessId: string;
+  order: Order;
+  shipment?: Shipment;
+  courierConnected: boolean;
+}) {
   const [status, setStatus] = useState(order.status);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -230,6 +300,17 @@ function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
           Awaiting your confirmation. The customer&apos;s chat is flagged until you confirm or cancel.
         </p>
       )}
+      {shipment ? (
+        <p className="mt-2 text-xs text-slate-600">
+          Shiip <span className="font-mono text-slate-500">{shipment.reference}</span> ·{" "}
+          <span className="font-medium">{SHIPMENT_LABELS[shipment.status] ?? shipment.status}</span>
+        </p>
+      ) : (
+        courierConnected &&
+        (OPEN_ORDER_STATUSES as readonly OrderStatus[]).includes(status) && (
+          <CourierLink businessId={businessId} orderId={order.id} />
+        )
+      )}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </li>
   );
@@ -239,10 +320,14 @@ export function OrdersPanel({
   businessId,
   orders,
   recentConversations,
+  courierConnected = false,
+  shipments = {},
 }: {
   businessId: string;
   orders: Order[];
   recentConversations: RecentConversation[];
+  courierConnected?: boolean;
+  shipments?: Record<string, Shipment>;
 }) {
   return (
     <div className="space-y-6">
@@ -257,7 +342,13 @@ export function OrdersPanel({
         ) : (
           <ul className="space-y-2">
             {orders.map((order) => (
-              <OrderRow key={order.id} businessId={businessId} order={order} />
+              <OrderRow
+                key={order.id}
+                businessId={businessId}
+                order={order}
+                shipment={shipments[order.id]}
+                courierConnected={courierConnected}
+              />
             ))}
           </ul>
         )}
