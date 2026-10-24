@@ -1,3 +1,6 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { AddSheet } from "@/components/ui/Sheet";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { NewProductForm } from "@/app/admin/(protected)/businesses/[businessId]/products/NewProductForm";
@@ -29,12 +32,30 @@ export default async function ProductsPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight text-ink">Products</h1>
-      <p className="mb-6 mt-1 text-sm text-muted">What Mira tells customers about price, stock and availability.</p>
+      <PageHeader
+        title="Products"
+        subtitle="What Mira tells customers about price, stock and availability."
+        action={products?.length ? (
+          <AddSheet label="Add product">
+            <NewProductForm businessId={businessId} />
+          </AddSheet>
+        ) : undefined}
+      />
 
-      <ProductList products={products ?? []} currency={business?.currency ?? ""} />
-
-      <NewProductForm businessId={businessId} />
+      {products?.length ? (
+        <ProductList products={products} currency={business?.currency ?? ""} />
+      ) : (
+        <EmptyState
+          icon="bag"
+          title="No products yet"
+          description="Add what you sell, with prices and stock, so Mira can answer customers accurately."
+          action={
+            <AddSheet label="Add your first product">
+              <NewProductForm businessId={businessId} />
+            </AddSheet>
+          }
+        />
+      )}
     </div>
   );
 }

@@ -1,10 +1,12 @@
 "use client";
 
+import { useSheetClose } from "@/components/ui/Sheet";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createProduct, uploadProductImage } from "./actions";
 
 export function NewProductForm({ businessId }: { businessId: string }) {
+  const closeSheet = useSheetClose();
   const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -55,58 +57,64 @@ export function NewProductForm({ businessId }: { businessId: string }) {
     setImageFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     setSubmitting(false);
+    closeSheet();
     router.refresh();
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="text-sm font-semibold">Add a product</h2>
+    <form onSubmit={handleSubmit} className="space-y-4">
 
-      <input
-        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
-        placeholder="Name (e.g. Ankara Tote Bag)"
+      <div>
+        <label htmlFor="f-name" className="ui-label">Name</label>
+        <input id="f-name"
+        className="ui-field" placeholder="e.g. Ankara Tote Bag"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        required
-      />
-      <input
-        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
-        placeholder="Description (optional)"
+        required />
+      </div>
+      <div>
+        <label htmlFor="f-description-optional" className="ui-label">Description (optional)</label>
+        <input id="f-description-optional"
+        className="ui-field"
         value={description}
-        onChange={(e) => setDescription(e.target.value)}
-      />
+        onChange={(e) => setDescription(e.target.value)} />
+      </div>
       <div className="flex gap-2">
-        <input
-          className="flex-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
-          placeholder="Price"
+        <div className="flex-1">
+        <label htmlFor="f-price" className="ui-label">Price</label>
+        <input id="f-price"
+          className="ui-field"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           inputMode="decimal"
-          required
-        />
-        <input
-          className="flex-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
-          placeholder="Stock (blank = untracked)"
+          required />
+      </div>
+        <div className="flex-1">
+        <label htmlFor="f-stock" className="ui-label">Stock</label>
+        <input id="f-stock"
+          className="ui-field"
           value={stockQuantity}
           onChange={(e) => setStockQuantity(e.target.value)}
-          inputMode="numeric"
-        />
+          inputMode="numeric" />
+        <p className="ui-hint mt-1">Blank = untracked</p>
       </div>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
-        Available
+      </div>
+      <label className="ui-row justify-between rounded-xl bg-white shadow-[0_0_0_1px_rgb(15_42_34/0.06)]">
+        <span className="text-[15px] font-medium text-slate-900">Available</span>
+        <input type="checkbox" role="switch" className="ui-switch" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
       </label>
       {!isAvailable && (
-        <input
-          className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
-          placeholder="Note (e.g. 'restocking next week')"
+        <div>
+        <label htmlFor="f-note" className="ui-label">Note</label>
+        <input id="f-note"
+          className="ui-field" placeholder="e.g. 'restocking next week'"
           value={availabilityNote}
-          onChange={(e) => setAvailabilityNote(e.target.value)}
-        />
+          onChange={(e) => setAvailabilityNote(e.target.value)} />
+      </div>
       )}
 
       <div>
-        <label className="mb-1 block text-xs font-medium text-slate-500">Photo (optional, JPEG/PNG/WebP/GIF, up to 5MB)</label>
+        <label className="ui-label">Photo (optional, JPEG/PNG/WebP/GIF, up to 5MB)</label>
         <input
           ref={fileInputRef}
           type="file"
@@ -121,7 +129,8 @@ export function NewProductForm({ businessId }: { businessId: string }) {
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        aria-busy={submitting}
+        className="ui-btn ui-btn-primary w-full"
       >
         {submitting ? "Adding…" : "Add product"}
       </button>
