@@ -68,9 +68,9 @@ check("uncovered payment method -> medium", run("You can pay with mobile money."
 check("another uncovered payment method -> medium", run("We also accept cash on delivery.").verdict === "medium");
 
 // ---- fallback + unchecked
-check("fallback sentence -> low", run("I don't have that information for Ada's Store yet -- I'd recommend contacting them directly to confirm.").verdict === "low");
+check("fallback sentence -> low", run("I don't have that information for Ada's Store yet. I'd recommend contacting them directly to confirm.").verdict === "low");
 check("plain chat with no checkable facts -> unchecked", run("Sure, happy to help! Which dress are you interested in?").verdict === "unchecked");
-check("fallback signal is labelled", run("I don't have that information for Ada's Store yet -- I'd recommend contacting them directly to confirm.").signals[0]?.type === "fallback");
+check("fallback signal is labelled", run("I don't have that information for Ada's Store yet. I'd recommend contacting them directly to confirm.").signals[0]?.type === "fallback");
 
 // ---- robustness
 check("empty reply does not throw", run("").verdict === "unchecked");

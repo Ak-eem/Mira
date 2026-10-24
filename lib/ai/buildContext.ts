@@ -272,15 +272,21 @@ export async function buildBusinessContext(
   });
   const hoursLines: string[] = [];
 
-  for (let day = 0; day < 7; day += 1) {
-    const row = (hours ?? []).find((item) => item.day_of_week === day);
-    if (!row || !row.opens_at || !row.closes_at) {
-      hoursLines.push(`- ${WEEKDAY_NAMES[day]}: closed`);
-    } else {
-      hoursLines.push(`- ${WEEKDAY_NAMES[day]}: ${formatTime(row.opens_at)}-${formatTime(row.closes_at)}`);
+  if (openNow === null) {
+    // No opening hours have been entered (every day defaults to "closed" in the editor). Saying "closed every day"
+    // would make the assistant tell customers the shop is shut, so say plainly that the hours are unknown.
+    hoursLines.push("Opening hours have not been set up. Do not say whether the business is open or closed and do not give hours; say you don't have them and suggest contacting the business directly.");
+  } else {
+    for (let day = 0; day < 7; day += 1) {
+      const row = (hours ?? []).find((item) => item.day_of_week === day);
+      if (!row || !row.opens_at || !row.closes_at) {
+        hoursLines.push(`- ${WEEKDAY_NAMES[day]}: closed`);
+      } else {
+        hoursLines.push(`- ${WEEKDAY_NAMES[day]}: ${formatTime(row.opens_at)}-${formatTime(row.closes_at)}`);
+      }
     }
+    hoursLines.push(`Currently: ${openNow ? "OPEN" : "CLOSED"} (${business.timezone})`);
   }
-  hoursLines.push(`Currently: ${openNow ? "OPEN" : "CLOSED"} (${business.timezone})`);
   if (business.hours_note) hoursLines.push(`Note: ${business.hours_note}`);
 
   const contactLinks = buildContactLinks(business.social_links);

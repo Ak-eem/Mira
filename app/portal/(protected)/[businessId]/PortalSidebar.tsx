@@ -100,8 +100,8 @@ export function PortalSidebar({
   ];
 
   const panel = (
-    <div className="flex flex-col gap-6">
-      <div className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3 shadow-soft">
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-line bg-surface p-3 shadow-soft">
         <span
           aria-hidden="true"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-marigold text-sm font-semibold text-ink"
@@ -124,7 +124,7 @@ export function PortalSidebar({
         </div>
       </div>
 
-      <nav aria-label="Business navigation" className="flex-1 space-y-5 overflow-y-auto">
+      <nav aria-label="Business navigation" className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
         {groups.map((group) => {
           const items = group.items.filter((item) => !item.ownerOnly || isOwner);
           if (items.length === 0) return null;
@@ -160,7 +160,7 @@ export function PortalSidebar({
         })}
       </nav>
 
-      <div className="space-y-3 border-t border-line pt-3">
+      <div className="shrink-0 space-y-3 border-t border-line pt-3">
         <div className="rounded-xl bg-lime/70 p-3 text-xs text-ink">
           <p className="font-medium">{planLabel}</p>
           {showUpgrade && (
@@ -196,7 +196,7 @@ export function PortalSidebar({
       </div>
 
       <aside className="hidden w-56 shrink-0 lg:block">
-        <div className="glass-panel-strong sticky top-24 max-h-[calc(100vh-7rem)] overflow-y-auto rounded-xl p-3">{panel}</div>
+        <div className="glass-panel-strong sticky top-24 h-[calc(100vh-7rem)] rounded-xl p-3">{panel}</div>
       </aside>
 
       {open && (
