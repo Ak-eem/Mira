@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { TeamPanel } from "./TeamPanel";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -18,11 +19,7 @@ export default async function PortalTeamPage({ params }: PageProps) {
   return (
     <div className="max-w-lg space-y-4">
       <div>
-        <h1 className="mb-1 mt-2 text-xl font-semibold">Team</h1>
-        <p className="text-sm text-slate-500">
-          Invite the people who help you run {membership.name}. Staff can work conversations and orders and
-          save AI prompt drafts. Only owners can publish prompts, change AI settings and manage the team.
-        </p>
+        <PageHeader title="Team" subtitle={<>Invite the people who help you run {membership.name}. Staff can work conversations and orders and save AI prompt drafts. Only owners can publish prompts, change AI settings and manage the team.</>} />
       </div>
 
       {membership.role === "owner" ? (

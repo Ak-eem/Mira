@@ -7,6 +7,7 @@ import { formatDateTime } from "@/lib/format";
 import { getGroundingSettings } from "@/lib/grounding/settings";
 import { CUSTOMER_REASON_LABELS, isFeedbackReason } from "@/lib/feedback/reasons";
 import { ReplyReview } from "../conversations/[conversationId]/ReplyReview";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -147,22 +148,7 @@ export default async function PortalReviewPage({ params }: PageProps) {
   return (
     <div className="max-w-2xl space-y-4">
       <div>
-        <h1 className="mb-1 mt-2 text-xl font-semibold">Needs review</h1>
-        <p className="text-sm text-slate-500">
-          Mira&apos;s replies from the last {WINDOW_DAYS} days that either mention something your business info doesn&apos;t
-          back up, or that a customer marked as not helpful. Review each one so you know what to fix: your business
-          info (wrong or outdated), an FAQ (incomplete), or the AI prompt (irrelevant or unclear).
-          {membership.role === "owner" && (
-            <>
-              {" "}
-              You can change what appears here in{" "}
-              <Link href={`/portal/${businessId}/settings`} className="underline">
-                Settings
-              </Link>
-              .
-            </>
-          )}
-        </p>
+        <PageHeader title="Needs review" subtitle={<>Mira&apos;s replies from the last {WINDOW_DAYS} days that either mention something your business info doesn&apos;t back up, or that a customer marked as not helpful. Review each one so you know what to fix: your business info (wrong or outdated), an FAQ (incomplete), or the AI prompt (irrelevant or unclear). {membership.role === "owner" && ( <> {" "} You can change what appears here in{" "} <Link href={`/portal/${businessId}/settings`} className="underline"> Settings </Link> . </> )}</>} />
       </div>
 
       {list.length === 0 && (

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CommandCenter } from "./CommandCenter";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default async function CommandPage({
   params,
@@ -20,10 +21,7 @@ export default async function CommandPage({
 
   return (
     <div>
-      <h1 className="mb-1 mt-2 text-xl font-semibold">Command Center</h1>
-      <p className="mb-6 text-sm text-slate-500">
-        Tell Mira what to change for {business.name}. Nothing writes to your data without you confirming it first.
-      </p>
+      <PageHeader title="Command Center" subtitle={<>Tell Mira what to change for {business.name}. Nothing writes to your data without you confirming it first.</>} />
       <CommandCenter businessId={businessId} />
     </div>
   );

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createBusiness } from "./actions";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function NewBusinessPage() {
   const router = useRouter();
@@ -31,7 +32,7 @@ export default function NewBusinessPage() {
 
   return (
     <div className="max-w-md">
-      <h1 className="mb-6 text-xl font-semibold">New business</h1>
+      <PageHeader title="New business" />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
