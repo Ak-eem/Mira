@@ -119,8 +119,12 @@ declare
   current_tone text;
   current_instructions text;
   existing_release_id uuid;
-  new_release prompt_releases;
+  next_version integer;
 begin
+  -- Written directly rather than through publish_prompt_release(): that
+  -- function requires a signed-in platform or business admin, and a migration
+  -- runs as the database owner with no user session, so it always refused
+  -- here. This is seed data, so writing the release row ourselves is correct.
   select id, ai_tone, ai_instructions
     into demo_business_id, current_tone, current_instructions
   from businesses where slug = 'mira-demo-cafe';
@@ -134,10 +138,15 @@ begin
   order by version desc
   limit 1;
 
-  if existing_release_id is not null then
-    update businesses set active_prompt_release_id = existing_release_id where id = demo_business_id;
-  else
-    new_release := upsert_prompt_draft(demo_business_id, current_tone, current_instructions, 'Demo seed migration', 'system-demo-seed');
-    perform publish_prompt_release(demo_business_id, new_release.id, 'system-demo-seed');
+  if existing_release_id is null then
+    select coalesce(max(version), 0) + 1 into next_version
+    from prompt_releases where business_id = demo_business_id;
+
+    insert into prompt_releases (business_id, version, ai_tone, ai_instructions, status, note, created_by, published_by, published_at)
+    values (demo_business_id, next_version, current_tone, current_instructions, 'published',
+            'Demo seed migration', 'system-demo-seed', 'system-demo-seed', now())
+    returning id into existing_release_id;
   end if;
+
+  update businesses set active_prompt_release_id = existing_release_id where id = demo_business_id;
 end $$;
