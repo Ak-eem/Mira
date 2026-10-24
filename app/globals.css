@@ -527,3 +527,130 @@ html {
     animation: none;
   }
 }
+
+/* =============================================================================
+   Mira UI: a small design system informed by Apple's Human Interface Guidelines.
+   Clarity (type hierarchy, 44px controls, readable contrast), Deference (content first, quiet chrome),
+   Depth (three layers: page, grouped surface, floating sheet), Consistency (one control for each job),
+   Feedback (every action visibly responds), User control (confirm before destructive, easy to dismiss).
+   See docs/design-language.md.
+   ============================================================================= */
+:root {
+  --ui-ease: cubic-bezier(0.32, 0.72, 0, 1); /* iOS-style deceleration: fast start, soft landing */
+  --ui-hit: 44px; /* minimum comfortable tap target */
+}
+
+/* A visible, consistent keyboard focus ring everywhere. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--color-accent) 35%, transparent);
+  outline-offset: 2px;
+}
+
+/* Hierarchy: one large title per screen, a quiet subtitle, small caps section labels. */
+.ui-title { font-size: 1.75rem; line-height: 1.15; font-weight: 650; letter-spacing: -0.02em; color: var(--color-slate-900); }
+@media (min-width: 640px) { .ui-title { font-size: 2.125rem; } }
+.ui-subtitle { margin-top: 0.375rem; max-width: 42rem; font-size: 0.9375rem; line-height: 1.45; color: var(--color-slate-500); }
+.ui-section-label { margin: 0 0 0.5rem 1rem; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-slate-500); }
+.ui-hint { font-size: 0.8125rem; line-height: 1.4; color: var(--color-slate-500); }
+.ui-label { display: block; margin-bottom: 0.375rem; font-size: 0.8125rem; font-weight: 600; color: var(--color-slate-700); }
+
+/* Surfaces (depth level 2): quiet cards and inset grouped lists, hairline instead of heavy shadow. */
+.ui-card { border-radius: 1.25rem; background: #fff; padding: 1.25rem; box-shadow: 0 0 0 1px rgb(15 42 34 / 0.06); }
+.ui-group { overflow: hidden; border-radius: 1.25rem; background: #fff; box-shadow: 0 0 0 1px rgb(15 42 34 / 0.06); }
+.ui-row { position: relative; display: flex; min-height: var(--ui-hit); align-items: center; gap: 0.75rem; padding: 0.75rem 1rem; }
+.ui-row + .ui-row::before { content: ""; position: absolute; top: 0; right: 0; left: 1rem; height: 1px; background: var(--color-slate-200); }
+a.ui-row, button.ui-row, label.ui-row { cursor: pointer; transition: background-color 160ms var(--ui-ease); }
+a.ui-row:hover, button.ui-row:hover { background: color-mix(in srgb, var(--color-slate-100) 60%, transparent); }
+a.ui-row:active, button.ui-row:active { background: var(--color-slate-100); }
+
+/* Fields: 44px, 12px radius, persistent label above (placeholder is only a hint). */
+.ui-field {
+  width: 100%; min-height: var(--ui-hit); border-radius: 0.75rem; border: 1px solid var(--color-slate-200); background: #fff;
+  padding: 0.625rem 0.875rem; font-size: 1rem; color: var(--color-slate-900);
+  transition: border-color 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease);
+}
+.ui-field::placeholder { color: var(--color-slate-400); }
+.ui-field:focus { border-color: var(--color-accent); outline: none; box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-accent) 12%, transparent); }
+textarea.ui-field { min-height: 6rem; resize: vertical; }
+.ui-field[aria-invalid="true"] { border-color: #dc2626; }
+
+/* Buttons: obvious primary, quiet secondary, press feedback, a spinner while busy. */
+.ui-btn {
+  display: inline-flex; min-height: var(--ui-hit); align-items: center; justify-content: center; gap: 0.5rem; border-radius: 0.75rem;
+  padding: 0.5rem 1.125rem; font-size: 0.9375rem; font-weight: 600; line-height: 1; white-space: nowrap; cursor: pointer; user-select: none;
+  transition: transform 140ms var(--ui-ease), background-color 160ms var(--ui-ease), opacity 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease);
+}
+.ui-btn:active:not(:disabled) { transform: scale(0.97); }
+.ui-btn:disabled { cursor: not-allowed; opacity: 0.5; }
+.ui-btn-primary { background: var(--color-accent); color: #fff; }
+.ui-btn-primary:hover:not(:disabled) { background: var(--color-accent-dark); }
+.ui-btn-secondary { background: var(--color-slate-100); color: var(--color-slate-900); }
+.ui-btn-secondary:hover:not(:disabled) { background: var(--color-slate-200); }
+.ui-btn-plain { background: transparent; color: var(--color-accent); padding-inline: 0.75rem; }
+.ui-btn-plain:hover:not(:disabled) { background: color-mix(in srgb, var(--color-accent) 7%, transparent); }
+.ui-btn-danger { background: #fef2f2; color: #b91c1c; }
+.ui-btn-danger:hover:not(:disabled) { background: #fee2e2; }
+.ui-btn-sm { min-height: 2.25rem; padding: 0.375rem 0.875rem; font-size: 0.875rem; border-radius: 0.625rem; }
+.ui-btn[aria-busy="true"]::before {
+  content: ""; width: 0.9em; height: 0.9em; border-radius: 9999px; border: 2px solid currentColor; border-right-color: transparent; animation: ui-spin 700ms linear infinite;
+}
+@keyframes ui-spin { to { transform: rotate(360deg); } }
+
+/* Switch: for a single on/off setting, in a list row. The thumb stretches under the finger like iOS. */
+.ui-switch {
+  appearance: none; -webkit-appearance: none; position: relative; flex: none; width: 46px; height: 28px; margin: 0; cursor: pointer; border-radius: 9999px;
+  background: var(--color-slate-300); transition: background-color 240ms var(--ui-ease);
+}
+.ui-switch::after {
+  content: ""; position: absolute; top: 2px; left: 2px; width: 24px; height: 24px; border-radius: 9999px; background: #fff; box-shadow: 0 1px 3px rgb(0 0 0 / 0.3);
+  transition: transform 280ms var(--ui-ease), width 180ms var(--ui-ease);
+}
+.ui-switch:checked { background: var(--color-accent); }
+.ui-switch:checked::after { transform: translateX(18px); }
+.ui-switch:active:not(:disabled)::after { width: 29px; }
+.ui-switch:checked:active:not(:disabled)::after { transform: translateX(13px); }
+.ui-switch:disabled { cursor: not-allowed; opacity: 0.5; }
+
+/* Segmented control: 2 to 5 related views of the same content. The thumb glides between segments. */
+.ui-segmented { position: relative; display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; border-radius: 0.75rem; background: var(--color-slate-100); padding: 3px; }
+.ui-segmented-thumb {
+  position: absolute; top: 3px; bottom: 3px; left: 3px; width: calc((100% - 6px) / var(--n, 2)); border-radius: 0.55rem; background: #fff;
+  box-shadow: 0 1px 3px rgb(15 42 34 / 0.18), 0 0 0 0.5px rgb(15 42 34 / 0.06);
+  transform: translateX(calc(var(--i, 0) * 100%)); transition: transform 300ms var(--ui-ease);
+}
+.ui-segment { position: relative; z-index: 1; min-height: 2.25rem; padding: 0.25rem 0.875rem; border-radius: 0.55rem; font-size: 0.875rem; font-weight: 600; color: var(--color-slate-600); text-align: center; white-space: nowrap; transition: color 160ms var(--ui-ease); }
+.ui-segment[aria-checked="true"], .ui-segment[aria-current="page"] { color: var(--color-slate-900); }
+
+/* Sheets (depth level 3): content that needs focus floats above the page and slides up. */
+@keyframes ui-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes ui-rise { from { opacity: 0; transform: translateY(2rem) scale(0.98); } to { opacity: 1; transform: none; } }
+.ui-backdrop { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; background: rgb(8 23 15 / 0.38); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); animation: ui-fade 200ms var(--ui-ease) both; }
+@media (min-width: 640px) { .ui-backdrop { align-items: center; } }
+.ui-sheet { width: 100%; max-height: 92dvh; overflow-y: auto; border-radius: 1.75rem 1.75rem 0 0; background: var(--color-slate-50); padding: 1.25rem 1.25rem 1.5rem; box-shadow: 0 -8px 40px rgb(8 23 15 / 0.18); animation: ui-rise 340ms var(--ui-ease) both; }
+@media (min-width: 640px) { .ui-sheet { max-width: 32rem; border-radius: 1.75rem; padding: 1.5rem; } }
+
+/* Empty states explain what belongs here and offer the next step. */
+.ui-empty { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; border-radius: 1.25rem; background: #fff; padding: 2.5rem 1.5rem; text-align: center; box-shadow: 0 0 0 1px rgb(15 42 34 / 0.06); }
+
+/* Entrance: content eases in instead of popping. */
+@keyframes ui-enter { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+.ui-enter { animation: ui-enter 380ms var(--ui-ease) both; }
+
+/* "Mira is thinking": three soft dots instead of a static word. */
+.ui-typing { display: inline-flex; gap: 0.3rem; border-radius: 1.25rem; background: var(--color-slate-100); padding: 0.85rem 1rem; }
+.ui-typing span { width: 0.45rem; height: 0.45rem; border-radius: 9999px; background: var(--color-slate-400); animation: ui-bounce 1s var(--ui-ease) infinite; }
+.ui-typing span:nth-child(2) { animation-delay: 0.15s; }
+.ui-typing span:nth-child(3) { animation-delay: 0.3s; }
+@keyframes ui-bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
+
+/* Comfortable taps on touch screens. */
+@media (pointer: coarse) {
+  .ui-btn-sm, .ui-segment { min-height: var(--ui-hit); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-btn, .ui-switch, .ui-switch::after, .ui-segmented-thumb, .ui-field { transition: none; }
+  .ui-backdrop, .ui-sheet, .ui-enter { animation: none; }
+  .ui-btn[aria-busy="true"]::before { animation-duration: 1.6s; }
+  .ui-typing span { animation: none; }
+}
