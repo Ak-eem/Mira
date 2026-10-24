@@ -8,6 +8,13 @@ The Terms of Service and Privacy Policy make retention promises. This is how eac
 |---|---|---|
 | WhatsApp / email inbound queue rows (raw message + sender id) | 30 days | `/api/cron/cleanup`, daily 03:30 (`vercel.json`). The number is `INBOUND_QUEUE_RETENTION_DAYS` in `lib/retention.ts`, which the legal pages also read. |
 
+## Owner deletion requests
+
+Owners can also ask for their account to be deleted in Portal > Settings > Delete account.
+This records the request in the activity log (it shows on the business's Admin > Settings
+page) and emails the operator at `CUSTOM_REQUEST_TO_EMAIL` (or `CONTACT_TO_EMAIL`). Nothing is
+deleted automatically: confirm with the owner by email, then use **Delete business**.
+
 ## Manual: deleting a business 30 days after it cancels
 
 Owners cancel themselves in Portal > Settings > Cancel subscription. That switches Mira
