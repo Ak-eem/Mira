@@ -300,13 +300,13 @@ export default async function PortalDashboardPage({
       done: knowledge > 0,
       title: "Teach Mira about your business",
       description: "Import from your website, or add your products, hours and FAQs.",
-      href: `${base}/settings#import-website`,
+      href: `${base}/settings?tab=info#import-website`,
     },
     {
       done: (totalConversations ?? 0) > 0,
       title: "Get your first conversation",
       description: "Add the chat widget to your site and send a test message.",
-      href: `${base}/settings#add-widget`,
+      href: `${base}/settings?tab=widget#add-widget`,
     },
     ...(isOwner
       ? [{ done: (inviteCount ?? 0) > 0, title: "Invite a teammate", description: "Let staff answer the chats Mira hands over.", href: `${base}/team` }]
