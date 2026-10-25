@@ -23,7 +23,7 @@ export function OrderTakingPanel({ businessId, initialEnabled, canEdit }: { busi
         <label htmlFor="order-taking" className="ui-row justify-between">
           <span className="min-w-0">
             <span className="block text-[15px] font-medium text-slate-900">Let Mira take orders in chat</span>
-            <span className="ui-hint mt-0.5 block">The customer sees an exact summary and must reply yes. The order then waits for your confirmation on the Orders page, and their chat is flagged for your team. Mira never takes payment.</span>
+            <span className="ui-hint mt-0.5 block">On for new businesses; turn it off if you would rather take orders yourself. When on, the customer sees an exact summary and must reply yes. The order then waits for your confirmation on the Orders page, and their chat is flagged for your team. Mira never takes payment.</span>
           </span>
           <input id="order-taking" type="checkbox" role="switch" className="ui-switch" checked={enabled} disabled={!canEdit} onChange={(e) => change(e.target.checked)} />
         </label>
