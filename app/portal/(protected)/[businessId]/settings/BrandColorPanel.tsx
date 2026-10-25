@@ -48,9 +48,9 @@ export function BrandColorPanel({
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+    <section className="ui-card space-y-4">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Brand colour</p>
+        <p className="ui-section-label !ml-0">Brand colour</p>
         <h2 className="mt-1 text-lg font-semibold">Make the chat match your brand</h2>
         <p className="mt-1 text-sm text-slate-500">
           Pick the main colour of your business. It colours the buttons and your customers&apos; messages in the
@@ -68,7 +68,7 @@ export function BrandColorPanel({
             setText(e.target.value);
             setNote(null);
           }}
-          className="h-11 w-14 cursor-pointer rounded-sm border border-slate-300 bg-white p-1 disabled:cursor-not-allowed"
+          className="h-11 w-14 cursor-pointer rounded-xl border border-slate-200 bg-white p-1 disabled:cursor-not-allowed"
         />
         <input
           type="text"
@@ -87,7 +87,7 @@ export function BrandColorPanel({
       </div>
 
       {/* Live preview: a customer's message, Mira's reply and the send button. */}
-      <div className="max-w-sm space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-label="Preview">
+      <div className="max-w-sm space-y-2 rounded-2xl bg-slate-100/70 p-4" aria-label="Preview">
         <p className="text-xs text-slate-500">Preview · {businessName}</p>
         <div className="flex justify-end">
           <span
@@ -98,7 +98,7 @@ export function BrandColorPanel({
           </span>
         </div>
         <div>
-          <span className="inline-block max-w-[85%] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700">
+          <span className="inline-block max-w-[85%] rounded-2xl bg-white px-3.5 py-2 text-sm text-slate-700 ring-1 ring-slate-900/10">
             Yes! Delivery to Lekki is ₦2,000.
           </span>
         </div>
@@ -121,7 +121,7 @@ export function BrandColorPanel({
             type="button"
             onClick={() => check.ok && persist(check.color)}
             disabled={busy || !check.ok || !dirty}
-            className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-dark disabled:opacity-50"
+            className="ui-btn ui-btn-primary"
           >
             {busy ? "Saving…" : "Save colour"}
           </button>
@@ -130,7 +130,7 @@ export function BrandColorPanel({
               type="button"
               onClick={() => persist(null)}
               disabled={busy}
-              className="ui-field font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="ui-btn ui-btn-secondary"
             >
               Use Mira&apos;s default
             </button>

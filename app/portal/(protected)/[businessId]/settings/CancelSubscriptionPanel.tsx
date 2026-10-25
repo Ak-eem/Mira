@@ -58,7 +58,7 @@ export function CancelSubscriptionPanel({ businessId, businessName }: { business
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               autoComplete="off"
-              className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              className="ui-field"
             />
           </label>
           {error && <p className="text-sm text-red-600">{error}</p>}
@@ -79,7 +79,7 @@ export function CancelSubscriptionPanel({ businessId, businessName }: { business
                 setError(null);
               }}
               disabled={working}
-              className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
+              className="ui-btn ui-btn-secondary"
             >
               Keep my subscription
             </button>

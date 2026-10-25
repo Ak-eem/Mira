@@ -181,11 +181,11 @@ export function TeamPanel({ businessId }: { businessId: string }) {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+      <section className="ui-card space-y-3">
         <h2 className="text-lg font-semibold">People with access</h2>
 
         {loadError && <p className="text-sm text-red-600">{loadError}</p>}
-        {!loadError && members === null && <p className="text-sm text-slate-400">Loading…</p>}
+        {!loadError && members === null && <p className="text-sm text-slate-500">Loading…</p>}
 
         {members && (
           <ul className="divide-y divide-slate-100">
@@ -217,7 +217,7 @@ export function TeamPanel({ businessId }: { businessId: string }) {
                     type="button"
                     disabled={busyId === member.id}
                     onClick={() => removeMember(member)}
-                    className="text-slate-400 hover:text-red-600 disabled:opacity-50"
+                    className="text-slate-500 hover:text-red-600 disabled:opacity-50"
                   >
                     Remove
                   </button>
@@ -230,7 +230,7 @@ export function TeamPanel({ businessId }: { businessId: string }) {
       </section>
 
       {invites.length > 0 && (
-        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+        <section className="ui-card space-y-3">
           <h2 className="text-lg font-semibold">Pending invitations</h2>
           <ul className="divide-y divide-slate-100">
             {invites.map((invite) => (
@@ -254,7 +254,7 @@ export function TeamPanel({ businessId }: { businessId: string }) {
                     type="button"
                     disabled={busyId === invite.id}
                     onClick={() => revokeInvite(invite)}
-                    className="text-slate-400 hover:text-red-600 disabled:opacity-50"
+                    className="text-slate-500 hover:text-red-600 disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -265,7 +265,7 @@ export function TeamPanel({ businessId }: { businessId: string }) {
         </section>
       )}
 
-      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+      <section className="ui-card space-y-3">
         <h2 className="text-lg font-semibold">Invite someone</h2>
         <p className="text-sm text-slate-500">
           They&apos;ll get an email with a link to join as staff. You can make them an owner afterwards.

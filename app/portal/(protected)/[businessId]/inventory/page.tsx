@@ -21,7 +21,7 @@ export default async function InventoryAssistantPage({ params }: PageProps) {
     <div>
       <PageHeader title="Inventory assistant" subtitle={<>Tell Mira what changed in stock, price, or availability. Nothing writes to your data without you confirming it first.</>} />
       {!agentSettings.enabled ? (
-        <p className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+        <p className="rounded-xl bg-slate-100/70 p-4 text-sm text-slate-500">
           The inventory assistant is turned off. {membership.role === "owner" ? (
             <a href={`/portal/${businessId}/settings`} className="text-accent hover:underline">
               Turn it on in Settings
@@ -33,7 +33,7 @@ export default async function InventoryAssistantPage({ params }: PageProps) {
       ) : membership.role === "owner" ? (
         <CommandCenter businessId={businessId} />
       ) : (
-        <p className="rounded-lg border border-slate-200 bg-slate-50 p-4 text-sm text-slate-500">
+        <p className="rounded-xl bg-slate-100/70 p-4 text-sm text-slate-500">
           Only the business owner can use the inventory assistant.
         </p>
       )}

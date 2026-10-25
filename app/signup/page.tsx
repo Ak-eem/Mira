@@ -173,8 +173,7 @@ export default function SignupPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-12 text-slate-900">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(165,243,252,0.4),transparent_42%)]" />
+    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12 text-slate-900">
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">
           <Link href="/" className="text-sm font-semibold tracking-tight text-slate-600 transition hover:text-accent">
@@ -184,7 +183,7 @@ export default function SignupPage() {
           <p className="mt-2 text-sm text-slate-600">Get your business ready for what’s next.</p>
         </div>
 
-        <div className="space-y-5 rounded-4xl border border-white/80 bg-white/65 p-7 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl sm:p-8">
+        <div className="ui-card ui-enter space-y-5 !p-6 sm:!p-8">
           <GoogleAuthButton next="/portal/signup/complete" label="Sign up with Google" />
 
           <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -195,10 +194,10 @@ export default function SignupPage() {
 
           <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label htmlFor="field-email" className="block text-sm font-medium text-slate-700">Email</label>
+            <label htmlFor="field-email" className="ui-label">Email</label>
             <input id="field-email"
               type="email"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
+              className="ui-field"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -224,7 +223,7 @@ export default function SignupPage() {
 
           {verificationSent && !emailVerified && (
             <div>
-              <p id="otp-label" className="block text-sm font-medium text-slate-700">6-digit verification code</p>
+              <p id="otp-label" className="ui-label">6-digit verification code</p>
               <div className="mt-2" role="group" aria-labelledby="otp-label">
                 <CodeSlots
                   length={6}
@@ -260,10 +259,10 @@ export default function SignupPage() {
           {emailVerified && <p className="text-sm text-green-600">Email verified. You can create your account.</p>}
 
           <div>
-            <label htmlFor="field-password" className="block text-sm font-medium text-slate-700">Password</label>
+            <label htmlFor="field-password" className="ui-label">Password</label>
             <input id="field-password"
               type="password"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
+              className="ui-field"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               minLength={6}
@@ -272,10 +271,10 @@ export default function SignupPage() {
           </div>
 
           <div>
-            <label htmlFor="field-confirm-password" className="block text-sm font-medium text-slate-700">Confirm password</label>
+            <label htmlFor="field-confirm-password" className="ui-label">Confirm password</label>
             <input id="field-confirm-password"
               type="password"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm outline-hidden transition focus:border-accent focus:ring-4 focus:ring-cyan-100"
+              className="ui-field"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               minLength={6}
@@ -283,12 +282,12 @@ export default function SignupPage() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+          {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
 
           <button
             type="submit"
             disabled={submitting || !emailVerified}
-            className="w-full rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-200/70 transition hover:bg-accent-dark disabled:opacity-50"
+            className="ui-btn ui-btn-primary w-full"
           >
             {submitting ? "Creating account…" : "Create account"}
           </button>

@@ -196,13 +196,13 @@ export default function PortalSignupPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-12 text-slate-900">
+    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12 text-slate-900">
       <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(165,243,252,0.4),transparent_42%)]" />
       <div className="relative w-full max-w-sm">
         <h1 className="mb-8 text-center text-2xl font-semibold tracking-tight text-slate-900">
           Mira <span className="font-normal text-accent">for Business</span>
         </h1>
-        <div className="space-y-4 rounded-4xl border border-white/80 bg-white/65 p-7 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl sm:p-8">
+        <div className="ui-card ui-enter space-y-4 !p-6 sm:!p-8">
           <GoogleAuthButton next="/portal/signup/complete" label="Sign up with Google" />
 
           <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -213,12 +213,12 @@ export default function PortalSignupPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="field-business-name" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="field-business-name" className="ui-label">
               Business name
             </label>
             <input id="field-business-name"
               type="text"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-accent focus:outline-hidden focus:ring-4 focus:ring-accent/15"
+              className="ui-field"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
               required
@@ -226,7 +226,7 @@ export default function PortalSignupPage() {
           </div>
 
           <fieldset>
-            <legend className="block text-sm font-medium text-slate-700">
+            <legend className="ui-label">
               Team setup
             </legend>
             <p className="mt-1 text-xs text-slate-500">
@@ -259,12 +259,12 @@ export default function PortalSignupPage() {
           </fieldset>
 
           <div>
-            <label htmlFor="field-email" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="field-email" className="ui-label">
               Email
             </label>
             <input id="field-email"
               type="email"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-accent focus:outline-hidden focus:ring-4 focus:ring-accent/15"
+              className="ui-field"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -293,7 +293,7 @@ export default function PortalSignupPage() {
           </div>
           {verificationSent && !emailVerified && (
             <div>
-              <p id="otp-label" className="block text-sm font-medium text-slate-700">
+              <p id="otp-label" className="ui-label">
                 6-digit verification code
               </p>
               <div className="mt-2" role="group" aria-labelledby="otp-label">
@@ -328,18 +328,18 @@ export default function PortalSignupPage() {
             </div>
           )}
           {emailVerified && (
-            <p className="text-sm text-green-700">
+            <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
               Email verified. You can create your account.
             </p>
           )}
 
           <div>
-            <label htmlFor="field-password" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="field-password" className="ui-label">
               Password
             </label>
             <input id="field-password"
               type="password"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-accent focus:outline-hidden focus:ring-4 focus:ring-accent/15"
+              className="ui-field"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               minLength={6}
@@ -347,23 +347,23 @@ export default function PortalSignupPage() {
             />
           </div>
           <div>
-            <label htmlFor="field-confirm-password" className="block text-sm font-medium text-slate-700">
+            <label htmlFor="field-confirm-password" className="ui-label">
               Confirm password
             </label>
             <input id="field-confirm-password"
               type="password"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-accent focus:outline-hidden focus:ring-4 focus:ring-accent/15"
+              className="ui-field"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               minLength={6}
               required
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
           <button
             type="submit"
             disabled={submitting || !emailVerified || !teamChoice}
-            className="w-full rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-200/70 transition hover:bg-accent-dark disabled:opacity-50"
+            className="ui-btn ui-btn-primary w-full"
           >
             {submitting ? "Creating account…" : "Create account"}
           </button>

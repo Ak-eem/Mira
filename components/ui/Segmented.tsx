@@ -6,9 +6,10 @@ type Option<T extends string> = { value: T; label: string };
 
 /** 2 to 5 related views of the same content, with a thumb that glides to the chosen segment. */
 export function Segmented<T extends string>({ options, value, onChange, label }: { options: Array<Option<T>>; value: T; onChange: (value: T) => void; label: string }) {
-  const index = Math.max(0, options.findIndex((o) => o.value === value));
+  const found = options.findIndex((o) => o.value === value);
+  const index = Math.max(0, found);
   return (
-    <div role="radiogroup" aria-label={label} className="ui-segmented" style={{ "--n": options.length, "--i": index } as React.CSSProperties}>
+    <div role="radiogroup" aria-label={label} className="ui-segmented" data-empty={found < 0 ? "" : undefined} style={{ "--n": options.length, "--i": index } as React.CSSProperties}>
       <span aria-hidden className="ui-segmented-thumb" />
       {options.map((option) => (
         <button key={option.value} type="button" role="radio" aria-checked={option.value === value} className="ui-segment" onClick={() => onChange(option.value)}>

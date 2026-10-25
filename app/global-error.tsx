@@ -1,5 +1,10 @@
 "use client";
 
+// This page replaces the whole document when the root layout itself fails, so the
+// app's stylesheet may not be loaded. It is styled inline (same cream and deep green
+// as the rest of Mira) so it looks right even then.
+const INK = "#0f2a22";
+
 export default function GlobalError({
   reset,
 }: {
@@ -8,21 +13,20 @@ export default function GlobalError({
 }) {
   return (
     <html lang="en">
-      <body className="bg-slate-950 text-slate-100">
-        <main className="flex min-h-screen items-center justify-center bg-slate-950 px-6 py-16">
-          <section className="w-full max-w-lg rounded-3xl border border-cyan-300/20 bg-cyan-950/40 p-8 text-center shadow-2xl shadow-cyan-950/50 backdrop-blur-xl">
-            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-cyan-200/30 bg-cyan-400/10 text-2xl font-bold text-cyan-200 shadow-lg shadow-cyan-500/20">
+      <body style={{ margin: 0, background: "#f3ecdd", color: INK, fontFamily: "system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" }}>
+        <main style={{ display: "flex", minHeight: "100vh", alignItems: "center", justifyContent: "center", padding: "4rem 1.5rem" }}>
+          <section style={{ width: "100%", maxWidth: "32rem", textAlign: "center", background: "#fffdf8", borderRadius: "1.25rem", padding: "2rem", boxShadow: "0 0 0 1px rgba(15,42,34,0.08)" }}>
+            <div aria-hidden style={{ margin: "0 auto 1.25rem", display: "flex", height: "3.5rem", width: "3.5rem", alignItems: "center", justifyContent: "center", borderRadius: "1rem", background: INK, color: "#fff", fontSize: "1.5rem", fontWeight: 600 }}>
               M
             </div>
-            <p className="mb-3 text-sm font-semibold uppercase tracking-[0.3em] text-cyan-300">Mira</p>
-            <h1 className="mb-3 text-2xl font-semibold text-white">Mira needs a moment</h1>
-            <p className="mb-8 text-sm leading-6 text-slate-300">
+            <h1 style={{ margin: "0 0 0.5rem", fontSize: "1.5rem", fontWeight: 600 }}>Mira needs a moment</h1>
+            <p style={{ margin: "0 0 1.75rem", fontSize: "0.9375rem", lineHeight: 1.5, color: "#475569" }}>
               The app encountered an unexpected problem. Try again to reload Mira.
             </p>
             <button
               type="button"
               onClick={() => reset()}
-              className="rounded-xl border border-cyan-200/30 bg-cyan-400/20 px-5 py-3 text-sm font-semibold text-cyan-100 transition hover:bg-cyan-300/30 focus:outline-hidden focus:ring-2 focus:ring-cyan-300/70"
+              style={{ minHeight: "2.75rem", cursor: "pointer", border: 0, borderRadius: "0.75rem", background: INK, color: "#fff", padding: "0.5rem 1.25rem", fontSize: "0.9375rem", fontWeight: 600 }}
             >
               Reload Mira
             </button>

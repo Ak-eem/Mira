@@ -22,7 +22,7 @@ function DiffBlock({ label, before, after }: { label: string; before: string; af
 
   return (
     <div className="rounded-lg border border-slate-200">
-      <div className="border-b border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-semibold text-slate-600">
+      <div className="border-b border-slate-200 bg-slate-100/70 px-3 py-1.5 text-xs font-semibold text-slate-600">
         {label}
       </div>
       <div className="space-y-0.5 p-3 font-mono text-xs">
@@ -106,9 +106,9 @@ export function PromptEditor({
 
   return (
     <div className="space-y-6">
-      <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+      <section className="ui-card space-y-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Draft</p>
+          <p className="ui-section-label !ml-0">Draft</p>
           <h2 className="mt-1 text-lg font-semibold">
             {active ? `Editing — currently live: v${active.version}` : "Editing — nothing published yet"}
           </h2>
@@ -119,7 +119,7 @@ export function PromptEditor({
 
         <div>
           <label className="block text-sm font-medium text-slate-700">
-            AI tone <span className="font-normal text-slate-400">— shapes how Mira talks</span>
+            AI tone <span className="font-normal text-slate-500">— shapes how Mira talks</span>
           </label>
           <input
             className="mt-1 w-full ui-field"
@@ -131,7 +131,7 @@ export function PromptEditor({
 
         <div>
           <label className="block text-sm font-medium text-slate-700">
-            Additional instructions <span className="font-normal text-slate-400">— optional</span>
+            Additional instructions <span className="font-normal text-slate-500">— optional</span>
           </label>
           <textarea
             className="mt-1 w-full ui-field"
@@ -144,7 +144,7 @@ export function PromptEditor({
 
         <div>
           <label className="block text-sm font-medium text-slate-700">
-            Note <span className="font-normal text-slate-400">— what changed and why, shown in history</span>
+            Note <span className="font-normal text-slate-500">— what changed and why, shown in history</span>
           </label>
           <input
             className="mt-1 w-full ui-field"
@@ -161,7 +161,7 @@ export function PromptEditor({
             type="button"
             onClick={handleSaveDraft}
             disabled={saving}
-            className="ui-field font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="ui-btn ui-btn-secondary"
           >
             {saving ? "Saving…" : "Save draft"}
           </button>
@@ -181,9 +181,9 @@ export function PromptEditor({
       </section>
 
       {draft && (
-        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+        <section className="ui-card space-y-3">
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Diff</p>
+            <p className="ui-section-label !ml-0">Diff</p>
             <h2 className="mt-1 text-lg font-semibold">Draft vs. what&apos;s live now</h2>
           </div>
           <DiffBlock label="AI tone" before={active?.ai_tone ?? ""} after={draft.ai_tone ?? ""} />
@@ -204,9 +204,9 @@ export function PromptEditor({
         unsaved={draft ? aiTone !== (draft.ai_tone ?? "") || aiInstructions !== (draft.ai_instructions ?? "") : true}
       />
 
-      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+      <section className="ui-card space-y-3">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">History</p>
+          <p className="ui-section-label !ml-0">History</p>
           <h2 className="mt-1 text-lg font-semibold">Published versions</h2>
         </div>
         {history.length === 0 ? (
@@ -231,7 +231,7 @@ export function PromptEditor({
                       type="button"
                       onClick={() => handlePromote(release.id)}
                       disabled={publishing === release.id}
-                      className="shrink-0 ui-btn ui-btn-secondary ui-btn-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      className="shrink-0 ui-btn ui-btn-secondary ui-btn-sm disabled:opacity-50"
                     >
                       {publishing === release.id ? "Rolling back…" : "Roll back to this version"}
                     </button>

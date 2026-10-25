@@ -318,8 +318,8 @@ export default async function PortalDashboardPage({
       {(businessError ?? recentError ?? conversationCountError) && <ErrorNotice what="load your dashboard" error={businessError ?? recentError ?? conversationCountError} />}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">Welcome back</h1>
-          <p className="mt-1 text-sm text-muted">Here&apos;s how {business?.name ?? "your business"} did in the last 30 days.</p>
+          <h1 className="ui-title">Welcome back</h1>
+          <p className="ui-subtitle">Here&apos;s how {business?.name ?? "your business"} did in the last 30 days.</p>
         </div>
         {business?.slug && (
           <a

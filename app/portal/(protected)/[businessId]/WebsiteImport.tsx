@@ -149,7 +149,7 @@ export function WebsiteImport({
           aria-label="Your website address"
           className="min-w-0 flex-1 ui-field"
         />
-        <button disabled={loading} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
+        <button disabled={loading} className="ui-btn ui-btn-primary">
           {loading ? "Importing..." : "Find website information"}
         </button>
       </form>
@@ -212,9 +212,9 @@ export function WebsiteImport({
                         </div>
                         {editing === draft.id && (
                           <div className="mt-3">
-                            <textarea value={editText} onChange={(event) => setEditText(event.target.value)} rows={5} aria-label="Edit details as JSON" className="w-full rounded-sm border border-slate-300 p-2 font-mono text-xs" />
+                            <textarea value={editText} onChange={(event) => setEditText(event.target.value)} rows={5} aria-label="Edit details as JSON" className="ui-field font-mono !text-xs" />
                             <div className="mt-2 flex gap-2">
-                              <button type="button" onClick={() => void saveEdit(draft)} className="rounded-sm bg-accent px-3 py-1 text-xs text-white">
+                              <button type="button" onClick={() => void saveEdit(draft)} className="ui-btn ui-btn-primary ui-btn-sm">
                                 Save changes
                               </button>
                               <button type="button" onClick={() => setEditing(null)} className="ui-btn ui-btn-secondary ui-btn-sm">
@@ -231,12 +231,12 @@ export function WebsiteImport({
             ))}
           </div>
 
-          <div className="sticky bottom-0 mt-4 flex justify-end border-t border-slate-200 bg-white/90 py-3 backdrop-blur-sm">
+          <div className="sticky bottom-0 mt-4 flex justify-end border-t border-slate-200 bg-canvas/90 py-3 backdrop-blur-sm">
             <button
               type="button"
               onClick={() => void confirm()}
               disabled={confirming}
-              className="rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-white hover:bg-accent-dark disabled:opacity-50"
+              className="ui-btn ui-btn-primary"
             >
               {confirmLabel(selection, confirming)}
             </button>

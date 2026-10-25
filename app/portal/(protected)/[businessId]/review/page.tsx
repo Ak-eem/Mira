@@ -152,7 +152,7 @@ export default async function PortalReviewPage({ params }: PageProps) {
       </div>
 
       {list.length === 0 && (
-        <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-xs">
+        <p className="ui-card !p-4 text-sm text-slate-500">
           Nothing needs review right now.
         </p>
       )}
@@ -176,8 +176,8 @@ export default async function PortalReviewPage({ params }: PageProps) {
                     Customer 👎{customerReason ? ` ${customerReason}` : ""}
                   </span>
                 )}
-                <span className="text-slate-400">{formatDateTime(item.createdAt)}</span>
-                <Link href={`/portal/${businessId}/conversations/${item.conversationId}`} className="ml-auto text-slate-400 underline">
+                <span className="text-slate-500">{formatDateTime(item.createdAt)}</span>
+                <Link href={`/portal/${businessId}/conversations/${item.conversationId}`} className="ml-auto text-slate-500 underline">
                   Open conversation
                 </Link>
               </div>
@@ -187,7 +187,7 @@ export default async function PortalReviewPage({ params }: PageProps) {
                   <span className="font-medium text-slate-600">Customer asked:</span> {item.question}
                 </p>
               )}
-              <p className="whitespace-pre-wrap rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-800">{item.reply}</p>
+              <p className="rounded-xl bg-slate-100/70 whitespace-pre-wrap px-3 py-2 text-sm text-slate-800">{item.reply}</p>
 
               {unsupported.length > 0 && (
                 <ul className="list-disc space-y-0.5 pl-5 text-xs text-red-600">

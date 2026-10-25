@@ -12,7 +12,8 @@ Mira's screens follow the ideas in Apple's Human Interface Guidelines, translate
 
 ## Which control for what
 - **A single on/off setting** is a **switch** in a list row (`ui-switch`, `SwitchRow`). It applies the moment you flip it, shows "Saved", and snaps back with a reason if saving fails (`useAutoSave`).
-- **2-5 related views or modes** is a **segmented control** (`Segmented`, `SegmentedLinks`): filters, chart range, review level.
+- **2-5 related views or modes** is a **segmented control** (`Segmented`, `SegmentedLinks`): filters, chart range, review level. Pass a value that matches no option to show "not answered yet": the thumb hides, so the first option doesn't look selected (used in the setup wizard).
+- **Picking one of many (about six or more)** is a grouped list with a checkmark on the chosen row (see the courier step in the setup wizard), not a segmented control.
 - **Adding something** is a primary button that opens a **sheet** (`AddSheet`); the list stays the focus. The sheet closes itself after a successful save (`useSheetClose`).
 - **A list of things** is an inset **grouped list** (`ui-group` of `ui-row`s).
 - **Nothing here yet** is an **empty state** (`EmptyState`): what belongs here, why, and the one next step.

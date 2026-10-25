@@ -10,14 +10,14 @@ export default async function SignupCompletePage() {
   if (user) redirect("/portal");
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-12 text-slate-900">
+    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12 text-slate-900">
       <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(165,243,252,0.4),transparent_42%)]" />
       <div className="relative w-full max-w-sm">
         <h1 className="mb-8 text-center text-2xl font-semibold tracking-tight text-slate-900">
           Mira <span className="font-normal text-accent">for Business</span>
         </h1>
 
-        <div className="rounded-xl border border-slate-200 bg-white p-6 text-center shadow-xs">
+        <div className="ui-card !p-6 text-center">
           <h1 className="text-lg font-semibold text-slate-900">Account created</h1>
           <p className="mt-3 text-sm leading-6 text-slate-600">
             Your business is set up and your 14-day free trial has started. Sign in to get going.
@@ -27,7 +27,7 @@ export default async function SignupCompletePage() {
           </p>
           <Link
             href="/portal/login"
-            className="mt-6 inline-flex rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-200/70 transition hover:bg-accent-dark"
+            className="ui-btn ui-btn-primary mt-6"
           >
             Continue to sign in
           </Link>

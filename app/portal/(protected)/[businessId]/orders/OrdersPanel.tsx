@@ -63,12 +63,12 @@ function CourierLink({ businessId, orderId }: { businessId: string; orderId: str
           placeholder="Shiip reference, e.g. 72d4iejm4lg0"
           aria-label="Shiip delivery reference"
           disabled={busy}
-          className="min-w-0 flex-1 rounded-sm border border-slate-300 px-2 py-1.5 font-mono text-xs"
+          className="ui-field min-w-0 flex-1 font-mono !text-xs"
         />
         <button
           type="submit"
           disabled={busy || !reference.trim()}
-          className="shrink-0 ui-btn ui-btn-secondary ui-btn-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="shrink-0 ui-btn ui-btn-secondary ui-btn-sm disabled:opacity-50"
         >
           {busy ? "Adding…" : "Track delivery"}
         </button>
@@ -250,15 +250,15 @@ function OrderRow({
 
   return (
     <li
-      className={`rounded-xl border bg-white p-4 shadow-xs ${
-        awaitingConfirmation ? "border-amber-300 ring-1 ring-amber-200" : "border-slate-200"
+      className={`ui-card !p-4 ${
+        awaitingConfirmation ? "!shadow-[0_0_0_2px_rgb(252_211_77)]" : ""
       }`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-xs text-slate-500">
           {order.customer_identifier.replace(/^(wa_|web_|email_)/, "")}
           {order.source === "ai" && (
-            <span className="ml-2 rounded-sm bg-indigo-50 px-1.5 py-0.5 font-sans text-[10px] font-semibold uppercase text-indigo-600">
+            <span className="ui-section-label !ml-0">
               Taken by Mira
             </span>
           )}
@@ -336,7 +336,7 @@ export function OrdersPanel({
       <div>
         <p className="mb-3 font-medium text-slate-900">Recent orders</p>
         {orders.length === 0 ? (
-          <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-xs">
+          <p className="ui-card !p-5 text-sm text-slate-500">
             No orders logged yet.
           </p>
         ) : (
