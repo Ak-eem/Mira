@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { unstable_cache } from "next/cache";
 
-export type AnalyticsRange = "today" | "7d" | "30d" | "month";
+export type AnalyticsRange = "today" | "7d" | "30d" | "month" | "all";
 
 export type AnalyticsPoint = { label: string; value: number; secondary?: number };
 
@@ -11,6 +11,19 @@ type RatingRow = { customer_rating: number | null };
 export type CountInsight = { label: string; count: number };
 export type UnansweredInsight = { total: number; top: CountInsight[] };
 export type RateInsight = { resolved: number; total: number; percentage: number };
+
+export type RecentAiError = {
+  id: string;
+  provider: string;
+  error_code: string | null;
+  error_message: string | null;
+  latency_ms: number | null;
+  channel: string | null;
+  business_id: string | null;
+  business_name: string | null;
+  conversation_id: string | null;
+  created_at: string;
+};
 
 export type AnalyticsSnapshot = {
   range: AnalyticsRange;
@@ -34,7 +47,7 @@ export type AnalyticsSnapshot = {
   satisfaction: number | null;
   conversationsOverTime: AnalyticsPoint[];
   providerBreakdown: AnalyticsPoint[];
-  recentErrors: Array<{ id: string; provider: string; error_code: string | null; created_at: string }>;
+  recentErrors: RecentAiError[];
   // Business-scoped only -- empty for the platform-wide (businessId=null)
   // snapshot, since "popular products" and "unanswered questions" don't
   // mean anything aggregated across unrelated businesses' catalogs.
@@ -57,11 +70,13 @@ function getRange(range: AnalyticsRange): { from: Date; to: Date } {
     from.setDate(1);
     from.setHours(0, 0, 0, 0);
   }
+  // "All" is everything Mira has ever recorded; a fixed early date keeps the same >= / <= query shape.
+  if (range === "all") return { from: new Date("2000-01-01T00:00:00.000Z"), to };
   return { from, to };
 }
 
 function safeRange(value: string | undefined): AnalyticsRange {
-  return value === "today" || value === "7d" || value === "30d" || value === "month" ? value : "7d";
+  return value === "today" || value === "7d" || value === "30d" || value === "month" || value === "all" ? value : "7d";
 }
 
 export function parseAnalyticsRange(value: string | undefined): AnalyticsRange {
@@ -70,6 +85,11 @@ export function parseAnalyticsRange(value: string | undefined): AnalyticsRange {
 
 function dayLabel(value: string): string {
   return new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+/** Bars are days normally, but a whole history would be hundreds of bars: "All" groups by month instead. */
+export function bucketLabel(value: string, range: AnalyticsRange): string {
+  return range === "all" ? new Date(value).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : dayLabel(value);
 }
 
 export async function getAnalyticsSnapshot(
@@ -113,7 +133,7 @@ async function getAnalyticsSnapshotWithClient(
     conversationScope(supabase.from("conversations").select("id", { count: "exact", head: true }).eq("status", "closed")),
     conversationScope(supabase.from("conversations").select("id, started_at, needs_human")).order("started_at", { ascending: true }).order("id", { ascending: true }),
     supabase.rpc("get_ai_response_aggregate", { p_business_id: businessId, p_from: fromIso, p_to: toIso }),
-    scoped(supabase.from("ai_response_telemetry").select("id, provider, error_code, created_at").eq("success", false).gte("created_at", fromIso).lte("created_at", toIso).order("created_at", { ascending: false }).order("id", { ascending: false }).limit(8)),
+    fetchRecentAiErrors(supabase, scoped, fromIso, toIso),
     businessId
       ? supabase.from("conversations").select("customer_rating").eq("business_id", businessId).not("customer_rating", "is", null).gte("customer_rated_at", fromIso).lte("customer_rated_at", toIso)
       : supabase.from("conversations").select("customer_rating").not("customer_rating", "is", null).gte("customer_rated_at", fromIso).lte("customer_rated_at", toIso),
@@ -167,7 +187,7 @@ async function getAnalyticsSnapshotWithClient(
   }
   const dayMap = new Map<string, { value: number; secondary: number }>();
   for (const row of conversationRows) {
-    const label = dayLabel(row.started_at);
+    const label = bucketLabel(row.started_at, range);
     const current = dayMap.get(label) ?? { value: 0, secondary: 0 };
     current.value += 1;
     if (row.needs_human) current.secondary += 1;
@@ -373,4 +393,40 @@ export async function getReopenRate(businessId: string, requestedRange?: string)
   }).length;
   const total = inRange.length;
   return { resolved: reopened, total, percentage: total ? Math.round((reopened / total) * 100) : 0 };
+}
+const ERROR_COLUMNS = "id, provider, error_code, latency_ms, channel, business_id, conversation_id, created_at";
+
+// Latest failed AI replies, with the extra detail an admin needs to understand each one. error_message comes
+// from migration 0058; until that is applied the query falls back to the older columns instead of failing.
+async function fetchRecentAiErrors(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  scoped: <T>(query: T) => T,
+  fromIso: string,
+  toIso: string,
+): Promise<{ data: RecentAiError[]; error: { message: string } | null }> {
+  const run = (columns: string) =>
+     
+    (scoped(supabase.from("ai_response_telemetry").select(columns) as any) as any)
+      .eq("success", false)
+      .gte("created_at", fromIso)
+      .lte("created_at", toIso)
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(8);
+  let result = await run(`${ERROR_COLUMNS}, error_message`);
+  if (result.error && (result.error.code === "42703" || result.error.code === "PGRST204" || /error_message/.test(result.error.message ?? ""))) {
+    result = await run(ERROR_COLUMNS);
+  }
+  if (result.error) return { data: [], error: result.error };
+  const rows = (result.data ?? []) as Array<Omit<RecentAiError, "business_name" | "error_message"> & { error_message?: string | null }>;
+  const ids = [...new Set(rows.map((row) => row.business_id).filter((id): id is string => Boolean(id)))];
+  const names = new Map<string, string>();
+  if (ids.length > 0) {
+    const { data } = await supabase.from("businesses").select("id, name").in("id", ids);
+    for (const business of (data ?? []) as Array<{ id: string; name: string }>) names.set(business.id, business.name);
+  }
+  return {
+    data: rows.map((row) => ({ ...row, error_message: row.error_message ?? null, business_name: row.business_id ? names.get(row.business_id) ?? null : null })),
+    error: null,
+  };
 }

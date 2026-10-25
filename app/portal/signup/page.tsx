@@ -153,6 +153,16 @@ export default function PortalSignupPage() {
         return;
       }
 
+      // With Supabase's "Confirm email" on, signUp returns no session and the RPC
+      // below would run unauthenticated. The email is confirmed above, so sign in.
+      if (!data.session) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) {
+          setError("Account created. Sign in to finish setting up your business.");
+          return;
+        }
+      }
+
       // Businesses are admin-only to insert directly (see migration 0001) --
       // this RPC is the one sanctioned way a fresh signup creates its own
       // business and gets a 14-day trial in a single atomic call.
@@ -186,15 +196,16 @@ export default function PortalSignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm">
-        <p className="mb-8 text-center text-xl font-semibold tracking-tight text-slate-900">
+    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12 text-slate-900">
+      <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(165,243,252,0.4),transparent_42%)]" />
+      <div className="relative w-full max-w-sm">
+        <h1 className="mb-8 text-center text-2xl font-semibold tracking-tight text-slate-900">
           Mira <span className="font-normal text-accent">for Business</span>
-        </p>
-        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+        </h1>
+        <div className="ui-card ui-enter space-y-4 !p-6 sm:!p-8">
           <GoogleAuthButton next="/portal/signup/complete" label="Sign up with Google" />
 
-          <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-400">
+          <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-500">
             <span className="h-px flex-1 bg-slate-200" />
             or
             <span className="h-px flex-1 bg-slate-200" />
@@ -202,12 +213,12 @@ export default function PortalSignupPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700">
+            <label htmlFor="field-business-name" className="ui-label">
               Business name
             </label>
-            <input
+            <input id="field-business-name"
               type="text"
-              className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+              className="ui-field"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
               required
@@ -215,14 +226,14 @@ export default function PortalSignupPage() {
           </div>
 
           <fieldset>
-            <legend className="block text-sm font-medium text-slate-700">
+            <legend className="ui-label">
               Team setup
             </legend>
             <p className="mt-1 text-xs text-slate-500">
               Choose how you want to get started.
             </p>
             <div className="mt-2 space-y-2">
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+              <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm text-slate-700">
                 <input
                   type="radio"
                   name="teamChoice"
@@ -233,7 +244,7 @@ export default function PortalSignupPage() {
                 />
                 <span>Yes, invite my team</span>
               </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm text-slate-700">
+              <label className="flex min-h-10 cursor-pointer items-center gap-2 text-sm text-slate-700">
                 <input
                   type="radio"
                   name="teamChoice"
@@ -248,12 +259,12 @@ export default function PortalSignupPage() {
           </fieldset>
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">
+            <label htmlFor="field-email" className="ui-label">
               Email
             </label>
-            <input
+            <input id="field-email"
               type="email"
-              className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+              className="ui-field"
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -282,10 +293,10 @@ export default function PortalSignupPage() {
           </div>
           {verificationSent && !emailVerified && (
             <div>
-              <label className="block text-sm font-medium text-slate-700">
+              <p id="otp-label" className="ui-label">
                 6-digit verification code
-              </label>
-              <div className="mt-2">
+              </p>
+              <div className="mt-2" role="group" aria-labelledby="otp-label">
                 <CodeSlots
                   length={6}
                   value={otp}
@@ -317,18 +328,18 @@ export default function PortalSignupPage() {
             </div>
           )}
           {emailVerified && (
-            <p className="text-sm text-green-700">
+            <p className="rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
               Email verified. You can create your account.
             </p>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-slate-700">
+            <label htmlFor="field-password" className="ui-label">
               Password
             </label>
-            <input
+            <input id="field-password"
               type="password"
-              className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+              className="ui-field"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               minLength={6}
@@ -336,32 +347,32 @@ export default function PortalSignupPage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700">
+            <label htmlFor="field-confirm-password" className="ui-label">
               Confirm password
             </label>
-            <input
+            <input id="field-confirm-password"
               type="password"
-              className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+              className="ui-field"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               minLength={6}
               required
             />
           </div>
-          {error && <p className="text-sm text-red-600">{error}</p>}
+          {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
           <button
             type="submit"
             disabled={submitting || !emailVerified || !teamChoice}
-            className="w-full rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark disabled:opacity-50"
+            className="ui-btn ui-btn-primary w-full"
           >
             {submitting ? "Creating account…" : "Create account"}
           </button>
           </form>
         </div>
-        <p className="mt-4 text-center text-xs text-slate-400">
+        <p className="mt-4 text-center text-xs text-slate-500">
           Already have an account? <Link href="/portal/login" className="text-accent hover:underline">Sign in</Link>
         </p>
       </div>
-    </div>
+    </main>
   );
 }

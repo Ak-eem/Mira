@@ -1,4 +1,5 @@
 import { ErrorNotice } from "@/components/ErrorNotice";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { createClient } from "@/lib/supabase/server";
 import { NudgesPanel } from "./NudgesPanel";
 
@@ -45,16 +46,17 @@ export default async function NudgesPage({
 
   return (
     <div className="space-y-6">
+      <PageHeader title="Nudges" subtitle="Follow-up messages Mira can send to your customers." />
       {rulesError && <ErrorNotice what="load your nudge rules" error={rulesError} />}
       {sendsError && <ErrorNotice what="load your nudge history" error={sendsError} />}
       {!subscription?.nudges_addon && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-800 shadow-xs">
+        <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
           The Nudges add-on isn&apos;t active on your plan yet — rules can be set up below, but nothing sends until
           it&apos;s turned on.
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+      <div className="ui-card">
         <p className="mb-4 font-medium text-slate-900">Last 30 days</p>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>

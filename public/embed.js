@@ -6,6 +6,9 @@
  *           data-business="your-business-slug"
  *           data-title="Chat with us"
  *           data-primary-color="#0f766e"
+ *           data-position="right"    (optional: "right" (default) or "left")
+ *           data-offset-x="20"       (optional: px from that side edge, default 20)
+ *           data-offset-y="20"       (optional: px from the bottom, default 20; raise it to clear your own buttons)
  *           defer></script>
  *
  * No dependencies, works on any site regardless of framework. Styles live
@@ -31,6 +34,18 @@
 
   var title = scriptEl.getAttribute("data-title") || "Chat with us";
   var primaryColor = scriptEl.getAttribute("data-primary-color") || "#0f766e";
+  // Where the chat button sits. Mira cannot see the host page, so a site that already has a floating button
+  // (cart, WhatsApp...) in the bottom-right corner can move this one with data-position / data-offset-*.
+  var side = scriptEl.getAttribute("data-position") === "left" ? "left" : "right";
+  function pxAttr(name, fallback) {
+    var n = parseInt(scriptEl.getAttribute(name), 10);
+    return isFinite(n) && n >= 0 && n <= 400 ? n : fallback;
+  }
+  var offsetX = pxAttr("data-offset-x", 20);
+  var offsetY = pxAttr("data-offset-y", 20);
+  var panelBottom = offsetY + 68; // the panel opens just above the button
+  // Leave at least 88px free above the panel so it never covers the host page's sticky header (and its cart icon).
+  var panelHeightCss = "min(600px, calc(100vh - " + (panelBottom + 88) + "px))";
   var origin = new URL(scriptEl.src, window.location.href).origin;
   var chatUrl = origin + "/chat/" + encodeURIComponent(businessSlug) + "?embed=1";
 
@@ -39,15 +54,25 @@
 
   var host = document.createElement("div");
   host.id = "mira-chat-widget-host";
+  // Colours live in CSS variables on the host so the business's brand colour (returned by
+  // the status check below) can be applied without rebuilding the widget. data-primary-color
+  // on the script tag still works and is the fallback when no brand colour is set.
+  function setColors(bg, fg) {
+    if (host.style && host.style.setProperty) {
+      host.style.setProperty("--mira-bg", bg);
+      host.style.setProperty("--mira-fg", fg);
+    }
+  }
+  setColors(primaryColor, "#ffffff");
   var shadow = host.attachShadow({ mode: "open" });
 
   var style = document.createElement("style");
   style.textContent = [
     ":host, * { box-sizing: border-box; }",
     ".mira-bubble {",
-    "  position: fixed; bottom: 20px; right: 20px; z-index: 2147483000;",
+    "  position: fixed; bottom: " + offsetY + "px; " + side + ": " + offsetX + "px; z-index: 2147483000;",
     "  width: 56px; height: 56px; border-radius: 999px; border: none; cursor: pointer;",
-    "  background: " + primaryColor + "; box-shadow: 0 6px 20px rgba(0,0,0,0.25);",
+    "  background: var(--mira-bg); color: var(--mira-fg); box-shadow: 0 6px 20px rgba(0,0,0,0.25);",
     "  display: flex; align-items: center; justify-content: center;",
     "  transition: transform 0.15s ease;",
     "}",
@@ -55,8 +80,8 @@
     ".mira-bubble:focus-visible { outline: 2px solid white; outline-offset: 2px; }",
     ".mira-bubble svg { width: 26px; height: 26px; }",
     ".mira-panel {",
-    "  position: fixed; bottom: 88px; right: 20px; z-index: 2147483000;",
-    "  width: 380px; max-width: calc(100vw - 24px); height: 600px; max-height: calc(100vh - 120px);",
+    "  position: fixed; bottom: " + panelBottom + "px; " + side + ": " + offsetX + "px; z-index: 2147483000;",
+    "  width: 380px; max-width: calc(100vw - 24px); height: " + panelHeightCss + "; min-height: 280px;",
     "  background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.25);",
     "  display: flex; flex-direction: column; overflow: hidden;",
     "  opacity: 0; transform: translateY(12px) scale(0.98); pointer-events: none;",
@@ -65,20 +90,20 @@
     ".mira-panel.mira-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }",
     ".mira-panel-header {",
     "  display: flex; align-items: center; justify-content: space-between;",
-    "  padding: 12px 14px; background: " + primaryColor + "; color: white;",
+    "  padding: 12px 14px; background: var(--mira-bg); color: var(--mira-fg);",
     "  font: 600 14px/1.3 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;",
     "  flex-shrink: 0;",
     "}",
     ".mira-panel-close {",
-    "  background: transparent; border: none; color: white; cursor: pointer;",
+    "  background: transparent; border: none; color: inherit; cursor: pointer;",
     "  width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center;",
     "}",
     ".mira-panel-close:hover { background: rgba(255,255,255,0.15); }",
     ".mira-panel iframe { flex: 1; border: none; width: 100%; height: 100%; }",
     "@media (max-width: 480px) {",
     "  .mira-panel {",
-    "    right: 12px; left: 12px; bottom: 88px; width: auto; max-width: none;",
-    "    height: calc(100vh - 120px);",
+    "    right: 12px; left: 12px; bottom: " + panelBottom + "px; width: auto; max-width: none;",
+    "    height: " + panelHeightCss + ";",
     "  }",
     "}",
     "@media (prefers-reduced-motion: reduce) {",
@@ -91,7 +116,7 @@
   bubble.className = "mira-bubble";
   bubble.setAttribute("aria-label", title);
   bubble.innerHTML =
-    '<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
     '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' +
     "</svg>";
 
@@ -196,7 +221,12 @@
     var timer = setTimeout(function () { finish(true); }, 4000);
     fetch(origin + "/api/embed/status?slug=" + encodeURIComponent(businessSlug), { cache: "no-store" })
       .then(function (res) { return res.json(); })
-      .then(function (data) { clearTimeout(timer); finish(!(data && data.available === false)); })
+      .then(function (data) {
+        clearTimeout(timer);
+        var hex = /^#[0-9a-fA-F]{6}$/;
+        if (data && hex.test(data.brandColor) && hex.test(data.onBrandColor)) setColors(data.brandColor, data.onBrandColor);
+        finish(!(data && data.available === false));
+      })
       .catch(function () { clearTimeout(timer); finish(true); });
   }
 

@@ -2,6 +2,7 @@ import "server-only";
 import { Resend } from "resend";
 import { processIncomingMessage } from "@/lib/chat/processIncomingMessage";
 import { isBusinessSwitchedOff } from "@/lib/chat/businessStatus";
+import { notifyHandoff } from "@/lib/notifications/notifyHandoff";
 import { withConversationLease } from "@/lib/chat/durable";
 import type { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { markInboundDone, markInboundFailed, markInboundSent, saveInboundReply, type QueueRow } from "@/lib/email/inboundQueue";
@@ -15,12 +16,14 @@ async function captureForHuman(client: Client, businessId: string, sender: strin
   const sessionToken = `email_${sender}`;
   const conversation = await client
     .from("conversations")
-    .select("id")
+    .select("id, needs_human")
     .eq("business_id", businessId)
     .eq("session_token", sessionToken)
     .eq("status", "open")
     .maybeSingle();
   if (conversation.error) throw conversation.error;
+  // Email the team only when this message is what newly puts the conversation in front of a person.
+  let shouldNotify = Boolean(conversation.data && !conversation.data.needs_human);
 
   let conversationId = conversation.data?.id;
   if (!conversationId) {
@@ -37,6 +40,7 @@ async function captureForHuman(client: Client, businessId: string, sender: strin
       .single();
     if (created.data) {
       conversationId = created.data.id;
+      shouldNotify = true;
     } else if (created.error?.code === "23505") {
       // A concurrent delivery opened the conversation first (one open
       // conversation per session, migration 0009). Not an error: use theirs.
@@ -69,6 +73,9 @@ async function captureForHuman(client: Client, businessId: string, sender: strin
     .update({ needs_human: true, last_message_at: new Date().toISOString() })
     .eq("id", conversationId);
   if (updated.error) throw updated.error;
+  if (shouldNotify && !saved.error) {
+    await notifyHandoff({ businessId, conversationId, dedupeKey: inboundKey, reason: "requested" });
+  }
 }
 
 
@@ -89,7 +96,7 @@ export async function processEmailQueued(client: Client, queued: Pick<QueueRow, 
 
   const business = await client
     .from("businesses")
-    .select("id,email_responses_enabled")
+    .select("id,is_active,email_responses_enabled")
     .eq("email_inbound_address", toAddress) // column is constrained lowercase (migration 0040); ilike would treat "_" as a wildcard
     .maybeSingle();
   if (business.error) throw business.error;
@@ -98,6 +105,14 @@ export async function processEmailQueued(client: Client, queued: Pick<QueueRow, 
     return;
   }
   const routedBusiness = business.data;
+
+  // Same gate as web chat (is_active + isLocked via isBusinessSwitchedOff), applied
+  // before the email is fetched, the AI runs, or any reply (even a persisted one)
+  // is sent. Closes the queue row quietly; a DB error throws and the webhook retries.
+  if (!routedBusiness.is_active || (await isBusinessSwitchedOff(client, routedBusiness.id))) {
+    await markInboundDone(client, queued.id);
+    return;
+  }
 
   // Outbox: a reply persisted by an earlier attempt is re-sent as-is, with
   // no re-fetch of the email and no second trip through the AI pipeline.

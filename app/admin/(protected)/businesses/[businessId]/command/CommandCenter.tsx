@@ -122,14 +122,14 @@ export function CommandCenter({ businessId }: { businessId: string }) {
               <button
                 onClick={() => handleConfirm(pending.action, pending.payload)}
                 disabled={executing}
-                className="rounded-sm bg-accent px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                className="ui-btn ui-btn-primary ui-btn-sm"
               >
                 {executing ? "Working…" : "Confirm"}
               </button>
               <button
                 onClick={handleCancel}
                 disabled={executing}
-                className="rounded-sm border border-slate-300 px-3 py-1.5 text-xs"
+                className="ui-btn ui-btn-secondary ui-btn-sm"
               >
                 Cancel
               </button>
@@ -153,7 +153,7 @@ export function CommandCenter({ businessId }: { businessId: string }) {
                 </button>
               ))}
             </div>
-            <button onClick={handleCancel} className="mt-2 text-xs text-slate-400 hover:underline">
+            <button onClick={handleCancel} className="mt-2 text-xs text-slate-500 hover:underline">
               Cancel
             </button>
           </div>
@@ -162,7 +162,7 @@ export function CommandCenter({ businessId }: { businessId: string }) {
 
       <form onSubmit={handleSend} className="flex gap-2 border-t border-slate-200 p-3">
         <input
-          className="flex-1 rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+          className="flex-1 ui-field"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Tell Mira what to change…"
@@ -171,7 +171,7 @@ export function CommandCenter({ businessId }: { businessId: string }) {
         <button
           type="submit"
           disabled={thinking || !!pending || !input.trim()}
-          className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+          className="ui-btn ui-btn-primary"
         >
           Send
         </button>

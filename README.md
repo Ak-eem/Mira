@@ -28,7 +28,7 @@ Mira is a vertical-agnostic AI customer-service platform for any business that t
 
 ## Documentation
 
-- `docs/deployment.md`: going live, step by step (Supabase, Vercel, email, Paystack, WhatsApp)
+- `docs/DEPLOYMENT.md`: going live, step by step (Supabase, Vercel, email, Paystack, WhatsApp)
 - `docs/owner-guide.md`: a plain-language guide for business owners
 - `docs/costs.md`: what running Mira costs, including WhatsApp message fees
 - `docs/paystack-setup.md`, `docs/alerts.md`, `docs/data-retention.md`
@@ -65,6 +65,8 @@ npm run dev
 ```
 
 Open http://localhost:3000 in your browser.
+
+You also need to apply the SQL files in `supabase/migrations/` to your Supabase project, in numeric order, before the app works. **Putting Mira live (Vercel, Supabase, email, WhatsApp, Paystack, first admin) is covered step by step in [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md).**
 
 ## Architecture highlights
 

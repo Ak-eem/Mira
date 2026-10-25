@@ -77,7 +77,7 @@ export default async function PortalConversationThreadPage({
     <div>
       <LiveRefresh />
       <h2 className="mb-2 flex items-center gap-2 text-lg font-semibold tracking-tight text-slate-900">
-        Conversation <span className="font-mono text-sm font-normal text-slate-400">{conversation.session_token.slice(0, 8)}…</span>
+        Conversation <span className="font-mono text-sm font-normal text-slate-500">{conversation.session_token.slice(0, 8)}…</span>
         <span
           className={
             conversation.channel === "whatsapp"
@@ -100,7 +100,7 @@ export default async function PortalConversationThreadPage({
       </h2>
 
       {conversation.needs_human && !isClaimed && (
-        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between">
+        <div className="rounded-2xl bg-amber-50 p-4 text-sm text-amber-900 ring-1 ring-amber-200">
           <p className="text-sm font-medium text-amber-800">
             🚩 This customer asked for a person (or Mira got stuck) — take over when you&apos;re ready.
           </p>
@@ -126,15 +126,15 @@ export default async function PortalConversationThreadPage({
       )}
 
       {isClaimed && (
-        <div className="mb-6 flex flex-col gap-3 rounded-xl border border-sky-300 bg-sky-50 px-4 py-3 shadow-xs sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm font-medium text-sky-800">
+        <div className="mb-6 flex flex-col gap-3 ui-card !py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm font-medium text-accent">
             👤 {conversation.claimed_by} is handling this conversation — Mira is silent until it&apos;s handed back or ended.
           </p>
           <div className="flex shrink-0 gap-2">
             <form action={handBackForConversation}>
               <button
                 type="submit"
-                className="rounded-lg border border-sky-400 bg-white px-3 py-1.5 text-xs font-medium text-sky-800 transition hover:bg-sky-100"
+                className="ui-btn ui-btn-secondary ui-btn-sm"
               >
                 Hand back to Mira
               </button>
@@ -153,7 +153,7 @@ export default async function PortalConversationThreadPage({
 
       {!conversation.needs_human && !isClaimed && <div className="mb-6" />}
 
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+      <div className="space-y-3 ui-card">
         {messages?.map((m) => {
           const snapshot = m.context_snapshot as MessageContextSnapshot | null;
 
@@ -175,10 +175,10 @@ export default async function PortalConversationThreadPage({
               <span
                 className={
                   m.role === "customer"
-                    ? "inline-block max-w-[85%] rounded-lg bg-accent px-3 py-2 text-sm text-white"
+                    ? "inline-block max-w-[85%] rounded-2xl bg-accent px-3.5 py-2 text-sm text-white"
                     : isOperatorReply
-                      ? "inline-block max-w-[85%] rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm"
-                      : "inline-block max-w-[85%] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      ? "inline-block max-w-[85%] rounded-2xl bg-marigold/25 px-3.5 py-2 text-sm text-slate-900 ring-1 ring-marigold/50"
+                      : "inline-block max-w-[85%] rounded-2xl bg-white px-3.5 py-2 text-sm text-slate-900 ring-1 ring-slate-900/10"
                 }
               >
                 {linkifyContent(m.content)}
@@ -198,8 +198,8 @@ export default async function PortalConversationThreadPage({
                 </div>
               )}
 
-              <p className="mt-0.5 text-xs text-slate-400">
-                {isOperatorReply && <span className="mr-2 font-medium text-sky-600">You replied</span>}
+              <p className="mt-0.5 text-xs text-slate-500">
+                {isOperatorReply && <span className="mr-2 font-medium text-accent">You replied</span>}
                 {new Date(m.created_at).toLocaleTimeString()}
               </p>
 

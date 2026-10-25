@@ -1,6 +1,8 @@
 // Shared transport for both Gemini calls (plain chat replies and
 // Command Center's function-calling). Provider selection is controlled by
 // AI_PROVIDER, with Groq as the default and Gemini as the fallback.
+import { AiProviderError, summarizeProviderBody, type ProviderFailureKind } from "./providerError";
+
 const GEMINI_API_URL =
   "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent";
 const GEMINI_STREAM_API_URL =
@@ -32,7 +34,7 @@ export type JsonFetchMetadata = {
 
 type AttemptResult =
   | { ok: true; data: unknown; provider: ProviderName }
-  | { ok: false; retryable: boolean; message: string; provider: ProviderName };
+  | { ok: false; retryable: boolean; message: string; provider: ProviderName; kind: ProviderFailureKind; status?: number | null; detail?: string | null };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -233,6 +235,9 @@ async function attemptGemini(
         retryable: response.status >= 500 || response.status === 429,
         message: "The assistant is temporarily unavailable. Please try again.",
         provider: "gemini",
+        kind: "http",
+        status: response.status,
+        detail: summarizeProviderBody(detail),
       };
     }
 
@@ -244,6 +249,7 @@ async function attemptGemini(
         retryable: true,
         message: "The AI took too long to respond. Please try again.",
         provider: "gemini",
+        kind: "timeout",
       };
     }
     return {
@@ -251,6 +257,8 @@ async function attemptGemini(
       retryable: true,
       message: "Couldn't reach the AI. Please try again.",
       provider: "gemini",
+      kind: "network",
+      detail: error instanceof Error ? error.message.slice(0, 200) : null,
     };
   } finally {
     clearTimeout(timeoutId);
@@ -283,6 +291,9 @@ async function attemptGroq(
         retryable: response.status >= 500 || response.status === 429,
         message: "The assistant is temporarily unavailable. Please try again.",
         provider: "groq",
+        kind: "http",
+        status: response.status,
+        detail: summarizeProviderBody(detail),
       };
     }
 
@@ -298,6 +309,7 @@ async function attemptGroq(
         retryable: true,
         message: "The AI took too long to respond. Please try again.",
         provider: "groq",
+        kind: "timeout",
       };
     }
     return {
@@ -305,6 +317,8 @@ async function attemptGroq(
       retryable: true,
       message: "Couldn't reach the AI. Please try again.",
       provider: "groq",
+      kind: "network",
+      detail: error instanceof Error ? error.message.slice(0, 200) : null,
     };
   } finally {
     clearTimeout(timeoutId);
@@ -444,8 +458,9 @@ export async function* geminiFetchStream(
     if (!response.ok) {
       const detail = await response.text();
       console.error(`Gemini stream failed (${response.status}): ${detail}`);
-      throw new Error(
+      throw new AiProviderError(
         "The assistant is temporarily unavailable. Please try again.",
+        { provider: "gemini", kind: "http", status: response.status, detail: summarizeProviderBody(detail) },
       );
     }
 
@@ -453,10 +468,10 @@ export async function* geminiFetchStream(
     yield* readSseStream(response, extractGeminiStreamText, touch);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("The AI took too long to respond. Please try again.");
+      throw new AiProviderError("The AI took too long to respond. Please try again.", { provider: "gemini", kind: "timeout" });
     }
     if (error instanceof Error) throw error;
-    throw new Error("Couldn't reach the AI. Please try again.");
+    throw new AiProviderError("Couldn't reach the AI. Please try again.", { provider: "gemini", kind: "network" });
   } finally {
     clearTimeout(timeoutId);
     clearTimeout(maxId);
@@ -495,8 +510,9 @@ export async function* groqFetchStream(
     if (!response.ok) {
       const detail = await response.text();
       console.error(`Groq stream failed (${response.status}): ${detail}`);
-      throw new Error(
+      throw new AiProviderError(
         "The assistant is temporarily unavailable. Please try again.",
+        { provider: "groq", kind: "http", status: response.status, detail: summarizeProviderBody(detail) },
       );
     }
 
@@ -504,14 +520,27 @@ export async function* groqFetchStream(
     yield* readSseStream(response, extractGroqStreamText, touch);
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
-      throw new Error("The AI took too long to respond. Please try again.");
+      throw new AiProviderError("The AI took too long to respond. Please try again.", { provider: "groq", kind: "timeout" });
     }
     if (error instanceof Error) throw error;
-    throw new Error("Couldn't reach the AI. Please try again.");
+    throw new AiProviderError("Couldn't reach the AI. Please try again.", { provider: "groq", kind: "network" });
   } finally {
     clearTimeout(timeoutId);
     clearTimeout(maxId);
   }
+}
+
+type FailedAttempt = Extract<AttemptResult, { ok: false }>;
+
+function describeAttempt(result: FailedAttempt): string {
+  if (result.kind === "http") return `${result.provider}: HTTP ${result.status ?? "?"}${result.detail ? ` - ${result.detail}` : ""}`;
+  if (result.kind === "timeout") return `${result.provider}: timed out`;
+  return `${result.provider}: ${result.kind}${result.detail ? ` - ${result.detail}` : ""}`;
+}
+
+// The customer sees result.message; admins get every attempt (primary, retry, fallback) in .detail.
+function failureFrom(result: FailedAttempt, tried: string[]): AiProviderError {
+  return new AiProviderError(result.message, { provider: result.provider, kind: result.kind, status: result.status, detail: tried.join(" | ") });
 }
 
 // One retry after a short delay is retained for transient failures. When the
@@ -531,21 +560,21 @@ export async function geminiFetchJsonWithMetadata(
       : apiKey.trim() || process.env.LLM_API_KEY?.trim();
 
   if (!primaryKey) {
-    throw new Error(
-      primary === "groq"
-        ? "GROQ_API_KEY is not set."
-        : "LLM_API_KEY is not set.",
-    );
+    const message = primary === "groq" ? "GROQ_API_KEY is not set." : "LLM_API_KEY is not set.";
+    throw new AiProviderError(message, { provider: primary, kind: "config", detail: message });
   }
 
+  const tried: string[] = [];
   const first = await attemptProvider(primary, primaryKey, body);
   if (first.ok) return { data: first.data, metadata: { provider: first.provider, fallbackFrom: null, latencyMs: Date.now() - startedAt, ...getTokenUsage(first.data) } };
-  if (!first.retryable) throw new Error(first.message);
+  tried.push(describeAttempt(first));
+  if (!first.retryable) throw failureFrom(first, tried);
 
   await waitForRetry();
   const second = await attemptProvider(primary, primaryKey, body);
   if (second.ok) return { data: second.data, metadata: { provider: second.provider, fallbackFrom: null, latencyMs: Date.now() - startedAt, ...getTokenUsage(second.data) } };
-  if (!second.retryable) throw new Error(second.message);
+  tried.push(describeAttempt(second));
+  if (!second.retryable) throw failureFrom(second, tried);
 
   const fallback: ProviderName = primary === "groq" ? "gemini" : "groq";
   const fallbackKey =
@@ -557,10 +586,11 @@ export async function geminiFetchJsonWithMetadata(
     console.warn(`${primary} request failed; trying ${fallback} fallback.`);
     const fallbackResult = await attemptProvider(fallback, fallbackKey, body);
     if (fallbackResult.ok) return { data: fallbackResult.data, metadata: { provider: fallbackResult.provider, fallbackFrom: primary, latencyMs: Date.now() - startedAt, ...getTokenUsage(fallbackResult.data) } };
-    throw new Error(fallbackResult.message);
+    tried.push(describeAttempt(fallbackResult));
+    throw failureFrom(fallbackResult, tried);
   }
 
-  throw new Error(second.message);
+  throw failureFrom(second, tried);
 }
 
 export async function geminiFetchJson(apiKey: string, body: unknown, preferredProvider?: ProviderName): Promise<unknown> {

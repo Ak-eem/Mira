@@ -181,11 +181,11 @@ export function TeamPanel({ businessId }: { businessId: string }) {
 
   return (
     <div className="space-y-4">
-      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+      <section className="ui-card space-y-3">
         <h2 className="text-lg font-semibold">People with access</h2>
 
         {loadError && <p className="text-sm text-red-600">{loadError}</p>}
-        {!loadError && members === null && <p className="text-sm text-slate-400">Loading…</p>}
+        {!loadError && members === null && <p className="text-sm text-slate-500">Loading…</p>}
 
         {members && (
           <ul className="divide-y divide-slate-100">
@@ -195,12 +195,15 @@ export function TeamPanel({ businessId }: { businessId: string }) {
                   <p className="truncate text-sm font-medium text-slate-800">
                     {member.name !== "Unnamed member" ? member.name : member.email}
                   </p>
-                  <p className="truncate text-xs text-slate-400">
+                  <p className="truncate text-xs text-slate-500">
                     {member.name !== "Unnamed member" ? `${member.email} · ` : ""}
                     {roleLabel(member.role)}
                     {formatDate(member.joinedAt) ? ` · joined ${formatDate(member.joinedAt)}` : ""}
                   </p>
                 </div>
+                {member.role === "owner" && members.filter((m) => m.role === "owner").length === 1 ? (
+                  <p className="shrink-0 text-xs text-slate-500">Only owner</p>
+                ) : (
                 <div className="flex shrink-0 items-center gap-3 text-xs">
                   <button
                     type="button"
@@ -214,11 +217,12 @@ export function TeamPanel({ businessId }: { businessId: string }) {
                     type="button"
                     disabled={busyId === member.id}
                     onClick={() => removeMember(member)}
-                    className="text-slate-400 hover:text-red-600 disabled:opacity-50"
+                    className="text-slate-500 hover:text-red-600 disabled:opacity-50"
                   >
                     Remove
                   </button>
                 </div>
+                )}
               </li>
             ))}
           </ul>
@@ -226,14 +230,14 @@ export function TeamPanel({ businessId }: { businessId: string }) {
       </section>
 
       {invites.length > 0 && (
-        <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+        <section className="ui-card space-y-3">
           <h2 className="text-lg font-semibold">Pending invitations</h2>
           <ul className="divide-y divide-slate-100">
             {invites.map((invite) => (
               <li key={invite.id} className="flex items-center justify-between gap-3 py-2.5">
                 <div className="min-w-0">
                   <p className="truncate text-sm text-slate-800">{invite.email}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     {invite.status === "expired" ? "Expired" : `Expires ${formatDate(invite.expiresAt)}`}
                   </p>
                 </div>
@@ -250,7 +254,7 @@ export function TeamPanel({ businessId }: { businessId: string }) {
                     type="button"
                     disabled={busyId === invite.id}
                     onClick={() => revokeInvite(invite)}
-                    className="text-slate-400 hover:text-red-600 disabled:opacity-50"
+                    className="text-slate-500 hover:text-red-600 disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -261,7 +265,7 @@ export function TeamPanel({ businessId }: { businessId: string }) {
         </section>
       )}
 
-      <section className="space-y-3 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+      <section className="ui-card space-y-3">
         <h2 className="text-lg font-semibold">Invite someone</h2>
         <p className="text-sm text-slate-500">
           They&apos;ll get an email with a link to join as staff. You can make them an owner afterwards.
@@ -274,12 +278,12 @@ export function TeamPanel({ businessId }: { businessId: string }) {
             onChange={(event) => setEmail(event.target.value)}
             placeholder="teammate@example.com"
             aria-label="Teammate email address"
-            className="min-w-0 flex-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+            className="min-w-0 flex-1 ui-field"
           />
           <button
             type="submit"
             disabled={inviting}
-            className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+            className="ui-btn ui-btn-primary"
           >
             {inviting ? "Sending…" : "Send invite"}
           </button>

@@ -1,0 +1,228 @@
+BEGIN;
+
+-- Onboarding answers, saved in one go when the signup wizard finishes or
+-- is skipped (see complete_onboarding below). onboarding_completed_at IS
+-- NULL means "a new signup who hasn't been through setup"; once set (by
+-- finishing OR skipping) the dashboard stops sending them there.
+--
+-- Existing businesses are marked complete ONCE, at the moment the column
+-- is first added: they signed up long before this wizard existed and must
+-- not be pushed through it on their next login. The guard (did the column
+-- already exist?) is what makes that one-time -- without it, re-applying
+-- this file would mark every business that has since been created
+-- (and never onboarded) as complete too. Same hazard as 0066.
+DO $$
+DECLARE
+    had_column boolean;
+BEGIN
+    had_column := EXISTS (
+        SELECT 1
+          FROM information_schema.columns
+         WHERE table_schema = 'public'
+           AND table_name = 'businesses'
+           AND column_name = 'onboarding_completed_at'
+    );
+
+    ALTER TABLE public.businesses
+        ADD COLUMN IF NOT EXISTS onboarding_completed_at timestamptz,
+        -- Free text, not a fixed enum: the courier list will grow past
+        -- Shiip (GIGL, Kwik, DHL...) and a CHECK would need a migration
+        -- each time. Validated in application code against a known list
+        -- (lib/onboarding.ts) instead. NULL means "didn't answer / skipped";
+        -- a business that delivers itself is recorded as 'self', so those
+        -- two stay distinguishable.
+        ADD COLUMN IF NOT EXISTS logistics_provider text,
+        ADD COLUMN IF NOT EXISTS wants_email_channel boolean,
+        ADD COLUMN IF NOT EXISTS tracks_inventory boolean;
+
+    IF NOT had_column THEN
+        UPDATE public.businesses SET onboarding_completed_at = now();
+    END IF;
+END $$;
+
+-- One row per (business, courier) connection. A business could plausibly
+-- connect more than one courier over time (switch providers, use two for
+-- different regions), so this is its own table rather than more columns
+-- on `businesses` -- and the unique constraint below still only allows
+-- one ACTIVE connection per provider per business at a time, so there is
+-- never an ambiguous "which Shiip account do we book through" question.
+CREATE TABLE IF NOT EXISTS public.business_logistics_accounts (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    business_id uuid NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+    provider text NOT NULL,
+    -- The courier's API credentials, for the day Mira books shipments
+    -- itself. NULLABLE on purpose and unused today: delivery tracking only
+    -- needs the webhook secret below, and a credential Mira never uses is
+    -- all risk and no benefit, so it is not collected until booking exists.
+    -- When written it is encrypted in application code (TypeScript) with a
+    -- key held in an env var that never touches Postgres -- see
+    -- lib/logistics/credentials.ts. This column stores ciphertext (base64),
+    -- never plaintext, and nothing in SQL ever decrypts it: anyone with only
+    -- database access (a leaked service-role key, a DB backup) gets unusable
+    -- bytes, not a live courier credential.
+    encrypted_credentials text,
+    -- Per-provider, not a single platform-wide secret (unlike Paystack):
+    -- each business sets up their OWN webhook URL in their OWN Shiip
+    -- dashboard, so each connection has its own signing secret. Also
+    -- encrypted; same reasoning as encrypted_credentials above.
+    encrypted_webhook_secret text,
+    status text NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disconnected')),
+    connected_at timestamptz NOT NULL DEFAULT now(),
+    disconnected_at timestamptz,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_logistics_accounts_business_provider_active
+    ON public.business_logistics_accounts (business_id, provider)
+    WHERE status = 'active';
+
+CREATE INDEX IF NOT EXISTS idx_logistics_accounts_business
+    ON public.business_logistics_accounts (business_id);
+
+ALTER TABLE public.business_logistics_accounts ENABLE ROW LEVEL SECURITY;
+
+-- READ-ONLY from a browser session, on purpose. Members of the owning
+-- business (owner or staff) can see that a connection exists -- the Orders
+-- page needs that to know whether to offer 'Track delivery' -- but nothing
+-- can write to this table with a user session. Writes happen only through
+-- the server actions in app/portal/.../settings/courier-actions.ts, which
+-- check the caller is the business OWNER and then use the service role.
+--
+-- Why not an owner-write policy like 0060's? is_business_owner() matches
+-- ANY row in business_owners, staff included, so a 'for all' policy on it
+-- would let a staff member's own browser session replace the webhook
+-- secret or disconnect the courier, bypassing the owner-only check.
+-- is_business_owner_role() would fix that, but with no write policy at all
+-- there is nothing to get wrong. Cross-business reads are impossible
+-- either way: every policy is scoped to the caller's own business.
+-- CREATE POLICY has no IF NOT EXISTS in Postgres (unlike tables/indexes),
+-- so each is wrapped to keep this migration safely re-runnable like every
+-- other one in this repo.
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'business_logistics_accounts' AND policyname = 'logistics_accounts_owner_select') THEN
+        CREATE POLICY logistics_accounts_owner_select ON public.business_logistics_accounts
+            FOR SELECT
+            USING (is_business_owner(business_id));
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'business_logistics_accounts' AND policyname = 'logistics_accounts_platform_admin') THEN
+        CREATE POLICY logistics_accounts_platform_admin ON public.business_logistics_accounts
+            FOR SELECT
+            USING (is_platform_admin());
+    END IF;
+END $$;
+
+REVOKE ALL ON public.business_logistics_accounts FROM anon;
+GRANT SELECT ON public.business_logistics_accounts TO authenticated;
+GRANT ALL ON public.business_logistics_accounts TO service_role;
+
+-- Shipment bookings, one row per order shipped through a connected
+-- courier. Separate from `orders` itself (not new columns on orders)
+-- because an order could in principle be re-booked after a failed
+-- attempt, and this keeps a full history rather than overwriting the
+-- last attempt's result.
+-- A courier webhook confirming delivery is neither a staff member nor the
+-- customer; delivered_by previously only allowed those two, so a courier
+-- webhook would have had to misattribute itself as 'staff'. Extending the
+-- constraint rather than reusing 'staff' keeps that field honest for a
+-- business owner later asking "who marked this delivered".
+ALTER TABLE public.orders DROP CONSTRAINT IF EXISTS orders_delivered_by_check;
+ALTER TABLE public.orders ADD CONSTRAINT orders_delivered_by_check
+    CHECK (delivered_by IN ('customer', 'staff', 'courier'));
+
+CREATE TABLE IF NOT EXISTS public.order_shipments (
+    id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+    business_id uuid NOT NULL REFERENCES public.businesses(id) ON DELETE CASCADE,
+    order_id uuid NOT NULL REFERENCES public.orders(id) ON DELETE CASCADE,
+    logistics_account_id uuid NOT NULL REFERENCES public.business_logistics_accounts(id),
+    provider text NOT NULL,
+    -- The courier's OWN reference/shipment id, returned when a shipment is
+    -- booked (e.g. Shiip's book-shipment response has both `reference` and
+    -- `shipmentId`). This -- not orders.id -- is what the courier's
+    -- webhook reports status changes against, so this is the join key an
+    -- inbound webhook actually looks up by.
+    courier_reference text,
+    courier_shipment_id text,
+    status text NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'booked', 'picked_up', 'in_transit', 'delivered', 'failed', 'cancelled')),
+    last_event jsonb,
+    created_at timestamptz NOT NULL DEFAULT now(),
+    updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+-- The actual mechanism that makes a webhook lookup safe: a courier's
+-- reference is only ever looked up WITHIN one business_id. Two different
+-- businesses getting coincidentally identical courier references (same
+-- courier, or two different couriers) can never cross-match, because the
+-- unique constraint -- and every real lookup query -- always includes
+-- business_id as part of the key, never courier_reference alone.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_order_shipments_business_courier_ref
+    ON public.order_shipments (business_id, provider, courier_reference)
+    WHERE courier_reference IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_order_shipments_order ON public.order_shipments (order_id);
+CREATE INDEX IF NOT EXISTS idx_order_shipments_business ON public.order_shipments (business_id);
+
+ALTER TABLE public.order_shipments ENABLE ROW LEVEL SECURITY;
+
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'order_shipments' AND policyname = 'order_shipments_owner_select') THEN
+        CREATE POLICY order_shipments_owner_select ON public.order_shipments
+            FOR SELECT
+            USING (is_business_owner(business_id));
+    END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'order_shipments' AND policyname = 'order_shipments_platform_admin') THEN
+        CREATE POLICY order_shipments_platform_admin ON public.order_shipments
+            FOR ALL
+            USING (is_platform_admin())
+            WITH CHECK (is_platform_admin());
+    END IF;
+END $$;
+
+REVOKE ALL ON public.order_shipments FROM anon;
+GRANT SELECT ON public.order_shipments TO authenticated;
+GRANT ALL ON public.order_shipments TO service_role;
+
+-- Saves the wizard's answers and marks onboarding done. Owner (or platform
+-- admin) only, the same check update_business_settings (0054) uses, and it
+-- can touch ONLY these four columns: an owner has no UPDATE on businesses,
+-- so this function is the narrow door, not a way to edit anything else.
+-- Passing every answer as NULL is how "skip for now" is recorded.
+CREATE OR REPLACE FUNCTION public.complete_onboarding(
+    p_business_id uuid,
+    p_wants_email_channel boolean DEFAULT NULL,
+    p_tracks_inventory boolean DEFAULT NULL,
+    p_logistics_provider text DEFAULT NULL
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+DECLARE
+    v_provider text := nullif(btrim(p_logistics_provider), '');
+BEGIN
+    IF NOT (is_platform_admin() OR is_business_admin(p_business_id)) THEN
+        RAISE EXCEPTION 'not authorized to complete onboarding for this business' USING errcode = '42501';
+    END IF;
+
+    IF v_provider IS NOT NULL AND char_length(v_provider) > 60 THEN
+        RAISE EXCEPTION 'courier name is too long' USING errcode = '22023';
+    END IF;
+
+    UPDATE public.businesses
+       SET wants_email_channel = p_wants_email_channel,
+           tracks_inventory = p_tracks_inventory,
+           logistics_provider = v_provider,
+           -- Keep the first completion time if this is run again later.
+           onboarding_completed_at = coalesce(onboarding_completed_at, now())
+     WHERE id = p_business_id;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.complete_onboarding(uuid, boolean, boolean, text) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.complete_onboarding(uuid, boolean, boolean, text) TO authenticated;
+
+
+COMMIT;

@@ -1,6 +1,12 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { SegmentedLinks } from "@/components/ui/Segmented";
+import { customerLabel } from "@/lib/customerLabel";
+import { formatDateTime } from "@/lib/format";
 import { ErrorNotice } from "@/components/ErrorNotice";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { getRequestUser } from "@/lib/supabase/request";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import AssignmentControls from "./AssignmentControls";
 
@@ -32,9 +38,7 @@ export default async function PortalConversationsPage({
           : "all";
 
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getRequestUser();
   const currentUserId = user?.id ?? "";
   const currentUserEmail = user?.email ?? "";
   const owner = await getCurrentBusinessOwner();
@@ -76,90 +80,41 @@ export default async function PortalConversationsPage({
     { value: "other", label: "Assigned to another" },
   ];
 
+  const filterOptions = filters.map((item) => ({ key: item.value, label: item.label, href: item.value === "all" ? basePath : `${basePath}?filter=${item.value}` }));
+
   return (
     <div>
-      <div className="mb-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-slate-900">
-            Conversations
-          </h2>
-          <p className="text-sm text-slate-500">Shared inbox</p>
-        </div>
-        <nav
-          aria-label="Conversation assignment filters"
-          className="flex flex-wrap gap-2"
-        >
-          {filters.map((item) => {
-            const href =
-              item.value === "all"
-                ? basePath
-                : `${basePath}?filter=${item.value}`;
+      <PageHeader title="Conversations" subtitle="Everything customers have asked, across your website and WhatsApp." />
 
-            return (
-              <Link
-                key={item.value}
-                href={href}
-                aria-current={filter === item.value ? "page" : undefined}
-                className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                  filter === item.value
-                    ? "border-accent bg-accent text-white"
-                    : "border-slate-200 bg-white text-slate-600 hover:border-accent hover:text-accent"
-                }`}
-              >
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+      <div className="mb-5 overflow-x-auto pb-1">
+        <SegmentedLinks label="Conversation filters" current={filter} options={filterOptions} />
       </div>
 
       {conversationsError && <ErrorNotice what="load your conversations" error={conversationsError} />}
       {!conversationsError && (!conversations || conversations.length === 0) && (
-        <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-xs">
-          No conversations match this filter.
-        </p>
+        <EmptyState
+          icon="chat"
+          title={filter === "all" ? "No conversations yet" : "Nothing here"}
+          description={filter === "all" ? "When a customer chats with Mira on your website or WhatsApp, the conversation shows up here." : "No conversations match this filter. Try All to see everything."}
+        />
       )}
 
-      <ul className="space-y-2">
-        {conversations?.map((conversation) => (
-          <li
-            key={conversation.id}
-            className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs transition hover:border-accent"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <Link
-                href={`${basePath}/${conversation.id}`}
-                className="flex min-w-0 flex-1 items-center justify-between gap-4"
-              >
-                <span className="flex min-w-0 items-center gap-2">
-                  {conversation.is_unread && (
-                    <span
-                      className="h-2 w-2 shrink-0 rounded-full bg-accent"
-                      title="Unread"
-                      aria-label="Unread"
-                    />
-                  )}
-                  {conversation.needs_human && (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
-                      Needs you
+      {conversations && conversations.length > 0 && (
+        <ul className="ui-group ui-enter">
+          {conversations.map((conversation) => (
+            <li key={conversation.id} className="ui-row flex-wrap justify-between gap-y-2">
+              <Link href={`${basePath}/${conversation.id}`} className="flex min-w-0 flex-1 items-center justify-between gap-4 py-0.5">
+                <span className="flex min-w-0 items-center gap-2.5">
+                  {conversation.is_unread && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent" title="Unread" aria-label="Unread" />}
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-[15px] font-medium text-slate-900">{customerLabel(conversation.session_token)}</span>
+                      {conversation.needs_human && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Needs you</span>}
                     </span>
-                  )}
-                  <span className="font-mono text-xs text-slate-500">
-                    {conversation.session_token.slice(0, 8)}…
-                  </span>
-                  <span
-                    className={`text-xs font-medium ${
-                      conversation.channel === "whatsapp"
-                        ? "text-emerald-600"
-                        : "text-slate-400"
-                    }`}
-                  >
-                    {conversation.channel === "whatsapp" ? "WhatsApp" : "Web"}
+                    <span className={`ui-hint block ${conversation.channel === "whatsapp" ? "!text-emerald-700" : ""}`}>{conversation.channel === "whatsapp" ? "WhatsApp" : "Website"}</span>
                   </span>
                 </span>
-                <span className="shrink-0 text-sm text-slate-500">
-                  {new Date(conversation.last_message_at).toLocaleString()}
-                </span>
+                <span className="shrink-0 text-sm text-slate-500">{formatDateTime(conversation.last_message_at)}</span>
               </Link>
 
               <AssignmentControls
@@ -168,10 +123,10 @@ export default async function PortalConversationsPage({
                 currentUserId={currentUserEmail}
                 isOwner={isOwner}
               />
-            </div>
-          </li>
-        ))}
-      </ul>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

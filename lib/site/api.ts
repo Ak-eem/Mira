@@ -11,7 +11,6 @@ import type { ChatMessage, Conversation, DayHours, Faq, Insights, Order, OrderSt
  * replace each body with a `fetch` to the matching endpoint (suggested routes
  * are in the comments). The screens will not need to change.
  */
-
 const copy = <T>(v: T): T => structuredClone(v)
 const db = {
   products: copy(mock.products),
@@ -25,7 +24,7 @@ const db = {
 
 // GET /api/business
 export async function getBusiness() {
-  return mock.business
+  return { ...mock.business }
 }
 
 // GET /api/overview
@@ -63,7 +62,7 @@ export async function getOrders(): Promise<Order[]> {
   return copy(db.orders)
 }
 
-// PATCH /api/orders/:id  { status }
+// PATCH /api/orders/:id { status }
 export async function updateOrderStatus(id: string, status: OrderStatus): Promise<Order> {
   const o = db.orders.find((x) => x.id === id)
   if (!o) throw new Error('Order not found')
@@ -77,16 +76,17 @@ export async function getConversations(): Promise<Conversation[]> {
   return copy(db.conversations)
 }
 
-// POST /api/conversations/:id/messages  { text }   (the owner replying by hand)
+// POST /api/conversations/:id/messages { text }  (the owner replying by hand)
 export async function sendOwnerReply(conversationId: string, text: string): Promise<ChatMessage> {
   const c = db.conversations.find((x) => x.id === conversationId)
+  if (!c) throw new Error('Conversation not found')
   const m: ChatMessage = { id: crypto.randomUUID(), from: 'owner', text, at: new Date().toISOString() }
-  c?.messages.push(m)
+  c.messages.push(m)
   return m
 }
 
 /**
- * POST /api/chat  { message, history }  →  ChatMessage
+ * POST /api/chat { message, history }  →  ChatMessage
  *
  * The visitor-facing assistant. The real endpoint answers only from this
  * business's own catalog, FAQs, policies, hours and orders. The demo below
@@ -129,24 +129,32 @@ export async function sendChat(message: string, history: ChatMessage[]): Promise
   const decoder = new TextDecoder()
   let buffer = ''
   let text = ''
+  let silent = false
+
+  const processEvent = (event: string) => {
+    const data = event.split(/\r?\n/).filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trimStart()).join('\n').trim()
+    if (!data) return
+    try {
+      const parsed = JSON.parse(data) as { token?: string; silent?: boolean }
+      if (typeof parsed.token === 'string') text += parsed.token
+      if (parsed.silent === true) silent = true
+    } catch {
+      /* ignore malformed event */
+    }
+  }
+
   for (;;) {
     const { value, done } = await reader.read()
     if (done) break
     buffer += decoder.decode(value, { stream: true })
     const events = buffer.split(/\r?\n\r?\n/)
     buffer = events.pop() ?? ''
-    for (const ev of events) {
-      const data = ev.split(/\r?\n/).filter((l) => l.startsWith('data:')).map((l) => l.slice(5).trimStart()).join('\n').trim()
-      if (!data) continue
-      try {
-        const parsed = JSON.parse(data) as { token?: string }
-        if (parsed.token) text += parsed.token
-      } catch {
-        /* ignore malformed event */
-      }
-    }
+    for (const event of events) processEvent(event)
   }
-  return { id: crypto.randomUUID(), from: 'assistant', text: text.trim() || 'Thanks. We will get back to you shortly.', at: new Date().toISOString() }
+  buffer += decoder.decode()
+  if (buffer) processEvent(buffer)
+
+  return { id: crypto.randomUUID(), from: 'assistant', text: silent ? '' : text.length === 0 ? 'Thanks. We will get back to you shortly.' : text.trim(), at: new Date().toISOString() }
 }
 
 // GET/PUT /api/faqs

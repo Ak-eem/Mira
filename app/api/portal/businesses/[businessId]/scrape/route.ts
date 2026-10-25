@@ -1,28 +1,14 @@
+import { duplicateTarget, escapeLike } from "@/lib/scrape/duplicateTarget";
 import { NextRequest, NextResponse } from "next/server";
 import { extractBusinessInfo } from "@/lib/ai/extractBusinessInfo";
-import { fetchCrawlResource, scrapeBusinessWebsite } from "@/lib/ai/scrapeBusiness";
+import { scrapeBusinessWebsite } from "@/lib/ai/scrapeBusiness";
+import { mirrorProductImage } from "@/lib/scrape/mirrorProductImage";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceRoleClient } from "@/lib/supabase/service-role";
 
 async function authorize(businessId: string) {
   const owner = await getCurrentBusinessOwner();
   return owner?.businesses.some((business) => business.id === businessId) ? owner : null;
-}
-
-async function mirrorProductImage(businessId: string, draftId: string, imageUrl: string): Promise<string | null> {
-  const resource = await fetchCrawlResource(imageUrl);
-  if (resource.status < 200 || resource.status >= 300 || !resource.contentType || !["image/jpeg", "image/png", "image/webp"].includes(resource.contentType)) {
-    throw new Error("Product image is not an allowed image response.");
-  }
-  const extension = resource.contentType === "image/jpeg" ? "jpg" : resource.contentType.slice("image/".length);
-  const path = `${businessId}/${draftId}-${Date.now()}.${extension}`;
-  const body = new ArrayBuffer(resource.body.byteLength);
-  new Uint8Array(body).set(resource.body);
-  const storage = createServiceRoleClient().storage.from("product-images");
-  const { error } = await storage.upload(path, body, { contentType: resource.contentType, cacheControl: "31536000", upsert: false });
-  if (error) throw error;
-  return storage.getPublicUrl(path).data.publicUrl;
 }
 
 export async function GET(_request: NextRequest, { params }: { params: Promise<{ businessId: string }> }) {
@@ -76,6 +62,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     let imageImportFailed = false;
     if (body.status === "approved") {
       const { data: draft } = await supabase.from("scrape_drafts").select("kind, payload").eq("id", body.draftId).eq("business_id", businessId).eq("status", "pending").maybeSingle();
+      // Do not add something the business already has.
+      const target = draft && typeof draft.payload === "object" && draft.payload ? duplicateTarget(draft.kind, draft.payload as Record<string, unknown>) : null;
+      if (target) {
+        const { count } = await supabase.from(target.table).select("id", { count: "exact", head: true }).eq("business_id", businessId).ilike(target.column, escapeLike(target.value));
+        if ((count ?? 0) > 0) {
+          await supabase.rpc("reject_scrape_draft", { p_draft_id: body.draftId });
+          return NextResponse.json({ message: "That is already in your business info, so it was skipped.", duplicate: true });
+        }
+      }
       const payload = draft?.kind === "product" && typeof draft?.payload === "object" && draft.payload ? (draft.payload as Record<string, unknown>) : null;
       const candidateRaw = payload?.candidate_image_url;
       const candidateImageUrl = typeof candidateRaw === "string" ? candidateRaw : null;

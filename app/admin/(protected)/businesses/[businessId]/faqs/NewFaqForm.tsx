@@ -1,10 +1,12 @@
 "use client";
 
+import { useSheetClose } from "@/components/ui/Sheet";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createFaq } from "./actions";
 
 export function NewFaqForm({ businessId }: { businessId: string }) {
+  const closeSheet = useSheetClose();
   const router = useRouter();
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -27,35 +29,38 @@ export function NewFaqForm({ businessId }: { businessId: string }) {
     setQuestion("");
     setAnswer("");
     setSubmitting(false);
+    closeSheet();
     router.refresh();
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="text-sm font-semibold">Add an FAQ</h2>
+    <form onSubmit={handleSubmit} className="space-y-4">
 
-      <input
-        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
-        placeholder="Question"
+      <div>
+        <label htmlFor="f-question" className="ui-label">Question</label>
+        <input id="f-question"
+        className="ui-field"
         value={question}
         onChange={(e) => setQuestion(e.target.value)}
-        required
-      />
-      <textarea
-        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
-        placeholder="Answer — exactly what you want Mira to say"
+        required />
+      </div>
+      <div>
+        <label htmlFor="f-answer-exactly-what-you-want-mira-to-say" className="ui-label">Answer — exactly what you want Mira to say</label>
+        <textarea id="f-answer-exactly-what-you-want-mira-to-say"
+        className="ui-field"
         rows={3}
         value={answer}
         onChange={(e) => setAnswer(e.target.value)}
-        required
-      />
+        required />
+      </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        aria-busy={submitting}
+        className="ui-btn ui-btn-primary w-full"
       >
         {submitting ? "Adding…" : "Add FAQ"}
       </button>

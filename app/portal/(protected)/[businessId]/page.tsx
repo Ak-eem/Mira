@@ -1,12 +1,13 @@
+import { customerLabel } from "@/lib/customerLabel";
 import { ErrorNotice } from "@/components/ErrorNotice";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight, ArrowUpRight, Check, Circle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { timed } from "@/lib/perf";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
-import { naira } from "@/lib/site/format";
 import { getOrderTakingEnabled } from "@/lib/orderSettings";
-import { ActivityChart, type ChartPoint } from "./ActivityChart";
+import { ActivityPanel, type ChartPoint, type ChartMetric } from "./ActivityChart";
 import { DataTable, type Column, type Row } from "./DataTable";
 
 type OrderRow = {
@@ -47,14 +48,6 @@ function dailySeries(now: number, entries: { at: string; value: number }[]): Cha
     const date = new Date(now - (29 - i) * DAY_MS);
     return { label: dayLabel(date), value: totals.get(dayKey(date)) ?? 0 };
   });
-}
-
-function customerLabel(sessionToken: string | null): string {
-  if (!sessionToken) return "Website visitor";
-  if (sessionToken.startsWith("email_")) return sessionToken.slice(6);
-  if (sessionToken.startsWith("wa_")) return `+${sessionToken.slice(3)}`;
-  if (sessionToken.startsWith("web_")) return "Website visitor";
-  return "Website visitor";
 }
 
 const CHANNEL_LABEL: Record<string, string> = { web: "Website", whatsapp: "WhatsApp", email: "Email" };
@@ -127,6 +120,22 @@ export default async function PortalDashboardPage({
   const supabase = await createClient();
   const owner = await getCurrentBusinessOwner();
   const isOwner = owner?.businesses.find((b) => b.id === businessId)?.role === "owner";
+
+  // A brand-new owner goes through setup first (migration 0065 marks every
+  // pre-existing business complete, so only new signups land here). Fails
+  // safe: if the column can't be read (migration not applied yet) nobody is
+  // redirected. Staff are never sent, and skipping setup also marks it done,
+  // so this can't trap anyone.
+  if (isOwner) {
+    const { data: onboarding, error: onboardingError } = await supabase
+      .from("businesses")
+      .select("onboarding_completed_at")
+      .eq("id", businessId)
+      .maybeSingle();
+    if (!onboardingError && onboarding && onboarding.onboarding_completed_at === null) {
+      redirect(`/portal/${businessId}/setup`);
+    }
+  }
 
   // This is a Server Component (no "use client", no hooks); it already renders fresh
   // per request. Hoisting this to module level, as the purity rule's fix suggests,
@@ -205,6 +214,27 @@ export default async function PortalDashboardPage({
   const orderSeries = dailySeries(now, orderRows.map((r) => ({ at: r.created_at, value: Number(r.total ?? 0) })));
   const showOrders = orderTakingEnabled || orderRows.length > 0;
 
+  const chartMetrics: ChartMetric[] = [
+    {
+      id: "conversations",
+      title: "Conversations",
+      kind: "count",
+      points: conversationSeries,
+      emptyMessage: "Your activity shows up here once customers start chatting with Mira.",
+    },
+    ...(showOrders
+      ? [
+          {
+            id: "sales",
+            title: "Sales",
+            kind: "money" as const,
+            points: orderSeries,
+            emptyMessage: "Order value appears here after Mira takes your first order.",
+          },
+        ]
+      : []),
+  ];
+
   const orderTableRows: Row[] = [...orderRows].reverse().slice(0, 8).map((order) => {
     const items = order.order_items ?? [];
     const first = items[0];
@@ -269,14 +299,14 @@ export default async function PortalDashboardPage({
     {
       done: knowledge > 0,
       title: "Teach Mira about your business",
-      description: "Import from your website, or add products, FAQs and policies.",
-      href: `${base}/settings#import-website`,
+      description: "Import from your website, or add your products, hours and FAQs.",
+      href: `${base}/settings?tab=info#import-website`,
     },
     {
       done: (totalConversations ?? 0) > 0,
       title: "Get your first conversation",
       description: "Add the chat widget to your site and send a test message.",
-      href: `${base}/settings#add-widget`,
+      href: `${base}/settings?tab=widget#add-widget`,
     },
     ...(isOwner
       ? [{ done: (inviteCount ?? 0) > 0, title: "Invite a teammate", description: "Let staff answer the chats Mira hands over.", href: `${base}/team` }]
@@ -288,8 +318,8 @@ export default async function PortalDashboardPage({
       {(businessError ?? recentError ?? conversationCountError) && <ErrorNotice what="load your dashboard" error={businessError ?? recentError ?? conversationCountError} />}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">Welcome back</h1>
-          <p className="mt-1 text-sm text-muted">Here&apos;s how {business?.name ?? "your business"} did in the last 30 days.</p>
+          <h1 className="ui-title">Welcome back</h1>
+          <p className="ui-subtitle">Here&apos;s how {business?.name ?? "your business"} did in the last 30 days.</p>
         </div>
         {business?.slug && (
           <a
@@ -345,23 +375,7 @@ export default async function PortalDashboardPage({
         </Link>
       </div>
 
-      <div className={showOrders ? "grid gap-4 lg:grid-cols-2" : ""}>
-        <ActivityChart
-          title="Conversations"
-          subtitle="Last 30 days"
-          points={conversationSeries}
-          emptyMessage="Your activity shows up here once customers start chatting with Mira."
-        />
-        {showOrders && (
-          <ActivityChart
-            title="Sales from orders"
-            subtitle="Placed, shipped and delivered, last 30 days"
-            points={orderSeries}
-            format={naira}
-            emptyMessage="Order value appears here after Mira takes your first order."
-          />
-        )}
-      </div>
+      <ActivityPanel metrics={chartMetrics} />
 
       {showOrders && (
         <div className="grid gap-4 lg:grid-cols-2">

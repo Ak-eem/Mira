@@ -36,7 +36,7 @@ export function RequestForm({ businessId }: { businessId: string }) {
 
   if (sent) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-700">
+      <div className="ui-card !p-5 text-sm text-slate-700">
         <p className="font-medium text-slate-900">Request sent.</p>
         <p className="mt-1">We will reply to your account email.</p>
         <button type="button" onClick={() => setSent(false)} className="mt-3 text-accent underline">
@@ -47,7 +47,7 @@ export function RequestForm({ businessId }: { businessId: string }) {
   }
 
   return (
-    <form onSubmit={submit} className="flex max-w-xl flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5">
+    <form onSubmit={submit} className="ui-card !p-5">
       <label className="flex flex-col gap-1.5 text-sm text-slate-600">
         What kind of request?
         <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900">
@@ -65,7 +65,7 @@ export function RequestForm({ businessId }: { businessId: string }) {
         <textarea value={details} onChange={(e) => setDetails(e.target.value)} maxLength={4000} required rows={6} className="resize-y rounded-lg border border-slate-200 px-3 py-2 text-slate-900" />
       </label>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <button type="submit" disabled={sending} className="self-start rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60">
+      <button type="submit" disabled={sending} className="ui-btn ui-btn-primary self-start">
         {sending ? "Sending…" : "Send request"}
       </button>
     </form>

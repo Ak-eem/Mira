@@ -1,3 +1,6 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { AddSheet } from "@/components/ui/Sheet";
 import { createClient } from "@/lib/supabase/server";
 import { NewPolicyForm } from "./NewPolicyForm";
 import { PolicyList } from "./PolicyList";
@@ -18,11 +21,30 @@ export default async function PoliciesPage({
 
   return (
     <div>
-      <h1 className="mb-6 mt-2 text-xl font-semibold">Policies</h1>
+      <PageHeader
+        title="Policies"
+        subtitle="Returns, delivery, payment and other rules Mira should follow."
+        action={policies?.length ? (
+          <AddSheet label="Add policy">
+            <NewPolicyForm businessId={businessId} />
+          </AddSheet>
+        ) : undefined}
+      />
 
-      <PolicyList policies={policies ?? []} />
-
-      <NewPolicyForm businessId={businessId} />
+      {policies?.length ? (
+        <PolicyList policies={policies} />
+      ) : (
+        <EmptyState
+          icon="list"
+          title="No policies yet"
+          description="Add your returns, delivery and payment rules so Mira follows them."
+          action={
+            <AddSheet label="Add your first policy">
+              <NewPolicyForm businessId={businessId} />
+            </AddSheet>
+          }
+        />
+      )}
     </div>
   );
 }

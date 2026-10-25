@@ -129,7 +129,29 @@ const tints = {
   stone: ['#efefe9', '#cfcfc4'],
 }
 
-/** Product image, or a soft clay-like placeholder when there's no photo yet. */
+// Simple outline icons (24x24 grid) so a missing photo still says what the thing is, instead of showing blank shapes.
+const PLACEHOLDER_ICONS: Record<string, string[]> = {
+  shirt: ['M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10c0 1.1.9 2 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z'],
+  bag: ['M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z', 'M3 6h18', 'M16 10a4 4 0 0 1-8 0'],
+  bank: ['M3 22h18', 'M6 18v-7', 'M10 18v-7', 'M14 18v-7', 'M18 18v-7', 'M12 2 20 7H4z'],
+  school: ['M22 10 12 5 2 10l10 5z', 'M6 12v5c3 3 9 3 12 0v-5'],
+  health: ['M9 3h6v6h6v6h-6v6H9v-6H3V9h6z'],
+  food: ['M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2', 'M7 2v20', 'M21 15V2a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7'],
+  tag: ['M12 2H2v10l9.29 9.29a1 1 0 0 0 1.42 0l6.58-6.58a1 1 0 0 0 0-1.42z', 'M7 7h.01'],
+}
+
+function placeholderIconFor(name: string): string[] {
+  const n = name.toLowerCase()
+  if (/bank|fintech|transfer/.test(n)) return PLACEHOLDER_ICONS.bank
+  if (/school|class|term/.test(n)) return PLACEHOLDER_ICONS.school
+  if (/hospital|clinic|pharmac|health/.test(n)) return PLACEHOLDER_ICONS.health
+  if (/restaurant|cafe|food|kitchen/.test(n)) return PLACEHOLDER_ICONS.food
+  if (/bag|clutch|purse/.test(n)) return PLACEHOLDER_ICONS.bag
+  if (/dress|kaftan|set|fashion|wear|shirt|ankara|adire|tie/.test(n)) return PLACEHOLDER_ICONS.shirt
+  return PLACEHOLDER_ICONS.tag
+}
+
+/** Product image, or a soft tinted placeholder with a matching icon when there's no photo yet. */
 export function ProductImage({ image, name, tint = 'mist', className }: { image?: string; name: string; tint?: keyof typeof tints; className?: string }) {
   if (image) {
     // eslint-disable-next-line @next/next/no-img-element
@@ -138,8 +160,12 @@ export function ProductImage({ image, name, tint = 'mist', className }: { image?
   const [a, b] = tints[tint]
   return (
     <div role="img" aria-label={name} className={cx(positioned(className), 'overflow-hidden', className)} style={{ background: `linear-gradient(160deg, ${a}, ${b})` }}>
-      <span className="absolute left-[18%] top-[22%] h-[62%] w-[38%] rounded-[40%_40%_30%_30%] bg-white/70 shadow-[inset_-6px_-8px_14px_rgb(0_0_0/0.06)]" />
-      <span className="absolute right-[16%] bottom-[16%] size-[34%] rounded-full bg-white/55 shadow-[inset_-5px_-6px_12px_rgb(0_0_0/0.06)]" />
+      <span aria-hidden="true" className="absolute inset-0 m-auto aspect-square h-[58%] max-h-28 rounded-full bg-white/60 shadow-[inset_-5px_-6px_12px_rgb(0_0_0/0.05)]" />
+      <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" className="absolute inset-0 m-auto h-[30%] max-h-14 w-auto text-ink/45">
+        {placeholderIconFor(name).map((d) => (
+          <path key={d} d={d} />
+        ))}
+      </svg>
     </div>
   )
 }

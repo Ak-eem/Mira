@@ -8,6 +8,13 @@ The Terms of Service and Privacy Policy make retention promises. This is how eac
 |---|---|---|
 | WhatsApp / email inbound queue rows (raw message + sender id) | 30 days | `/api/cron/cleanup`, daily 03:30 (`vercel.json`). The number is `INBOUND_QUEUE_RETENTION_DAYS` in `lib/retention.ts`, which the legal pages also read. |
 
+## Owner deletion requests
+
+Owners can also ask for their account to be deleted in Portal > Settings > Delete account.
+This records the request in the activity log (it shows on the business's Admin > Settings
+page) and emails the operator at `CUSTOM_REQUEST_TO_EMAIL` (or `CONTACT_TO_EMAIL`). Nothing is
+deleted automatically: confirm with the owner by email, then use **Delete business**.
+
 ## Manual: deleting a business 30 days after it cancels
 
 Owners cancel themselves in Portal > Settings > Cancel subscription. That switches Mira
@@ -42,6 +49,15 @@ Notes:
   within the 30 days), make sure it was sent first.
 - Expired trials are not "cancelled", so the query does not list them. Decide separately
   how long to keep an unpaid trial's data, and say so in the Privacy Policy if it matters.
+
+## Open item: database backups
+
+Deleting a business removes its rows from the live database. It does **not** by itself
+remove copies held in Supabase backups, which expire on the backup schedule of your
+Supabase plan. This document does not state that period because it depends on your plan:
+look it up in the Supabase dashboard and make sure the Privacy Policy says the same
+thing. Until it does, the Privacy Policy should not promise that data is gone from
+backups on a fixed day.
 
 ## If you want this automated later
 

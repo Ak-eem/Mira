@@ -1,5 +1,6 @@
 import "server-only";
 import { processIncomingMessage } from "@/lib/chat/processIncomingMessage";
+import { isBusinessSwitchedOff } from "@/lib/chat/businessStatus";
 import { withConversationLease } from "@/lib/chat/durable";
 import type { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
@@ -38,6 +39,14 @@ export async function processWhatsappQueued(client: Client, queued: QueueRow, it
 
   const businessId = business.data.id;
   try {
+    // Same gate as web chat (is_active above + isLocked via isBusinessSwitchedOff):
+    // a cancelled, expired or unsubscribed business gets no AI call and no reply,
+    // not even an already-persisted one. Checked before everything else so the row
+    // is closed untouched; a DB error throws into the catch below and is retried.
+    if (await isBusinessSwitchedOff(client, businessId)) {
+      await markInboundDone(client, queued.id);
+      return;
+    }
     if (queued.reply_sent_at) {
       // Sent on an earlier attempt; only the final ack was lost.
       await markInboundDone(client, queued.id);

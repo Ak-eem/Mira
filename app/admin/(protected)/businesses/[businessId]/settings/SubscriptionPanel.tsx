@@ -8,7 +8,7 @@ type Subscription = {
   nudges_addon: boolean;
   nudges_tier: "basic" | "plus" | null;
   max_nudges_per_customer_per_week: number;
-  status: "active" | "past_due" | "cancelled";
+  status: "trialing" | "active" | "past_due" | "cancelled";
 } | null;
 
 export function SubscriptionPanel({ businessId, subscription }: { businessId: string; subscription: Subscription }) {
@@ -19,7 +19,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
   const [status, setStatus] = useState(subscription?.status ?? "active");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [savedAt, setSavedAt] = useState<number | null>(null);
+  const [savedNote, setSavedNote] = useState<string | null>(null);
 
   async function handleSave() {
     setSaving(true);
@@ -33,8 +33,14 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
       status,
     });
     setSaving(false);
-    if (result.error) setError(result.error);
-    else setSavedAt(Date.now());
+    if (result.error) {
+      setSavedNote(null);
+      setError(result.error);
+    } else if (result.saved) {
+      const { plan: p, status: st, expires_at, trial_ends_at } = result.saved;
+      const ends = st === "trialing" ? trial_ends_at : expires_at;
+      setSavedNote(`Saved: ${p} · ${st}${ends ? ` · ends ${new Date(ends).toLocaleDateString()}` : ""}`);
+    }
   }
 
   return (
@@ -48,7 +54,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
           <div>
             <label className="block text-xs font-medium text-slate-600">Plan</label>
             <select
-              className="mt-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 ui-field"
               value={plan}
               onChange={(e) => setPlan(e.target.value as "base" | "pro")}
             >
@@ -59,10 +65,11 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
           <div>
             <label className="block text-xs font-medium text-slate-600">Status</label>
             <select
-              className="mt-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 ui-field"
               value={status}
-              onChange={(e) => setStatus(e.target.value as "active" | "past_due" | "cancelled")}
+              onChange={(e) => setStatus(e.target.value as "trialing" | "active" | "past_due" | "cancelled")}
             >
+              <option value="trialing">Trialing</option>
               <option value="active">Active</option>
               <option value="past_due">Past due</option>
               <option value="cancelled">Cancelled</option>
@@ -80,7 +87,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
             <div>
               <label className="block text-xs font-medium text-slate-600">Nudges tier</label>
               <select
-                className="mt-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 ui-field"
                 value={nudgesTier}
                 onChange={(e) => setNudgesTier(e.target.value)}
               >
@@ -94,7 +101,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
               <input
                 type="number"
                 min={1}
-                className="mt-1 w-24 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-24 ui-field"
                 value={maxPerWeek}
                 onChange={(e) => setMaxPerWeek(e.target.value)}
               />
@@ -108,11 +115,11 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded-sm bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+            className="ui-btn ui-btn-primary"
           >
             {saving ? "Saving…" : "Save"}
           </button>
-          {savedAt && <span className="text-xs text-emerald-600">Saved</span>}
+          {savedNote && <span className="text-xs text-emerald-600">{savedNote}</span>}
         </div>
       </div>
     </div>

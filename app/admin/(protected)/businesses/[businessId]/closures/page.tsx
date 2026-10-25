@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { NewClosureForm } from "./NewClosureForm";
 import { ClosureList } from "./ClosureList";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default async function ClosuresPage({
   params,
@@ -25,7 +26,7 @@ export default async function ClosuresPage({
 
   return (
     <div>
-      <h1 className="mb-6 mt-2 text-xl font-semibold">Closures</h1>
+      <PageHeader title="Closures" />
 
       <ClosureList closures={closures ?? []} businessTimezone={businessTimezone} />
 

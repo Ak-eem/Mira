@@ -8,7 +8,11 @@ import {
   type OrderStatus,
 } from "@/lib/orders/status";
 
-export type TransitionActor = "staff" | "customer";
+// "courier": a connected logistics provider's webhook (e.g. Shiip)
+// reporting a status change itself, not a human. Added alongside
+// order_shipments in migration 0065 -- see lib/logistics/shiipWebhook.ts
+// for the only current caller.
+export type TransitionActor = "staff" | "customer" | "courier";
 
 export type TransitionResult = { ok: true; changed: boolean } | { ok: false; error: string };
 
@@ -18,6 +22,7 @@ type OrderRow = {
   customer_identifier: string;
   conversation_id: string | null;
   total: number | null;
+  stock_released_at: string | null;
   order_items: { name: string; quantity: number }[] | null;
 };
 
@@ -41,6 +46,9 @@ const THREAD_NOTICE: Partial<Record<OrderStatus, (business: string) => string>> 
  *  4. customer ping (WhatsApp direct, email if consented)
  *  5. delivered closes the conversation via the shared closeConversation
  *
+ * Stock: an AI order reserves stock when placed (place_order_atomic) and a database
+ * trigger returns it when the order becomes cancelled, so nothing here touches stock.
+ *
  * Effects 2-5 are best-effort: the status change already happened and must
  * never be undone by a Resend or Meta outage.
  */
@@ -61,7 +69,7 @@ export async function transitionOrderStatus(
 
   const { data: order, error: loadError } = await supabase
     .from("orders")
-    .select("id, status, customer_identifier, conversation_id, total, order_items(name, quantity)")
+    .select("id, status, customer_identifier, conversation_id, total, stock_released_at, order_items(name, quantity)")
     .eq("id", orderId)
     .eq("business_id", businessId)
     .maybeSingle<OrderRow>();
@@ -75,6 +83,12 @@ export async function transitionOrderStatus(
   }
   if (order.status === to) return { ok: true, changed: false };
 
+  // Cancelling an order gives its reserved stock back (DB trigger, migration 0061), so
+  // those units may already be sold. A cancelled order can't be re-opened; place a new one.
+  if (order.stock_released_at && to !== "cancelled") {
+    return { ok: false, error: "This order was cancelled and its stock released. Place a new order instead." };
+  }
+
   if (actor === "customer" && (to !== "delivered" || !CUSTOMER_DELIVERABLE_STATUSES.includes(order.status))) {
     return { ok: false, error: "This order can't be marked delivered yet." };
   }
@@ -82,7 +96,7 @@ export async function transitionOrderStatus(
   const now = new Date().toISOString();
   const patch: Record<string, unknown> = { status: to, status_changed_at: now };
   if (to === "confirmed") patch.confirmed_at = now;
-  if (to === "delivered") patch.delivered_by = actor === "customer" ? "customer" : "staff";
+  if (to === "delivered") patch.delivered_by = actor;
 
   const { data: updated, error: updateError } = await supabase
     .from("orders")

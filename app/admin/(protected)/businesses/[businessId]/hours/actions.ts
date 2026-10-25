@@ -1,6 +1,6 @@
 "use server";
 
-import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
+import { getCurrentEditor } from "@/lib/supabase/editor-auth";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/activityLog";
 
@@ -12,8 +12,8 @@ export type DayInput = {
 };
 
 export async function saveHours(businessId: string, days: DayInput[]) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated." };
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated." };
 
   const supabase = await createClient();
 

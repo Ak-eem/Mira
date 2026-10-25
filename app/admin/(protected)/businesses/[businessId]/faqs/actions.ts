@@ -1,12 +1,12 @@
 "use server";
 
-import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
+import { getCurrentEditor } from "@/lib/supabase/editor-auth";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/activityLog";
 
 export async function createFaq(input: { businessId: string; question: string; answer: string; source?: "admin_ui" | "command_center" }) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated." };
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated." };
 
   const question = input.question.trim();
   const answer = input.answer.trim();
@@ -26,8 +26,8 @@ export async function createFaq(input: { businessId: string; question: string; a
 }
 
 export async function updateFaq(input: { faqId: string; question: string; answer: string }) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated." };
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated." };
 
   const question = input.question.trim();
   const answer = input.answer.trim();
@@ -51,8 +51,8 @@ export async function updateFaq(input: { faqId: string; question: string; answer
 }
 
 export async function deleteFaq(faqId: string) {
-  const admin = await getCurrentAdmin();
-  if (!admin) return { error: "Not authenticated." };
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated." };
 
   const supabase = await createClient();
 

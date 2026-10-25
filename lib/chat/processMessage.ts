@@ -1,10 +1,13 @@
+import { notifyHandoff } from "@/lib/notifications/notifyHandoff";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
 import { isFallbackReply } from "@/lib/ai/buildPrompt";
+import { getSchoolGuardianContext, isSchoolGuardianLookupEligible } from "@/lib/ai/buildContext";
 import { composeReply } from "@/lib/ai/composeReply";
 import { loadPriorMessages } from "@/lib/chat/history";
 import { classifyIntent } from "@/lib/ai/classifyIntent";
 import { recordAiResponseTelemetry } from "@/lib/analytics/recordTelemetry";
+import { errorCodeFor, errorDetailFor, providerFor } from "@/lib/ai/providerError";
 import { after } from "next/server";
 import { getOfflineGateReply } from "@/lib/chat/offlineReply";
 import { getHandoffReply, getPausedReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
@@ -68,7 +71,14 @@ async function recordAssistantReply(
   if (error) return { data: null, error };
   const row = (Array.isArray(data) ? data[0] : data) as { message_id?: string; newly_flagged?: boolean } | null | undefined;
   if (!row?.message_id) return { data: null, error: new Error("record_assistant_reply returned no row") };
-  return { data: { messageId: row.message_id, newlyFlagged: Boolean(row.newly_flagged) }, error: null };
+  const newlyFlagged = Boolean(row.newly_flagged);
+  if (newlyFlagged) {
+    // Tell the business a person is needed (email); the dashboard badge alone means
+    // nobody finds out unless they are looking at it.
+    const reason = typeof args.snapshot?.reason === "string" ? args.snapshot.reason : null;
+    await notifyHandoff({ businessId: args.businessId, conversationId: args.conversationId, dedupeKey: row.message_id, reason });
+  }
+  return { data: { messageId: row.message_id, newlyFlagged }, error: null };
 }
 
 /** The reply already recorded for a previous attempt at this inbound message, if any. */
@@ -427,6 +437,18 @@ export async function processMessage(
   // errors can be a missing-env-var name or a raw provider error body (see
   // lib/ai/generateReply.ts). The real error is already fully logged
   // above, so nothing is lost by keeping it out of the thrown message.
+  // Only resolved for a school business on WhatsApp, where a real phone
+  // number is available from the session token (`wa_<digits>`). Fetched
+  // fresh on every message -- see getSchoolGuardianContext's own comment
+  // for why this must never be folded into the cached `context` object
+  // above. A lookup failure or no-match is silent (null): a guardian not
+  // on file for any student just gets the normal business-wide reply,
+  // same as any other customer -- this is additive context, not a gate.
+  let schoolGuardianContext: string | null = null;
+  if (isSchoolGuardianLookupEligible({ channel, businessType: context.business?.business_type, sessionToken })) {
+    schoolGuardianContext = await getSchoolGuardianContext(businessId, sessionToken.slice(3));
+  }
+
   let replyText: string;
   let aiMetadata;
   let orderRequest: Awaited<ReturnType<typeof composeReply>>["orderRequest"];
@@ -437,6 +459,7 @@ export async function processMessage(
       history,
       message: trimmedMessage,
       orderTool: context.business?.ai_order_taking === true,
+      extraSystemContext: schoolGuardianContext,
     });
     replyText = result.text;
     aiMetadata = result.metadata;
@@ -449,7 +472,9 @@ export async function processMessage(
       channel,
       success: false,
       latencyMs: Date.now() - aiStartedAt,
-      errorCode: err instanceof Error ? err.name : "unknown",
+      errorCode: errorCodeFor(err),
+      errorMessage: errorDetailFor(err),
+      provider: providerFor(err),
     }));
     throw new ProcessMessageError("The assistant is unavailable right now.", 502);
   }

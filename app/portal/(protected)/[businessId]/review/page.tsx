@@ -3,9 +3,11 @@ import { redirect } from "next/navigation";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
 import { describeSignal, type GroundingSignal } from "@/lib/grounding/assess";
+import { formatDateTime } from "@/lib/format";
 import { getGroundingSettings } from "@/lib/grounding/settings";
 import { CUSTOMER_REASON_LABELS, isFeedbackReason } from "@/lib/feedback/reasons";
 import { ReplyReview } from "../conversations/[conversationId]/ReplyReview";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -146,26 +148,11 @@ export default async function PortalReviewPage({ params }: PageProps) {
   return (
     <div className="max-w-2xl space-y-4">
       <div>
-        <h1 className="mb-1 mt-2 text-xl font-semibold">Needs review</h1>
-        <p className="text-sm text-slate-500">
-          Mira&apos;s replies from the last {WINDOW_DAYS} days that either mention something your business info doesn&apos;t
-          back up, or that a customer marked as not helpful. Review each one so you know what to fix: your business
-          info (wrong or outdated), an FAQ (incomplete), or the AI prompt (irrelevant or unclear).
-          {membership.role === "owner" && (
-            <>
-              {" "}
-              You can change what appears here in{" "}
-              <Link href={`/portal/${businessId}/settings`} className="underline">
-                Settings
-              </Link>
-              .
-            </>
-          )}
-        </p>
+        <PageHeader title="Needs review" subtitle={<>Mira&apos;s replies from the last {WINDOW_DAYS} days that either mention something your business info doesn&apos;t back up, or that a customer marked as not helpful. Review each one so you know what to fix: your business info (wrong or outdated), an FAQ (incomplete), or the AI prompt (irrelevant or unclear). {membership.role === "owner" && ( <> {" "} You can change what appears here in{" "} <Link href={`/portal/${businessId}/settings`} className="underline"> Settings </Link> . </> )}</>} />
       </div>
 
       {list.length === 0 && (
-        <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-xs">
+        <p className="ui-card !p-4 text-sm text-slate-500">
           Nothing needs review right now.
         </p>
       )}
@@ -175,13 +162,13 @@ export default async function PortalReviewPage({ params }: PageProps) {
           const unsupported = item.signals.filter((signal) => !signal.supported);
           const customerReason = isFeedbackReason(item.customer?.reason) ? CUSTOMER_REASON_LABELS[item.customer.reason] : null;
           return (
-            <li key={item.messageId} className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+            <li key={item.messageId} className="space-y-2 ui-card">
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 {item.verdict && (
                   <span
                     className={`rounded-sm px-1.5 py-0.5 font-semibold uppercase ${item.verdict === "low" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"}`}
                   >
-                    Grounding: {item.verdict}
+                    {item.verdict === "low" ? "Not backed by your info" : "Partly backed by your info"}
                   </span>
                 )}
                 {item.customer && (
@@ -189,8 +176,8 @@ export default async function PortalReviewPage({ params }: PageProps) {
                     Customer 👎{customerReason ? ` ${customerReason}` : ""}
                   </span>
                 )}
-                <span className="text-slate-400">{new Date(item.createdAt).toLocaleString()}</span>
-                <Link href={`/portal/${businessId}/conversations/${item.conversationId}`} className="ml-auto text-slate-400 underline">
+                <span className="text-slate-500">{formatDateTime(item.createdAt)}</span>
+                <Link href={`/portal/${businessId}/conversations/${item.conversationId}`} className="ml-auto text-slate-500 underline">
                   Open conversation
                 </Link>
               </div>
@@ -200,7 +187,7 @@ export default async function PortalReviewPage({ params }: PageProps) {
                   <span className="font-medium text-slate-600">Customer asked:</span> {item.question}
                 </p>
               )}
-              <p className="whitespace-pre-wrap rounded-lg bg-slate-50 px-3 py-2 text-sm text-slate-800">{item.reply}</p>
+              <p className="rounded-xl bg-slate-100/70 whitespace-pre-wrap px-3 py-2 text-sm text-slate-800">{item.reply}</p>
 
               {unsupported.length > 0 && (
                 <ul className="list-disc space-y-0.5 pl-5 text-xs text-red-600">

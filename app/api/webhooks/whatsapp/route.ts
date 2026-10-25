@@ -1,5 +1,5 @@
 import { createHmac, timingSafeEqual } from "crypto";
-import { NextRequest, NextResponse } from "next/server";
+import { after, NextRequest, NextResponse } from "next/server";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
@@ -7,6 +7,7 @@ import {
   claimInboundMessage,
 } from "@/lib/whatsapp/inboundQueue";
 import { processWhatsappQueued } from "@/lib/whatsapp/processQueued";
+import { sweepUnrepliedWhatsApp } from "@/lib/whatsapp/sweepUnreplied";
 
 export const runtime = "nodejs";
 const MAX_MESSAGE_LENGTH = 4000;
@@ -109,6 +110,13 @@ export async function POST(request: NextRequest) {
 
       await processWhatsappQueued(client, queued, item);
     }
+    // Self-healing without a scheduler: after answering, quietly finish any older message
+    // that got stuck (a crash, a timeout). Runs after the response, a few rows at most.
+    after(() =>
+      sweepUnrepliedWhatsApp(client, { limit: 3, minAgeSeconds: 180, budgetMs: 20_000 }).catch((error) =>
+        console.error("Unreplied-message sweep failed:", error),
+      ),
+    );
     return NextResponse.json({ status: "received" }, { status: 200 });
   } catch (error) {
     console.error("WhatsApp inbound processing failed after durable enqueue:", error);

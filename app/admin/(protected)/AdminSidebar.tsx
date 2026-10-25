@@ -44,10 +44,8 @@ export function AdminSidebar() {
               key={item.href}
               href={item.href}
               onClick={() => setOpen(false)}
-              className={`glass-hover rounded-lg px-3 py-2 text-sm transition ${
-                active
-                  ? "bg-white/70 font-medium text-accent shadow-[0_1px_2px_rgba(15,118,110,0.08)]"
-                  : "text-slate-500 hover:text-slate-700"
+              className={`flex min-h-10 items-center rounded-xl px-3 py-2 text-[15px] transition-colors duration-200 ${
+                active ? "bg-accent/10 font-semibold text-accent" : "text-slate-600 hover:bg-slate-900/5 hover:text-slate-900"
               }`}
             >
               {item.label}

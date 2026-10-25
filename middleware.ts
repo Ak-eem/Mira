@@ -37,12 +37,25 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Refresh user session and get authenticated user
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
   const { pathname } = request.nextUrl;
+
+  // Refresh the session and identify the caller. The admin area and admin API get the
+  // authoritative, revocation-aware getUser() (one Auth-server round trip). Everything
+  // else uses getClaims(), which verifies the token locally when the project uses
+  // asymmetric JWT signing keys (no network call) and falls back to the same Auth
+  // request as getUser() otherwise, so it is never slower. The portal's real boundary
+  // is RLS, and this check is the redirect convenience in front of it.
+  const authoritative = (pathname.startsWith("/admin") && pathname !== "/admin/login") || pathname.startsWith("/api/admin");
+  let user: { id: string } | null = null;
+  if (authoritative) {
+    const {
+      data: { user: authUser },
+    } = await supabase.auth.getUser();
+    user = authUser ? { id: authUser.id } : null;
+  } else {
+    const { data } = await supabase.auth.getClaims();
+    user = data?.claims?.sub ? { id: data.claims.sub } : null;
+  }
 
   // 1. Admin Web Protected Routes (/admin/* except /admin/login)
   if (pathname.startsWith("/admin") && pathname !== "/admin/login") {

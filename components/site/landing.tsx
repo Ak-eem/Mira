@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 import { cx, naira } from '@/lib/site/format'
+import { SUPPORT_EMAIL, SUPPORT_WHATSAPP_DISPLAY, SUPPORT_WHATSAPP_URL } from '@/lib/site/contact'
 import { Aurora, InlineIcon } from './hero'
 import GlassSurface from './GlassSurface'
 import { Icon } from './icons'
@@ -14,6 +15,7 @@ const NAV = [
   ['Features', '#features'],
   ['Industries', '#industries'],
   ['Pricing', '#pricing'],
+  ['Contact', '#contact'],
 ] as const
 
 export function Nav() {
@@ -77,16 +79,22 @@ export function Nav() {
   )
 }
 
-export function Ring({ value, size = 64 }: { value: number; size?: number }) {
+export function Ring({ value, size = 64, label }: { value: number; size?: number; label?: string }) {
   const r = size / 2 - 4
   const c = 2 * Math.PI * r
+  const percent = Math.round(value * 100)
   return (
-    <span className="relative grid shrink-0 place-items-center" style={{ width: size, height: size }}>
-      <svg width={size} height={size} className="-rotate-90">
+    <span
+      className="relative grid shrink-0 place-items-center"
+      style={{ width: size, height: size }}
+      role="img"
+      aria-label={label ? `${percent}% ${label}` : `${percent}%`}
+    >
+      <svg width={size} height={size} className="-rotate-90" aria-hidden="true">
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-lime)" strokeWidth={5} />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-ink)" strokeWidth={2} strokeDasharray={`${c * value} ${c}`} strokeLinecap="round" />
       </svg>
-      <span className="absolute text-[15px] font-medium tabular-nums">{Math.round(value * 100)}%</span>
+      <span aria-hidden="true" className="absolute text-[15px] font-medium tabular-nums">{percent}%</span>
     </span>
   )
 }
@@ -124,16 +132,23 @@ export function Industries() {
       >
         BUILT FOR
       </h2>
-      <div className="mx-auto -mt-[4vw] flex max-w-[1240px] snap-x snap-mandatory items-end gap-4 overflow-x-auto px-5 pb-4 sm:px-8 lg:-mt-14 [scrollbar-width:none]">
-        {INDUSTRIES.map((i) => (
-          <figure key={i.name} className="flex w-[64vw] shrink-0 snap-start flex-col gap-2 sm:w-[260px] lg:w-auto lg:flex-1">
-            <figcaption className="text-[13px] text-muted">{i.name}</figcaption>
-            <div className={cx('group relative overflow-hidden rounded-[22px]', i.h)}>
-              <ProductImage name={i.name} tint={i.tint} className="absolute inset-0 transition-transform duration-300 group-hover:scale-[1.03]" />
-              <span className="glass absolute right-3 bottom-3 left-3 rounded-[16px] px-3 py-2.5 text-[13px] leading-snug">{i.q}</span>
-            </div>
-          </figure>
-        ))}
+      <div className="relative mx-auto max-w-[1240px]">
+        <div className="-mt-[4vw] flex snap-x snap-mandatory items-end gap-4 overflow-x-auto px-5 pb-4 sm:px-8 lg:-mt-14 [scrollbar-width:none]">
+          {INDUSTRIES.map((i) => (
+            <figure key={i.name} className="flex w-[64vw] shrink-0 snap-start flex-col gap-2 sm:w-[260px] lg:w-auto lg:flex-1">
+              <figcaption className="text-[13px] text-muted">{i.name}</figcaption>
+              <div className={cx('group relative overflow-hidden rounded-[22px]', i.h)}>
+                <ProductImage name={i.name} tint={i.tint} className="absolute inset-0 transition-transform duration-300 group-hover:scale-[1.03]" />
+                <span className="glass absolute right-3 bottom-3 left-3 rounded-[16px] px-3 py-2.5 text-[13px] leading-snug">{i.q}</span>
+              </div>
+            </figure>
+          ))}
+        </div>
+        {/* Hints there's more to scroll to on touch screens (hidden scrollbar + no
+            dedicated indicator otherwise). The row fills the available width with
+            no overflow from lg up, so the fade is dropped there rather than sitting
+            uselessly over the last card's edge. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-y-0 right-0 w-14 bg-gradient-to-l from-surface to-transparent lg:hidden" />
       </div>
       <div className="mt-10 overflow-hidden border-y border-line/80 bg-surface/50 py-4" aria-hidden="true">
         <div className="marquee flex w-max gap-10 text-[15px] text-muted">
@@ -190,7 +205,7 @@ function FeatureCatalog() {
 }
 
 function FeatureOrders() {
-  const steps = ['Cart', 'Placed', 'Shipped', 'Delivered']
+  const steps = ['Placed', 'Confirmed', 'Shipped', 'Delivered']
   const [at, setAt] = useState(2)
   useEffect(() => {
     const t = setInterval(() => setAt((a) => (a + 1) % 4), 1600)
@@ -228,11 +243,13 @@ function FeatureInsights() {
         </div>
       </div>
       <div className="flex flex-col items-center gap-2 rounded-[22px] glass-strong p-4">
-        <Ring value={0.29} size={72} />
-        <span className="text-center text-[11px] leading-tight text-muted">
-          fewer delivery
+        <Ring value={0.29} size={72} label="of questions are about delivery (example data)" />
+        <span aria-hidden="true" className="text-center text-[11px] leading-tight text-muted">
+          of questions are
           <br />
-          complaints
+          about delivery
+          <br />
+          (example data)
         </span>
       </div>
     </div>
@@ -242,7 +259,7 @@ function FeatureInsights() {
 const FEATURES = [
   { chip: 'Chat assistant', title: 'Answers in seconds, from your own data', body: 'Prices, sizes, stock, delivery fees, opening hours. Mira only says what your business has told it, and passes anything else to you.', tone: 'glass-lime', visual: <FeatureChat /> },
   { chip: 'Product catalog', title: 'Prices and stock, always current', body: 'Add products once. Flip availability from your phone and the assistant stops offering what you’ve sold out of.', tone: 'glass-strong', visual: <FeatureCatalog /> },
-  { chip: 'Order management', title: 'From cart to doorstep, in one list', body: 'Every order moves cart → placed → shipped → delivered, and customers can ask the assistant where theirs is.', tone: 'glass-lime', visual: <FeatureOrders /> },
+  { chip: 'Order management', title: 'From order to doorstep, in one list', body: 'Mark orders placed, confirmed, shipped or delivered from your phone, and customers can ask the assistant where theirs is.', tone: 'glass-lime', visual: <FeatureOrders /> },
   { chip: 'Insights dashboard', title: 'Know what customers really want', body: 'See recurring complaints, the questions asked most, and which products are hot or sitting still.', tone: 'glass-strong', visual: <FeatureInsights /> },
 ]
 
@@ -341,10 +358,11 @@ export function Steps() {
 const INCLUDED = [
   '24/7 chat assistant on your website',
   'Product catalog with prices and stock',
-  'Order tracking: cart → placed → shipped → delivered',
+  'Order status customers can ask about: placed, confirmed, shipped, delivered',
   'Insights: complaints, top questions, hot and slow products',
   'FAQs, policies, opening hours and promotions',
-  'Unlimited conversations',
+  'Website chat conversations included',
+  'WhatsApp message fees are billed by Meta',
 ]
 
 export function Pricing({ price = 50000 }: { price?: number }) {
@@ -396,9 +414,9 @@ export function Footer() {
   const [sending, setSending] = useState(false)
   const [contactError, setContactError] = useState('')
   return (
-    <footer className="mt-6 bg-mist">
+    <footer id="contact" className="mt-6 scroll-mt-24 bg-mist">
       <div className="mx-auto grid max-w-[1240px] gap-10 px-5 py-16 sm:px-8 lg:grid-cols-2 lg:py-20">
-        <div className="flex flex-col gap-6">
+        <div className="flex min-w-0 flex-col gap-6">
           <h2 className="flex items-center gap-5 text-[40px] leading-[1.02] font-medium tracking-[-0.035em] sm:text-[56px]">
             Let’s get
             <br />
@@ -421,7 +439,7 @@ export function Footer() {
         </div>
 
         <form
-          className="flex flex-col gap-3 rounded-card bg-surface p-6 shadow-soft"
+          className="flex min-w-0 flex-col gap-3 rounded-card bg-surface p-6 shadow-soft"
           onSubmit={async (e) => {
             e.preventDefault()
             const form = e.currentTarget
@@ -471,14 +489,38 @@ export function Footer() {
           )}
         </form>
       </div>
-      <div className="mx-auto flex max-w-[1240px] flex-wrap items-center justify-between gap-4 border-t border-line px-5 py-6 text-[13px] text-muted sm:px-8">
-        <Logo className="text-ink" />
-        <span>miraapp.com.ng</span>
-        <span className="flex gap-4">
-          <a href="/login" className="hover:text-ink">
-            Log in
-          </a>
-        </span>
+      <div className="mx-auto max-w-[1240px] border-t border-line px-5 py-8 text-[13px] text-muted sm:px-8">
+        <div className="flex flex-wrap items-start justify-between gap-8">
+          <div className="flex max-w-xs flex-col gap-3">
+            <Logo className="text-ink" />
+            <p>AI customer service for Nigerian businesses. Answers on your website, WhatsApp and email, from your own products and policies.</p>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="font-medium text-ink">Talk to a person</p>
+            <a href={`mailto:${SUPPORT_EMAIL}`} className="hover:text-ink">
+              {SUPPORT_EMAIL}
+            </a>
+            <a href={SUPPORT_WHATSAPP_URL} target="_blank" rel="noopener noreferrer" className="hover:text-ink">
+              WhatsApp {SUPPORT_WHATSAPP_DISPLAY}
+            </a>
+          </div>
+          <div className="flex flex-col gap-2">
+            <p className="font-medium text-ink">Company</p>
+            <a href="/terms" className="hover:text-ink">
+              Terms of service
+            </a>
+            <a href="/privacy" className="hover:text-ink">
+              Privacy policy
+            </a>
+            <a href="/login" className="hover:text-ink">
+              Log in
+            </a>
+          </div>
+        </div>
+        <div className="mt-8 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-5">
+          <span>© {new Date().getFullYear()} Mira · miraapp.com.ng</span>
+          <span>Payments processed securely by Paystack</span>
+        </div>
       </div>
     </footer>
   )

@@ -1,8 +1,10 @@
+import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { getRequestClient } from "@/lib/supabase/request";
 import { isLocked, remainingTrialDays, type BusinessSubscription } from "@/lib/plans";
 
-export async function getBusinessEntitlement(businessId: string) {
-  const supabase = await createClient();
+export const getBusinessEntitlement = cache(async (businessId: string) => {
+  const supabase = await getRequestClient();
   const { data: subscription, error } = await supabase
     .from("business_subscriptions")
     .select("owner_id, plan, status, trial_started_at, trial_ends_at, expires_at")
@@ -16,7 +18,7 @@ export async function getBusinessEntitlement(businessId: string) {
     entitled: !isLocked(typedSubscription),
     trialDaysRemaining: remainingTrialDays(typedSubscription),
   };
-}
+});
 
 export async function provisionBusinessTrial(
   supabase: Awaited<ReturnType<typeof createClient>>,

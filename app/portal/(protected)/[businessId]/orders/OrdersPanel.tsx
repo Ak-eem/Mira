@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { createOrder, updateOrderStatus } from "./actions";
-import { ORDER_STATUSES, type OrderStatus } from "@/lib/orders/status";
+import { linkCourierReference } from "../settings/courier-actions";
+import { ORDER_STATUSES, OPEN_ORDER_STATUSES, type OrderStatus } from "@/lib/orders/status";
 
 type OrderItem = { name: string; quantity: number; unit_price: number | null };
 type Order = {
@@ -17,6 +19,64 @@ type Order = {
 };
 
 const STATUS_OPTIONS: readonly OrderStatus[] = ORDER_STATUSES;
+
+type Shipment = { reference: string; status: string };
+
+const SHIPMENT_LABELS: Record<string, string> = {
+  pending: "Waiting for pickup",
+  booked: "Booked",
+  picked_up: "Picked up",
+  in_transit: "On its way",
+  delivered: "Delivered",
+  failed: "Delivery failed",
+  cancelled: "Cancelled",
+};
+
+// Attach the reference Shiip gave the owner when they booked this delivery
+// in Shiip. From then on Shiip's updates reach this order on their own.
+function CourierLink({ businessId, orderId }: { businessId: string; orderId: string }) {
+  const router = useRouter();
+  const [reference, setReference] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleLink(e: React.FormEvent) {
+    e.preventDefault();
+    setBusy(true);
+    setError(null);
+    const result = await linkCourierReference(businessId, orderId, "shiip", reference);
+    setBusy(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setReference("");
+    router.refresh();
+  }
+
+  return (
+    <form onSubmit={handleLink} className="mt-2 space-y-1">
+      <div className="flex gap-2">
+        <input
+          value={reference}
+          onChange={(e) => setReference(e.target.value)}
+          placeholder="Shiip reference, e.g. 72d4iejm4lg0"
+          aria-label="Shiip delivery reference"
+          disabled={busy}
+          className="ui-field min-w-0 flex-1 font-mono !text-xs"
+        />
+        <button
+          type="submit"
+          disabled={busy || !reference.trim()}
+          className="shrink-0 ui-btn ui-btn-secondary ui-btn-sm disabled:opacity-50"
+        >
+          {busy ? "Adding…" : "Track delivery"}
+        </button>
+      </div>
+      {error && <p className="text-xs text-red-600">{error}</p>}
+    </form>
+  );
+}
 
 type RecentConversation = { identifier: string; label: string };
 
@@ -64,13 +124,13 @@ function NewOrderForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+    <form onSubmit={handleSubmit} className="space-y-3 ui-card">
       <p className="font-medium text-slate-900">Log an order</p>
 
       <div>
         <label className="block text-xs font-medium text-slate-600">Customer</label>
         <select
-          className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full ui-field"
           value={selectedConversation}
           onChange={(e) => setSelectedConversation(e.target.value)}
         >
@@ -89,7 +149,7 @@ function NewOrderForm({
             matters for a WhatsApp customer without a chat on record yet. */}
         {!selectedConversation && (
           <input
-            className="mt-2 w-full rounded-sm border border-slate-300 px-3 py-2 font-mono text-sm"
+            className="mt-2 w-full ui-field font-mono"
             placeholder="or enter a WhatsApp number, e.g. 2348012345678"
             value={customerIdentifier}
             onChange={(e) => setCustomerIdentifier(e.target.value)}
@@ -102,19 +162,19 @@ function NewOrderForm({
         {items.map((item, i) => (
           <div key={i} className="flex gap-2">
             <input
-              className="w-1/2 rounded-sm border border-slate-300 px-2 py-1.5 text-sm"
+              className="w-1/2 ui-field"
               placeholder="Item name"
               value={item.name}
               onChange={(e) => updateItem(i, "name", e.target.value)}
             />
             <input
-              className="w-1/4 rounded-sm border border-slate-300 px-2 py-1.5 text-sm"
+              className="w-1/4 ui-field"
               placeholder="Qty"
               value={item.quantity}
               onChange={(e) => updateItem(i, "quantity", e.target.value)}
             />
             <input
-              className="w-1/4 rounded-sm border border-slate-300 px-2 py-1.5 text-sm"
+              className="w-1/4 ui-field"
               placeholder="Unit price"
               value={item.unitPrice}
               onChange={(e) => updateItem(i, "unitPrice", e.target.value)}
@@ -133,7 +193,7 @@ function NewOrderForm({
       <div>
         <label className="block text-xs font-medium text-slate-600">Status</label>
         <select
-          className="mt-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 ui-field"
           value={status}
           onChange={(e) => setStatus(e.target.value as OrderStatus)}
         >
@@ -150,7 +210,7 @@ function NewOrderForm({
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="ui-btn ui-btn-primary"
       >
         {submitting ? "Saving…" : "Log order"}
       </button>
@@ -158,7 +218,17 @@ function NewOrderForm({
   );
 }
 
-function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
+function OrderRow({
+  businessId,
+  order,
+  shipment,
+  courierConnected,
+}: {
+  businessId: string;
+  order: Order;
+  shipment?: Shipment;
+  courierConnected: boolean;
+}) {
   const [status, setStatus] = useState(order.status);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -180,15 +250,15 @@ function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
 
   return (
     <li
-      className={`rounded-xl border bg-white p-4 shadow-xs ${
-        awaitingConfirmation ? "border-amber-300 ring-1 ring-amber-200" : "border-slate-200"
+      className={`ui-card !p-4 ${
+        awaitingConfirmation ? "!shadow-[0_0_0_2px_rgb(252_211_77)]" : ""
       }`}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="font-mono text-xs text-slate-500">
           {order.customer_identifier.replace(/^(wa_|web_|email_)/, "")}
           {order.source === "ai" && (
-            <span className="ml-2 rounded-sm bg-indigo-50 px-1.5 py-0.5 font-sans text-[10px] font-semibold uppercase text-indigo-600">
+            <span className="ui-section-label !ml-0">
               Taken by Mira
             </span>
           )}
@@ -199,7 +269,7 @@ function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
               type="button"
               disabled={updating}
               onClick={() => handleStatusChange("confirmed")}
-              className="rounded-sm bg-accent px-2.5 py-1 text-xs font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+              className="ui-btn ui-btn-primary ui-btn-sm"
             >
               Confirm order
             </button>
@@ -208,7 +278,7 @@ function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
             value={status}
             disabled={updating}
             onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
-            className="rounded-sm border border-slate-300 px-2 py-1 text-xs"
+            className="ui-btn ui-btn-secondary ui-btn-sm"
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
@@ -222,13 +292,24 @@ function OrderRow({ businessId, order }: { businessId: string; order: Order }) {
         {order.order_items.map((item) => `${item.quantity > 1 ? `${item.quantity} × ` : ""}${item.name}`).join(", ") || "(no items)"}
       </p>
       {order.note && <p className="mt-1 text-xs text-slate-500">Note: {order.note}</p>}
-      <p className="mt-1 text-xs text-slate-400">
+      <p className="mt-1 text-xs text-slate-500">
         ₦{Number(order.total ?? 0).toLocaleString()} · {new Date(order.status_changed_at).toLocaleString()}
       </p>
       {awaitingConfirmation && (
         <p className="mt-1 text-xs text-amber-700">
           Awaiting your confirmation. The customer&apos;s chat is flagged until you confirm or cancel.
         </p>
+      )}
+      {shipment ? (
+        <p className="mt-2 text-xs text-slate-600">
+          Shiip <span className="font-mono text-slate-500">{shipment.reference}</span> ·{" "}
+          <span className="font-medium">{SHIPMENT_LABELS[shipment.status] ?? shipment.status}</span>
+        </p>
+      ) : (
+        courierConnected &&
+        (OPEN_ORDER_STATUSES as readonly OrderStatus[]).includes(status) && (
+          <CourierLink businessId={businessId} orderId={order.id} />
+        )
       )}
       {error && <p className="mt-1 text-xs text-red-600">{error}</p>}
     </li>
@@ -239,10 +320,14 @@ export function OrdersPanel({
   businessId,
   orders,
   recentConversations,
+  courierConnected = false,
+  shipments = {},
 }: {
   businessId: string;
   orders: Order[];
   recentConversations: RecentConversation[];
+  courierConnected?: boolean;
+  shipments?: Record<string, Shipment>;
 }) {
   return (
     <div className="space-y-6">
@@ -251,13 +336,19 @@ export function OrdersPanel({
       <div>
         <p className="mb-3 font-medium text-slate-900">Recent orders</p>
         {orders.length === 0 ? (
-          <p className="rounded-xl border border-slate-200 bg-white p-5 text-sm text-slate-500 shadow-xs">
+          <p className="ui-card !p-5 text-sm text-slate-500">
             No orders logged yet.
           </p>
         ) : (
           <ul className="space-y-2">
             {orders.map((order) => (
-              <OrderRow key={order.id} businessId={businessId} order={order} />
+              <OrderRow
+                key={order.id}
+                businessId={businessId}
+                order={order}
+                shipment={shipments[order.id]}
+                courierConnected={courierConnected}
+              />
             ))}
           </ul>
         )}

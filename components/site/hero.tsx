@@ -60,7 +60,10 @@ export function Phone({ children, className = '' }: { children: ReactNode; class
   const frame = 'linear-gradient(145deg, #f3f1ec 0%, #a8a49c 18%, #e9e6e0 34%, #8d8981 52%, #d8d5ce 72%, #77736c 100%)'
   const button = (style: CSSProperties) => <span aria-hidden="true" className="absolute w-[4px] rounded-[2px]" style={{ background: frame, ...style }} />
   return (
-    <div className={`relative aspect-[9/19.5] w-[var(--pw)] ${className}`}>
+    // NOT role="img": children include the live ChatPanel's real text input
+    // and send button. aria-label alone describes the decorative phone
+    // chrome for screen readers without hiding that interactive content.
+    <div aria-label="A phone showing a live Mira chat demo" className={`relative aspect-[9/19.5] w-[var(--pw)] ${className}`}>
       {/* side buttons */}
       {button({ left: -3, top: '17%', height: '4%' })}
       {button({ left: -3, top: '24%', height: '7.5%' })}
@@ -111,8 +114,8 @@ function StoreScreen() {
           <ProductImage name="Website chat" tint="mist" className="h-24 rounded-[18px]" />
         </div>
       </div>
-      {/* Mira, as a frosted sheet over the store */}
-      <div className="glass-strong absolute inset-x-[6px] top-[118px] bottom-[6px] flex flex-col overflow-hidden rounded-[30px] pb-3">
+      {/* Mira, as a frosted sheet over the store. Nearly opaque so the store's text underneath does not show through and collide with the chat. */}
+      <div className="glass-strong absolute inset-x-[6px] top-[100px] bottom-[6px] flex flex-col overflow-hidden rounded-[30px] pb-3" style={{ background: 'rgb(251 249 244 / 0.94)', backdropFilter: 'blur(28px) saturate(1.2)', WebkitBackdropFilter: 'blur(28px) saturate(1.2)' }}>
         <ChatPanel chat={chat} />
       </div>
     </div>
@@ -171,10 +174,14 @@ export function Hero({ price = 50000 }: { price?: number }) {
     const el = tilt.current
     const st = stage.current
     if (!el || !st) return
-    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches || window.matchMedia('(max-width: 767px)').matches
     let raf = 0
     const update = () => {
       raf = 0
+      // Re-read on every call (not just on mount): the viewport check in
+      // particular needs to reflect the CURRENT width, since a window
+      // resized across the 767px line after mount previously kept using
+      // whatever was true when the page first loaded.
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches || window.matchMedia('(max-width: 767px)').matches
       const r = st.getBoundingClientRect()
       const p = Math.min(1, Math.max(0, 1 - (r.top - innerHeight * 0.18) / (innerHeight * 0.7)))
       const t = reduce ? 1 : p
@@ -290,13 +297,13 @@ export function Hero({ price = 50000 }: { price?: number }) {
             <div className="flex items-center gap-3 pr-2">
               <IconDot name="bolt" />
               <span className="text-left text-[12px] leading-tight text-muted">
-                <span className="block text-[14px] font-medium text-ink">1.2s average reply</span>
+                <span className="block text-[14px] font-medium text-ink">Replies in seconds</span>
                 day and night
               </span>
             </div>
           </FloatCard>
 
-          <FloatCard depth={1.1} delay={940} className="top-[74%] -left-[60px] hidden md:block lg:-left-[170px]">
+          <FloatCard depth={1.1} delay={940} className="top-[74%] -left-[110px] hidden md:block lg:-left-[250px]">
             <div className="flex flex-col gap-1.5 text-left text-[13px]">
               <span className="self-end rounded-[14px] rounded-br-md bg-ink px-3 py-1.5 text-white">Where’s my order?</span>
               <span className="flex items-center gap-1.5 rounded-[14px] rounded-bl-md bg-white/80 px-3 py-1.5">
@@ -307,7 +314,28 @@ export function Hero({ price = 50000 }: { price?: number }) {
 
         </div>
       </div>
-      <p className="relative mt-6 text-center text-[13px] text-muted">Live demo. Type a question and Mira answers from a sample fashion store’s own data.</p>
+      <p className="relative mt-6 text-center text-[13px] text-muted">Live demo. Type a question and Mira answers from a sample business’s own data.</p>
+
+      {/* The FloatCards above are hidden below md (their offsets assume
+          desktop width), so mobile visitors otherwise see only the phone
+          and headline with none of the supporting proof points. This is
+          the mobile-appropriate stand-in: the same two points, stacked. */}
+      <div className="relative mx-auto mt-6 flex max-w-[360px] flex-col gap-2.5 px-5 md:hidden">
+        <div className="glass-strong flex items-center gap-3 rounded-[18px] p-3">
+          <IconDot name="check" />
+          <span className="text-left text-[12px] leading-tight text-ink-2">
+            <span className="block text-[14px] font-medium text-ink">Answers from your data</span>
+            prices, stock and policies
+          </span>
+        </div>
+        <div className="glass-strong flex items-center gap-3 rounded-[18px] p-3">
+          <IconDot name="bolt" />
+          <span className="text-left text-[12px] leading-tight text-muted">
+            <span className="block text-[14px] font-medium text-ink">Replies in seconds</span>
+            day and night
+          </span>
+        </div>
+      </div>
     </section>
   )
 }

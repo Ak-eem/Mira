@@ -52,18 +52,19 @@ export default function BusinessNamePage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-50 px-4">
-      <div className="w-full max-w-sm">
-        <p className="mb-8 text-center text-xl font-semibold tracking-tight text-slate-900">
+    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12 text-slate-900">
+      <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(165,243,252,0.4),transparent_42%)]" />
+      <div className="relative w-full max-w-sm">
+        <h1 className="mb-8 text-center text-2xl font-semibold tracking-tight text-slate-900">
           Mira <span className="font-normal text-accent">for Business</span>
-        </p>
+        </h1>
 
-        <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+        <form onSubmit={handleSubmit} className="ui-card ui-enter space-y-4 !p-6 sm:!p-8">
           <div>
-            <label className="block text-sm font-medium text-slate-700">One last step: your business name</label>
-            <input
+            <label htmlFor="field-one-last-step-your-business-na" className="ui-label">One last step: your business name</label>
+            <input id="field-one-last-step-your-business-na"
               type="text"
-              className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+              className="ui-field"
               value={businessName}
               onChange={(e) => setBusinessName(e.target.value)}
               required
@@ -71,17 +72,17 @@ export default function BusinessNamePage() {
             />
           </div>
 
-          {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+          {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark disabled:opacity-50"
+            className="ui-btn ui-btn-primary w-full"
           >
             {submitting ? "Setting up…" : "Continue"}
           </button>
         </form>
       </div>
-    </div>
+    </main>
   );
 }

@@ -38,9 +38,10 @@ export function AgentSettingsPanel({
         <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Additional section</p>
         <h2 className="mt-1 text-lg font-semibold">Inventory assistant</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Owner-facing toggle -- lets the business owner have Mira make stock/price/availability
-          changes via the portal, with their confirmation required. Off by default; this doesn&apos;t
-          affect Command Center access here in admin either way.
+          Always on for owners (migration 0066) -- they have no toggle for it. Every change still
+          needs the owner&apos;s own confirmation. This switch is the platform kill switch: turn it
+          off to disable the inventory assistant for this one business. It doesn&apos;t affect
+          Command Center access here in admin either way.
         </p>
       </div>
 
@@ -57,7 +58,7 @@ export function AgentSettingsPanel({
       <div>
         <label className="block text-sm font-medium text-slate-700">Which AI agent</label>
         <select
-          className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full ui-field"
           value={provider}
           onChange={(e) => setProvider(e.target.value as ProviderName)}
         >
@@ -72,7 +73,7 @@ export function AgentSettingsPanel({
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="ui-btn ui-btn-primary"
       >
         {saving ? "Saving…" : "Save"}
       </button>

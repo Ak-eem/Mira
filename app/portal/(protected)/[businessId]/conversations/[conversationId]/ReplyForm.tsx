@@ -35,20 +35,20 @@ export function ReplyForm({
         rows={3}
         required
         placeholder="Type a reply to send to the customer…"
-        className="w-full rounded-xl border border-slate-300 px-3 py-2 text-sm shadow-xs focus:border-accent focus:outline-hidden"
+        className="ui-field"
       />
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
         {state.error ? (
           <p className="text-xs text-red-600">{state.error}</p>
         ) : (
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-slate-500">
             Sends immediately — for WhatsApp conversations, straight to the customer&apos;s phone.
           </span>
         )}
         <button
           type="submit"
           disabled={pending}
-          className="shrink-0 rounded-lg bg-accent px-4 py-1.5 text-sm font-medium text-white shadow-xs disabled:opacity-50"
+          className="ui-btn ui-btn-primary ui-btn-sm shrink-0"
         >
           {pending ? "Sending…" : "Send reply"}
         </button>

@@ -63,7 +63,8 @@ export function subscriptionLabel(subscription: BusinessSubscription | null | un
   if (!subscription) return "Upgrade required";
   if (isTrialActive(subscription)) {
     const days = remainingTrialDays(subscription);
-    return `${days} day${days === 1 ? "" : "s"} left in trial`;
+    const planName = subscription.plan in PLAN_DEFINITIONS ? `${PLAN_DEFINITIONS[subscription.plan].name} plan · ` : "";
+    return `${planName}${days} day${days === 1 ? "" : "s"} left in trial`;
   }
   return subscription.status === "active" && subscription.plan in PLAN_DEFINITIONS
     ? `${PLAN_DEFINITIONS[subscription.plan].name} plan`
