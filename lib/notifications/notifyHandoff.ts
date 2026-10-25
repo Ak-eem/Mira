@@ -1,6 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { planHandoffRecipients } from "./handoffRecipients";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL ?? "https://miraapp.com.ng";
 const MAX_RECIPIENTS = 10;
@@ -29,15 +30,15 @@ async function send({ businessId, conversationId, dedupeKey, reason }: Input): P
   const supabase = createServiceRoleClient();
   const [{ data: business }, { data: members }] = await Promise.all([
     supabase.from("businesses").select("name").eq("id", businessId).maybeSingle(),
-    // Team members only (role "staff"): they are the ones who answer customers. The owner
-    // still sees the conversation on the dashboard but is not emailed.
-    supabase.from("business_owners").select("user_id").eq("business_id", businessId).eq("role", "staff").limit(MAX_RECIPIENTS),
+    supabase.from("business_owners").select("user_id, role").eq("business_id", businessId).limit(50),
   ]);
   if (!business || !members?.length) return;
 
+  // Team members first (they answer customers); the owner only if there is no team yet.
+  const plan = planHandoffRecipients(members);
   const emails = new Set<string>();
-  for (const member of members) {
-    const { data } = await supabase.auth.admin.getUserById(member.user_id);
+  for (const userId of plan.userIds.slice(0, MAX_RECIPIENTS)) {
+    const { data } = await supabase.auth.admin.getUserById(userId);
     const email = data?.user?.email;
     if (email) emails.add(email.toLowerCase());
   }
@@ -53,6 +54,13 @@ async function send({ businessId, conversationId, dedupeKey, reason }: Input): P
     `Open it: ${link}`,
     "",
     "You get this email each time a conversation needs a person.",
+    ...(plan.fallbackToOwner
+      ? [
+          "",
+          "Tip: you haven't added anyone from your customer service team yet, so this reached you.",
+          `Add them under Team and these alerts will go to them instead: ${SITE_URL}/portal/${businessId}/team`,
+        ]
+      : []),
   ].join("\n");
 
   const resend = new Resend(apiKey);

@@ -1,10 +1,18 @@
 # School vertical: backend and AI context (Phase 1)
 
-Status: database schema + AI context are implemented and tested. **The
-portal UI for a school owner to enter data is not built yet** — there is
-currently no form or command interface for sessions, terms, classes,
-students, or fee schedules. Until that exists, a school business has
-nothing for the AI to answer from.
+Status: database schema, AI context and the owner-facing portal page are
+implemented. A platform admin turns a business into a school with the
+**School mode** switch in Admin > business > Settings; the owner then gets a
+**School** page in their portal (sessions, terms, classes, fees per term,
+and a paste-from-spreadsheet student import). Pure parsing/validation lives
+in `lib/school/input.ts` (tested); saves are owner-only server actions in
+`app/portal/(protected)/[businessId]/school/actions.ts`, backed by the same
+RLS policies as the rest of the school tables. The AI reads changes within
+about a minute (the business-context cache TTL).
+
+Known limit: there is **no payment tracking**. The guardian lookup returns the
+fee *schedule* for the student's class, not whether it has been paid, so Mira
+cannot answer "has my child's fee been paid?".
 
 ## What exists
 
@@ -95,16 +103,15 @@ the phone numbers happening to be unique.
 
 ## What's left (not built)
 
-- **Portal UI.** No way for a school owner to enter sessions, terms,
-  classes, students, or fee schedules yet — this repo's existing
-  owner-facing data-entry pattern (see
-  `app/portal/(protected)/[businessId]/inventory/actions.ts`) is an
-  AI-command interface (`parseCommand` + `interpretInventoryCommand`), not
-  a plain CRUD form; a school equivalent would follow the same shape.
-- **Sidebar/business_type gating in the portal UI** — once the UI exists,
-  it should only show for businesses with `business_type = 'school'`.
+- **Payment tracking** (who has paid what), which is what parents most often
+  ask about.
+- **Class-level fee schedule in the business-wide context**, so web chat and
+  email (not just WhatsApp guardians) can answer "how much is JSS 1?". It is
+  not guardian-specific, so it is safe to cache, but it needs a larger
+  `SECTION_LIMITS.school` budget.
+- **Editing** a session/term/class/student in place (today: delete and
+  re-add, or re-import a student to update them).
 - **Web chat / email guardian context.** `isSchoolGuardianLookupEligible()`
-  is WhatsApp-only by design for now (that's the channel with a real phone
-  number to match against). Extending this to other channels would need a
-  different identity signal (e.g. an authenticated parent portal) rather
-  than reusing phone matching.
+  is WhatsApp-only by design (that's the channel with a real phone number to
+  match against). Extending it would need a different identity signal, such
+  as an authenticated parent portal.

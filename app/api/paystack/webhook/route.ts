@@ -1,3 +1,4 @@
+import { nextPeriodEnd } from '@/lib/billing/periodEnd';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getPlanConfig } from '@/lib/paystack';
@@ -83,7 +84,9 @@ export async function POST(request: Request) {
   if (already.error) console.error('Paystack webhook idempotency check failed (continuing to RPC)', already.error);
   if (already.data) return NextResponse.json({ received: true });
 
-  const expiresAt = new Date(Date.now() + config.durationDays * 24 * 60 * 60 * 1000).toISOString();
+  // Paying early adds the new period to the end of the current one instead of replacing it.
+  const { data: current } = await serviceRole.from('business_subscriptions').select('status, expires_at').eq('business_id', businessId).maybeSingle();
+  const expiresAt = nextPeriodEnd({ now: Date.now(), status: current?.status ?? null, expiresAt: current?.expires_at ?? null, durationDays: config.durationDays });
   const { error } = await serviceRole.rpc('activate_paystack_subscription', { p_business_id: businessId, p_user_id: userId, p_reference: reference, p_amount: data.amount as number, p_expires_at: expiresAt, p_expected_amount_kobo: config.amountKobo, p_plan: 'base' });
   if (error) {
     // "user is no longer associated" is an expected, non-retriable outcome

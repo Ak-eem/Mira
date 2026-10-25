@@ -9,7 +9,9 @@ if (!email) return NextResponse.json({ error: "email required" }, { status: 400 
 const client = createServiceRoleClient();
 const ip = getRequestIp(request);
 const limits = await Promise.all([
-checkRateLimit(client, `login:${email}`, 5),
+// Keyed by caller AND email, so an attacker can only burn their own allowance: they can no
+// longer lock a victim out of the form by hammering the victim's address from elsewhere.
+checkRateLimit(client, `login:${ip}:${email}`, 5),
 checkRateLimit(client, `login-ip:${ip}`, 20),
 ]);
 const rejected = limits.find((l) => !l.allowed);

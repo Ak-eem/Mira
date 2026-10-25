@@ -7,6 +7,8 @@ import { EmbedSnippet } from "./EmbedSnippet";
 import { OwnersPanel } from "./OwnersPanel";
 import { SubscriptionPanel } from "./SubscriptionPanel";
 import { DeleteBusinessPanel } from "./DeleteBusinessPanel";
+import { SchoolModePanel } from "./SchoolModePanel";
+import { DELETE_REQUEST_SUMMARY } from "@/lib/deletionRequest";
 import { TeamInviteForm } from "./TeamInviteForm";
 import { AgentSettingsPanel } from "./AgentSettingsPanel";
 
@@ -127,6 +129,15 @@ export default async function SettingsPage({ params }: PageProps) {
   if (!business) notFound();
 
   const serviceRole = createServiceRoleClient();
+  const { data: deletionRequest } = await supabase
+    .from("activity_log")
+    .select("created_at")
+    .eq("business_id", businessId)
+    .eq("entity_type", "business")
+    .like("summary", `${DELETE_REQUEST_SUMMARY}%`)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
   const owners = await Promise.all(
     (ownerRows ?? []).map(async (row) => {
       const { data } = await serviceRole.auth.admin.getUserById(row.user_id);
@@ -184,6 +195,14 @@ export default async function SettingsPage({ params }: PageProps) {
       />
       <EmbedSnippet slug={business.slug} businessName={business.name} />
       <SubscriptionPanel businessId={businessId} subscription={subscription} />
+      <SchoolModePanel businessId={businessId} isSchool={business.business_type === "school"} />
+      {deletionRequest && (
+        <p className="rounded-lg border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-900">
+          <strong>The owner asked for this account to be deleted</strong> on{" "}
+          {new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", day: "numeric", month: "short", year: "numeric" }).format(new Date(deletionRequest.created_at))}.
+          Confirm with them by email before using Delete business.
+        </p>
+      )}
       <DeleteBusinessPanel businessId={businessId} businessName={business.name} />
 
       <section className="space-y-5 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">

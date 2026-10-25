@@ -63,9 +63,9 @@ You will touch five services. Only the first three are required.
    `https://YOUR_DOMAIN/api/webhooks/email` and set `RESEND_WEBHOOK_SECRET`.
 4. `CONTACT_TO_EMAIL` receives the landing-page contact form; `CUSTOM_REQUEST_TO_EMAIL`
    receives portal custom requests.
-5. **Handoff alerts:** when a customer needs a person, the business's **team members** (not the
-   owner) are emailed a link to the conversation. A business with no team members gets no
-   email; the owner still sees it on the dashboard. This uses the same Resend setup. Set
+5. **Handoff alerts:** when a customer needs a person, the business's **team members** are
+   emailed a link to the conversation. A business with no team members yet falls back to its
+   owner, and that email reminds them they can add their customer service people under Team. This uses the same Resend setup. Set
    `HANDOFF_EMAILS_DISABLED=true` to turn it off.
 
 ## 4. WhatsApp (optional)
@@ -108,6 +108,23 @@ this list as what Mira needs from it.
   (deleting exists only inside the WhatsApp Business app). Check Meta's current docs before
   relying on that either way.
 
+### Trying it with Meta's test number
+
+Meta's API Setup page gives every app a free test number. Use it to prove the whole chain
+works before anything is verified.
+
+1. In the Meta app, open WhatsApp > API Setup. Copy the **Phone number ID** and the temporary
+   access token (it expires after about 24 hours; make a permanent system-user token later).
+2. In your hosting environment set `WHATSAPP_TOKEN`, `WHATSAPP_APP_SECRET` (App settings >
+   Basic > App secret) and `WHATSAPP_WEBHOOK_VERIFY_TOKEN` (any string you invent), then redeploy.
+3. Meta > WhatsApp > Configuration > Webhook: set the callback URL to
+   `https://YOUR_DOMAIN/api/webhooks/whatsapp` and the verify token to the value from step 2.
+   Meta calls the URL once to check it, and Mira answers only if the token matches. Then
+   **subscribe to the `messages` field**; without that nothing is ever delivered.
+4. Admin > a business > Settings: paste the Phone number ID into the WhatsApp field.
+5. Add your own phone to the allowed recipient list in API Setup, then message the test
+   number from that phone. Mira's reply should arrive within a few seconds.
+
 ## 5. Paystack
 
 Follow `docs/paystack-setup.md`. Use `sk_test_` keys until you have run a full payment and a
@@ -138,7 +155,7 @@ Prices change, so these are the things to price, not numbers to trust.
   to a person. Orders are confirmed and moved along by the business; Mira does not take
   payment from a business's customers or arrange delivery.
 - Subscription billing for Mira itself runs through Paystack. Paying again before a plan ends
-  currently starts a fresh period from the payment date instead of adding to what is left,
-  and no reminder is sent before a plan expires.
+  adds the new period to the end of the current one, and owners get one reminder email 2 to 3
+  days before a plan ends (sent by the daily cleanup job).
 - Deleting a business 30 days after it cancels is a manual admin action, and backups follow
   your Supabase plan. Both are written up in `docs/data-retention.md`.

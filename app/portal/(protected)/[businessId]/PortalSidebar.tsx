@@ -8,6 +8,7 @@ import {
   Bell,
   Briefcase,
   Clock,
+  GraduationCap,
   ClipboardCheck,
   HelpCircle,
   Tag,
@@ -24,7 +25,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-type Item = { href: string; label: string; icon: LucideIcon; exact?: boolean; badge?: number; ownerOnly?: boolean };
+type Item = { href: string; label: string; icon: LucideIcon; exact?: boolean; badge?: number; ownerOnly?: boolean; schoolOnly?: boolean };
 type Group = { label: string; items: Item[] };
 
 function initials(name: string): string {
@@ -37,6 +38,7 @@ export function PortalSidebar({
   businessName,
   roleLabel,
   isOwner,
+  isSchool,
   hasMultipleBusinesses,
   needsYou,
   email,
@@ -47,6 +49,7 @@ export function PortalSidebar({
   businessName: string;
   roleLabel: string;
   isOwner: boolean;
+  isSchool: boolean;
   hasMultipleBusinesses: boolean;
   needsYou: number;
   email: string;
@@ -80,6 +83,7 @@ export function PortalSidebar({
         { href: `${base}/faqs`, label: "FAQs", icon: HelpCircle, ownerOnly: true },
         { href: `${base}/policies`, label: "Policies", icon: ScrollText, ownerOnly: true },
         { href: `${base}/hours`, label: "Opening hours", icon: Clock, ownerOnly: true },
+        { href: `${base}/school`, label: "School", icon: GraduationCap, ownerOnly: true, schoolOnly: true },
       ],
     },
     {
@@ -126,7 +130,7 @@ export function PortalSidebar({
 
       <nav aria-label="Business navigation" className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
         {groups.map((group) => {
-          const items = group.items.filter((item) => !item.ownerOnly || isOwner);
+          const items = group.items.filter((item) => (!item.ownerOnly || isOwner) && (!item.schoolOnly || isSchool));
           if (items.length === 0) return null;
           return (
             <div key={group.label}>

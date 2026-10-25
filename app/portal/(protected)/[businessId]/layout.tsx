@@ -34,6 +34,7 @@ export default async function PortalBusinessLayout({ children, params }: { child
         businessName={business.name}
         roleLabel={isOwner ? "Owner" : "Team member"}
         isOwner={isOwner}
+        isSchool={business.businessType === "school"}
         hasMultipleBusinesses={owner.businesses.length > 1}
         needsYou={needsYou ?? 0}
         email={user.email}
