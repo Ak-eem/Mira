@@ -4,7 +4,7 @@ import { getRequestClient, getRequestUser } from "./request";
 export type CurrentBusinessOwner = {
   userId: string;
   email: string;
-  businesses: { id: string; name: string; role: "owner" | "staff" }[];
+  businesses: { id: string; name: string; businessType: string; role: "owner" | "staff" }[];
 };
 
 // Returns the current business owner and which businesses they can
@@ -21,7 +21,7 @@ export const getCurrentBusinessOwner = cache(async (): Promise<CurrentBusinessOw
 
   const { data: memberships } = await supabase
     .from("business_owners")
-    .select("business_id, role, businesses(id, name)")
+    .select("business_id, role, businesses(id, name, business_type)")
     .eq("user_id", user.id);
 
   if (!memberships || memberships.length === 0) return null;
@@ -31,10 +31,11 @@ export const getCurrentBusinessOwner = cache(async (): Promise<CurrentBusinessOw
   // join without a generated Database type here) an array containing
   // it -- flatten defensively rather than assume one shape.
   const businesses = memberships.flatMap((m) => {
-    const b = m.businesses as { id: string; name: string } | { id: string; name: string }[] | null;
+    type Row = { id: string; name: string; business_type: string | null };
+    const b = m.businesses as Row | Row[] | null;
     if (!b) return [];
     const role: "owner" | "staff" = m.role === "staff" ? "staff" : "owner";
-    return (Array.isArray(b) ? b : [b]).map((biz) => ({ ...biz, role }));
+    return (Array.isArray(b) ? b : [b]).map((biz) => ({ id: biz.id, name: biz.name, businessType: biz.business_type ?? "general", role }));
   });
 
   if (businesses.length === 0) return null;
