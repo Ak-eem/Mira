@@ -7,6 +7,7 @@ import { EmbedSnippet } from "./EmbedSnippet";
 import { OwnersPanel } from "./OwnersPanel";
 import { SubscriptionPanel } from "./SubscriptionPanel";
 import { DeleteBusinessPanel } from "./DeleteBusinessPanel";
+import { SchoolModePanel } from "./SchoolModePanel";
 import { DELETE_REQUEST_SUMMARY } from "@/lib/deletionRequest";
 import { TeamInviteForm } from "./TeamInviteForm";
 import { AgentSettingsPanel } from "./AgentSettingsPanel";
@@ -194,6 +195,7 @@ export default async function SettingsPage({ params }: PageProps) {
       />
       <EmbedSnippet slug={business.slug} businessName={business.name} />
       <SubscriptionPanel businessId={businessId} subscription={subscription} />
+      <SchoolModePanel businessId={businessId} isSchool={business.business_type === "school"} />
       {deletionRequest && (
         <p className="rounded-lg border border-amber-300/60 bg-amber-50 p-4 text-sm text-amber-900">
           <strong>The owner asked for this account to be deleted</strong> on{" "}
