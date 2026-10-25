@@ -35,7 +35,7 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-12 text-slate-900">
+    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12 text-slate-900">
       <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(165,243,252,0.4),transparent_42%)]" />
       <div className="relative w-full max-w-sm">
         <div className="mb-8 text-center">
@@ -45,7 +45,7 @@ export default function ForgotPasswordPage() {
           <h1 className="mt-4 text-2xl font-semibold tracking-tight text-slate-900">Reset your password</h1>
         </div>
 
-        <div className="rounded-4xl border border-white/80 bg-white/65 p-7 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl sm:p-8">
+        <div className="ui-card ui-enter !p-6 sm:!p-8">
           {sent ? (
             <div className="space-y-3 text-center" role="status">
               <p className="text-sm font-medium text-slate-900">Check your inbox</p>
@@ -57,23 +57,23 @@ export default function ForgotPasswordPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               <p className="text-sm leading-6 text-slate-600">Enter the email you signed up with and we&apos;ll send you a link to choose a new password.</p>
               <div>
-                <label htmlFor="field-email" className="block text-sm font-medium text-slate-700">Email</label>
+                <label htmlFor="field-email" className="ui-label">Email</label>
                 <input
                   id="field-email"
                   type="email"
                   autoComplete="email"
-                  className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-accent focus:outline-hidden focus:ring-4 focus:ring-accent/15"
+                  className="ui-field"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoFocus
                 />
               </div>
-              {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+              {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
               <button
                 type="submit"
                 disabled={submitting}
-                className="w-full rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-200/70 transition hover:bg-accent-dark disabled:opacity-50"
+                className="ui-btn ui-btn-primary w-full"
               >
                 {submitting ? "Sending…" : "Send reset link"}
               </button>

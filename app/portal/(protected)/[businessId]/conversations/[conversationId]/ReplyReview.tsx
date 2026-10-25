@@ -76,7 +76,7 @@ export function ReplyReview({
 
   return (
     <div className="mt-1 space-y-1 text-xs">
-      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-400">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-slate-500">
         {customer && (
           <span className={customer.rating === "down" ? "text-red-500" : "text-emerald-600"}>
             Customer: {customer.rating === "down" ? "👎" : "👍"}
@@ -93,11 +93,11 @@ export function ReplyReview({
 
         {!editing && (
           <>
-            <button type="button" onClick={startEditing} className="text-slate-400 underline-offset-2 hover:text-slate-700 hover:underline">
+            <button type="button" onClick={startEditing} className="text-slate-500 underline-offset-2 hover:text-slate-700 hover:underline">
               {staff ? "Change review" : "Review reply"}
             </button>
             {staff && (
-              <button type="button" disabled={saving} onClick={clear} className="text-slate-400 hover:text-red-600 disabled:opacity-50">
+              <button type="button" disabled={saving} onClick={clear} className="text-slate-500 hover:text-red-600 disabled:opacity-50">
                 Clear
               </button>
             )}
@@ -108,19 +108,19 @@ export function ReplyReview({
       {!editing && staff?.note && <p className="text-slate-500">Your note: {staff.note}</p>}
 
       {editing && (
-        <div className="space-y-2 rounded-lg border border-slate-200 bg-slate-50 p-3 text-left">
+        <div className="rounded-xl bg-slate-100/70 space-y-2 p-3 text-left">
           <div className="flex gap-2">
             <button
               type="button"
               onClick={() => setRating("up")}
-              className={`rounded-sm border px-2.5 py-1 ${rating === "up" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-300 text-slate-600"}`}
+              className={`rounded-lg border px-3 py-1.5 ${rating === "up" ? "border-emerald-500 bg-emerald-50 text-emerald-700" : "border-slate-200 text-slate-600 hover:bg-slate-100"}`}
             >
               Good reply
             </button>
             <button
               type="button"
               onClick={() => setRating("down")}
-              className={`rounded-sm border px-2.5 py-1 ${rating === "down" ? "border-red-400 bg-red-50 text-red-600" : "border-slate-300 text-slate-600"}`}
+              className={`rounded-lg border px-3 py-1.5 ${rating === "down" ? "border-red-400 bg-red-50 text-red-700" : "border-slate-200 text-slate-600 hover:bg-slate-100"}`}
             >
               Needs work
             </button>
@@ -135,20 +135,20 @@ export function ReplyReview({
                     type="button"
                     title={STAFF_REASON_HINTS[code]}
                     onClick={() => setReason(code)}
-                    className={`rounded-full border px-2.5 py-0.5 ${reason === code ? "border-slate-700 bg-slate-700 text-white" : "border-slate-300 text-slate-600"}`}
+                    className={`rounded-full border px-3 py-1 ${reason === code ? "border-accent bg-accent text-white" : "border-slate-200 text-slate-600 hover:bg-slate-100"}`}
                   >
                     {STAFF_REASON_LABELS[code]}
                   </button>
                 ))}
               </div>
-              {reason && <p className="text-slate-400">{STAFF_REASON_HINTS[reason]}</p>}
+              {reason && <p className="text-slate-500">{STAFF_REASON_HINTS[reason]}</p>}
               <textarea
                 value={note}
                 onChange={(event) => setNote(event.target.value)}
                 maxLength={MAX_FEEDBACK_NOTE_LENGTH}
                 rows={2}
                 placeholder="Optional note: what should it have said?"
-                className="w-full rounded-sm border border-slate-300 px-2 py-1.5 text-sm"
+                className="w-full ui-field"
               />
             </>
           )}
@@ -160,7 +160,7 @@ export function ReplyReview({
               type="button"
               disabled={saving || !rating || (rating === "down" && !reason)}
               onClick={save}
-              className="rounded-sm bg-accent px-3 py-1 font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+              className="ui-btn ui-btn-primary ui-btn-sm"
             >
               {saving ? "Saving…" : "Save review"}
             </button>

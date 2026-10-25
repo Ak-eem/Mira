@@ -1,76 +1,35 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { SaveStatus } from "@/components/ui/SaveStatus";
+import { useAutoSave } from "@/components/ui/useAutoSave";
 import { saveOrderTaking } from "./actions";
 
-export function OrderTakingPanel({
-  businessId,
-  initialEnabled,
-  canEdit,
-}: {
-  businessId: string;
-  initialEnabled: boolean;
-  canEdit: boolean;
-}) {
+export function OrderTakingPanel({ businessId, initialEnabled, canEdit }: { businessId: string; initialEnabled: boolean; canEdit: boolean }) {
   const router = useRouter();
   const [enabled, setEnabled] = useState(initialEnabled);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const { status, error, run } = useAutoSave((next: boolean) => saveOrderTaking(businessId, next), () => router.refresh());
 
-  async function handleSave() {
-    setSaving(true);
-    setError(null);
-    setSaved(false);
-    const result = await saveOrderTaking(businessId, enabled);
-    setSaving(false);
-    if (result.error) {
-      setError(result.error);
-      return;
-    }
-    setSaved(true);
-    router.refresh();
+  function change(next: boolean) {
+    setEnabled(next);
+    void run(next, () => setEnabled(!next));
   }
 
   return (
-    <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Order taking</p>
-        <h2 className="mt-1 text-lg font-semibold">Let Mira take orders in chat</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          On for new businesses; turn it off if you would rather take orders yourself. When on, a customer who wants to buy something gets an exact summary from Mira and
-          must reply yes before anything is sent. The order then waits for your confirmation on the Orders
-          page, and the customer&apos;s chat is flagged for your team until you confirm or cancel it. Mira
-          never takes payment.
-        </p>
+    <section>
+      <p className="ui-section-label">Orders</p>
+      <div className="ui-group">
+        <label htmlFor="order-taking" className="ui-row justify-between">
+          <span className="min-w-0">
+            <span className="block text-[15px] font-medium text-slate-900">Let Mira take orders in chat</span>
+            <span className="ui-hint mt-0.5 block">On for new businesses; turn it off if you would rather take orders yourself. When on, the customer sees an exact summary and must reply yes. The order then waits for your confirmation on the Orders page, and their chat is flagged for your team. Mira never takes payment.</span>
+          </span>
+          <input id="order-taking" type="checkbox" role="switch" className="ui-switch" checked={enabled} disabled={!canEdit} onChange={(e) => change(e.target.checked)} />
+        </label>
       </div>
-
-      <label className="flex items-center gap-2 text-sm text-slate-700">
-        <input
-          type="checkbox"
-          checked={enabled}
-          disabled={!canEdit}
-          onChange={(e) => setEnabled(e.target.checked)}
-          className="h-4 w-4 rounded-sm border-slate-300"
-        />
-        Allow Mira to take orders from customers
-      </label>
-      <p className="text-xs text-slate-400">Changes can take up to a minute to reach live chats.</p>
-
-      {!canEdit && <p className="text-xs text-slate-400">Only the business owner can change this.</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      {canEdit && (
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={saving}
-          className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
-        >
-          {saving ? "Saving…" : saved ? "Saved" : "Save"}
-        </button>
-      )}
+      <SaveStatus status={status} error={error} />
+      <p className="ui-hint px-4">{canEdit ? "On for new businesses. Changes can take up to a minute to reach live chats." : "Only the business owner can change this."}</p>
     </section>
   );
 }

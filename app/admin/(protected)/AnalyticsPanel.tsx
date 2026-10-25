@@ -108,7 +108,7 @@ export function AnalyticsPanel({ snapshot, baseHref, businessName }: { snapshot:
                 {snapshot.recentUnansweredQuestions.map((q, i) => (
                   <li key={i} className="border-b border-slate-100 pb-2 last:border-0 last:pb-0">
                     <p className="text-slate-700">&quot;{q.question}&quot;</p>
-                    <time className="text-xs text-slate-400">{new Date(q.askedAt).toLocaleString()}</time>
+                    <time className="text-xs text-slate-500">{new Date(q.askedAt).toLocaleString()}</time>
                   </li>
                 ))}
               </ul>

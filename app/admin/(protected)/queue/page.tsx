@@ -1,6 +1,7 @@
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { findStuckRows, STUCK_AFTER_MINUTES } from "@/lib/alerts/sweep";
 import { retryMessageAction } from "./actions";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export const dynamic = "force-dynamic";
 
@@ -19,11 +20,7 @@ export default async function QueuePage({ searchParams }: { searchParams: Promis
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold text-slate-900">Message queue</h1>
-        <p className="mt-1 text-sm text-slate-500">
-          Customer messages (WhatsApp and email) that have gone unanswered for more than {STUCK_AFTER_MINUTES} minutes. Retry runs the same
-          processing as a new message. A WhatsApp retry can, rarely, send the same reply twice if an earlier send was never confirmed.
-        </p>
+        <PageHeader title="Message queue" subtitle={<>Customer messages (WhatsApp and email) that have gone unanswered for more than {STUCK_AFTER_MINUTES} minutes. Retry runs the same processing as a new message. A WhatsApp retry can, rarely, send the same reply twice if an earlier send was never confirmed.</>} />
       </div>
 
       {result && <p className="rounded-lg border border-slate-200 bg-white/70 px-4 py-3 text-sm text-slate-700" role="status">{result}</p>}

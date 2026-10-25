@@ -17,12 +17,10 @@ export function ServiceList({ services, currency }: { services: Service[]; curre
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  if (services.length === 0) {
-    return <p className="mb-6 text-sm text-slate-500">No services yet.</p>;
-  }
+  if (services.length === 0) return null;
 
   return (
-    <ul className="mb-6 space-y-2">
+    <ul className="ui-group mb-6">
       {services.map((s) =>
         editingId === s.id ? (
           <EditServiceRow
@@ -35,7 +33,7 @@ export function ServiceList({ services, currency }: { services: Service[]; curre
             onCancel={() => setEditingId(null)}
           />
         ) : (
-          <li key={s.id} className="rounded-sm border border-slate-200 bg-white p-3">
+          <li key={s.id} className="ui-row flex-col items-stretch gap-1">
             <div className="flex items-center justify-between">
               <span className="font-medium">{s.name}</span>
               <span className="font-mono text-sm text-slate-500">
@@ -48,8 +46,8 @@ export function ServiceList({ services, currency }: { services: Service[]; curre
                 Unavailable{s.availability_note ? ` — ${s.availability_note}` : ""}
               </p>
             )}
-            <div className="mt-2 flex gap-3 text-xs">
-              <button onClick={() => setEditingId(s.id)} className="text-accent hover:underline">
+            <div className="mt-2 flex gap-2">
+              <button onClick={() => setEditingId(s.id)} className="ui-btn ui-btn-plain ui-btn-sm">
                 Edit
               </button>
               <button
@@ -58,7 +56,7 @@ export function ServiceList({ services, currency }: { services: Service[]; curre
                   await deleteService(s.id);
                   router.refresh();
                 }}
-                className="text-red-600 hover:underline"
+                className="ui-btn ui-btn-danger ui-btn-sm"
               >
                 Delete
               </button>
@@ -102,23 +100,23 @@ function EditServiceRow({
   }
 
   return (
-    <li className="space-y-2 rounded-sm border border-accent bg-white p-3">
-      <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-      <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
-      <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" inputMode="decimal" />
-      <label className="flex items-center gap-2 text-xs">
-        <input type="checkbox" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
-        Available
+    <li className="ui-row flex-col items-stretch gap-3 bg-slate-50">
+      <input className="ui-field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+      <input className="ui-field" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
+      <input className="ui-field" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" inputMode="decimal" />
+      <label className="ui-row justify-between rounded-xl bg-white shadow-[0_0_0_1px_rgb(15_42_34/0.06)]">
+        <span className="text-[15px] font-medium text-slate-900">Available</span>
+        <input type="checkbox" role="switch" className="ui-switch" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
       </label>
       {!isAvailable && (
-        <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={availabilityNote} onChange={(e) => setAvailabilityNote(e.target.value)} placeholder="Note" />
+        <input className="ui-field" value={availabilityNote} onChange={(e) => setAvailabilityNote(e.target.value)} placeholder="Note" />
       )}
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button onClick={handleSave} disabled={saving} className="rounded-sm bg-accent px-3 py-1 text-xs font-medium text-white disabled:opacity-50">
+        <button onClick={handleSave} disabled={saving} className="ui-btn ui-btn-primary ui-btn-sm">
           {saving ? "Saving…" : "Save"}
         </button>
-        <button onClick={onCancel} className="rounded-sm border border-slate-300 px-3 py-1 text-xs">
+        <button onClick={onCancel} className="ui-btn ui-btn-secondary ui-btn-sm">
           Cancel
         </button>
       </div>

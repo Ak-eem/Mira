@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { formatRelativeTime } from "@/lib/format";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default async function ActivityPage({
   params,
@@ -18,7 +19,7 @@ export default async function ActivityPage({
 
   return (
     <div>
-      <h1 className="mb-6 mt-2 text-xl font-semibold">Activity</h1>
+      <PageHeader title="Activity" />
 
       {(!activity || activity.length === 0) && (
         <p className="text-sm text-slate-500">Nothing changed yet.</p>
@@ -39,7 +40,7 @@ export default async function ActivityPage({
                   </span>
                 )}
               </span>
-              <span className="whitespace-nowrap pl-3 text-xs text-slate-400">
+              <span className="whitespace-nowrap pl-3 text-xs text-slate-500">
                 {formatRelativeTime(a.created_at)}
               </span>
             </li>

@@ -5,17 +5,25 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { WebsiteImport } from "../WebsiteImport";
 import { completeOnboarding, seedFashionStarter } from "./actions";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Segmented } from "@/components/ui/Segmented";
+import { SwitchRow } from "@/components/ui/Switch";
 import { COURIER_OPTIONS, isConnectableCourier } from "@/lib/onboarding";
 import { EMPTY_FASHION_ANSWERS, MAX_DELIVERY_NOTE, MAX_RETURN_DAYS, hasAnyFashionAnswer, type FashionAnswers, type PaymentMethod, type ReturnsPolicy } from "@/lib/fashionStarter";
 
 type StepId = "sells" | "fashion" | "website" | "email" | "inventory" | "courier";
 type Step = StepId | "done";
 
-const RETURNS_OPTIONS: { id: ReturnsPolicy; label: string }[] = [
-  { id: "none", label: "No returns or exchanges" },
-  { id: "exchange", label: "Exchanges only" },
-  { id: "returns", label: "Returns and exchanges" },
+const RETURNS_OPTIONS: { value: ReturnsPolicy; label: string }[] = [
+  { value: "none", label: "No returns" },
+  { value: "exchange", label: "Exchange" },
+  { value: "returns", label: "Returns" },
 ];
+const RETURNS_MEANING: Record<ReturnsPolicy, string> = {
+  none: "No returns or exchanges.",
+  exchange: "Customers can exchange items, but you don't give refunds.",
+  returns: "Customers can return and exchange items.",
+};
 const PAYMENT_OPTIONS: { id: PaymentMethod; label: string }[] = [
   { id: "transfer", label: "Bank transfer" },
   { id: "card", label: "Card" },
@@ -26,21 +34,13 @@ function YesNo({ legend, value, onChange }: { legend: string; value: boolean | n
   return (
     <fieldset>
       <legend className="text-base font-medium text-slate-900">{legend}</legend>
-      <div className="mt-3 flex gap-3">
-        {[
-          { label: "Yes", v: true },
-          { label: "No", v: false },
-        ].map((option) => (
-          <label
-            key={option.label}
-            className={`flex min-w-24 cursor-pointer items-center justify-center rounded-lg border px-4 py-2 text-sm font-medium has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-indigo-400 ${
-              value === option.v ? "border-accent bg-indigo-50 text-accent" : "border-slate-300 text-slate-700 hover:bg-slate-50"
-            }`}
-          >
-            <input type="radio" name={legend} className="sr-only" checked={value === option.v} onChange={() => onChange(option.v)} />
-            {option.label}
-          </label>
-        ))}
+      <div className="mt-3">
+        <Segmented
+          label={legend}
+          options={[{ value: "yes", label: "Yes" }, { value: "no", label: "No" }]}
+          value={(value === null ? "" : value ? "yes" : "no") as "yes" | "no"}
+          onChange={(v) => onChange(v === "yes")}
+        />
       </div>
     </fieldset>
   );
@@ -127,9 +127,7 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Welcome</p>
-      <h1 className="mt-1 text-2xl font-semibold text-slate-900">Let&apos;s set up {businessName}</h1>
-      <p className="mt-1 text-sm text-slate-500">A few quick questions so Mira starts out knowing your business. You can change any of this later.</p>
+      <PageHeader title={`Let's set up ${businessName}`} subtitle="A few quick questions so Mira starts out knowing your business. You can change any of this later." />
 
       {step !== "done" && (
         <div className="mt-6">
@@ -143,71 +141,47 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
           >
             <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }} />
           </div>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="ui-hint mt-1.5">
             Step {stepIndex + 1} of {STEPS.length}
           </p>
         </div>
       )}
 
-      <section className="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
+      <section key={step} className="ui-card ui-enter mt-6">
         {step === "sells" && (
           <fieldset>
             <legend className="text-base font-medium text-slate-900">What do you sell?</legend>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
-              {[
-                { id: "fashion" as const, label: "Fashion and clothing" },
-                { id: "other" as const, label: "Something else" },
-              ].map((option) => (
-                <label
-                  key={option.id}
-                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-indigo-400 ${
-                    sells === option.id ? "border-accent bg-indigo-50 text-accent" : "border-slate-300 text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
-                  <input type="radio" name="sells" className="sr-only" checked={sells === option.id} onChange={() => setSells(option.id)} />
-                  {option.label}
-                </label>
-              ))}
+            <div className="mt-3">
+              <Segmented
+                label="What do you sell?"
+                options={[{ value: "fashion", label: "Fashion and clothing" }, { value: "other", label: "Something else" }]}
+                value={(sells ?? "") as "fashion" | "other"}
+                onChange={setSells}
+              />
             </div>
-            {sells === "fashion" && <p className="mt-3 text-sm text-slate-500">Great. A few quick questions about sizing, delivery and returns come next, so Mira can answer them from day one.</p>}
+            {sells === "fashion" && <p className="ui-hint mt-3">Great. A few quick questions about sizing, delivery and returns come next, so Mira can answer them from day one.</p>}
           </fieldset>
         )}
 
         {step === "fashion" && (
           <div className="space-y-6">
-            <p className="text-sm text-slate-500">
-              Answer what you can and leave the rest blank. Mira only says what you tell her here, and you can edit all of it later under FAQs and Policies.
-            </p>
+            <p className="ui-hint">Answer what you can and leave the rest blank. Mira only says what you tell her here, and you can edit all of it later under FAQs and Policies.</p>
 
-            <YesNo
-              legend="Do you make custom or made-to-measure pieces?"
-              value={fashion.madeToMeasure}
-              onChange={(v) => setFashion({ ...fashion, madeToMeasure: v })}
-            />
+            <YesNo legend="Do you make custom or made-to-measure pieces?" value={fashion.madeToMeasure} onChange={(v) => setFashion({ ...fashion, madeToMeasure: v })} />
 
             <fieldset>
               <legend className="text-base font-medium text-slate-900">What is your returns policy?</legend>
-              <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                {RETURNS_OPTIONS.map((option) => (
-                  <label
-                    key={option.id}
-                    className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-indigo-400 ${
-                      fashion.returns === option.id ? "border-accent bg-indigo-50 text-accent" : "border-slate-300 text-slate-700 hover:bg-slate-50"
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="returns"
-                      className="sr-only"
-                      checked={fashion.returns === option.id}
-                      onChange={() => setFashion({ ...fashion, returns: option.id, returnDays: option.id === "none" ? null : fashion.returnDays })}
-                    />
-                    {option.label}
-                  </label>
-                ))}
+              <div className="mt-3">
+                <Segmented
+                  label="Returns policy"
+                  options={RETURNS_OPTIONS}
+                  value={(fashion.returns ?? "") as ReturnsPolicy}
+                  onChange={(value) => setFashion({ ...fashion, returns: value, returnDays: value === "none" ? null : fashion.returnDays })}
+                />
               </div>
+              {fashion.returns && <p className="ui-hint mt-3">{RETURNS_MEANING[fashion.returns]}</p>}
               {(fashion.returns === "exchange" || fashion.returns === "returns") && (
-                <label className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+                <label className="mt-3 flex items-center gap-2 text-[15px] text-slate-700">
                   Within
                   <input
                     type="number"
@@ -215,28 +189,26 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
                     max={MAX_RETURN_DAYS}
                     inputMode="numeric"
                     aria-label="Days after delivery"
-                    className="w-20 rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+                    className="ui-field !w-24"
                     value={fashion.returnDays ?? ""}
                     onChange={(e) => {
                       const n = e.target.value === "" ? null : Math.floor(Number(e.target.value));
                       setFashion({ ...fashion, returnDays: n !== null && n >= 1 && n <= MAX_RETURN_DAYS ? n : null });
                     }}
                   />
-                  days of delivery <span className="text-slate-400">(optional)</span>
+                  days of delivery <span className="text-slate-500">(optional)</span>
                 </label>
               )}
             </fieldset>
 
             <div>
-              <label htmlFor="fashion-delivery" className="text-base font-medium text-slate-900">
-                How long does delivery take?
-              </label>
+              <label htmlFor="fashion-delivery" className="text-base font-medium text-slate-900">How long does delivery take?</label>
               <input
                 id="fashion-delivery"
                 type="text"
                 maxLength={MAX_DELIVERY_NOTE}
                 placeholder="e.g. Lagos 1-2 days, other states 3-5 days"
-                className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm"
+                className="ui-field mt-3"
                 value={fashion.deliveryNote}
                 onChange={(e) => setFashion({ ...fashion, deliveryNote: e.target.value })}
               />
@@ -244,26 +216,16 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
 
             <fieldset>
               <legend className="text-base font-medium text-slate-900">How do customers pay?</legend>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {PAYMENT_OPTIONS.map((option) => {
-                  const checked = fashion.payments.includes(option.id);
-                  return (
-                    <label
-                      key={option.id}
-                      className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-indigo-400 ${
-                        checked ? "border-accent bg-indigo-50 text-accent" : "border-slate-300 text-slate-700 hover:bg-slate-50"
-                      }`}
-                    >
-                      <input
-                        type="checkbox"
-                        className="sr-only"
-                        checked={checked}
-                        onChange={() => setFashion({ ...fashion, payments: checked ? fashion.payments.filter((p) => p !== option.id) : [...fashion.payments, option.id] })}
-                      />
-                      {option.label}
-                    </label>
-                  );
-                })}
+              <div className="ui-group mt-3">
+                {PAYMENT_OPTIONS.map((option) => (
+                  <SwitchRow
+                    key={option.id}
+                    id={`pay-${option.id}`}
+                    label={option.label}
+                    checked={fashion.payments.includes(option.id)}
+                    onChange={(on) => setFashion({ ...fashion, payments: on ? [...fashion.payments, option.id] : fashion.payments.filter((p) => p !== option.id) })}
+                  />
+                ))}
               </div>
             </fieldset>
           </div>
@@ -274,13 +236,13 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
             <YesNo legend="Does your business have a website?" value={hasWebsite} onChange={setHasWebsite} />
             {hasWebsite === true && (
               <div className="space-y-2 border-t border-slate-100 pt-4">
-                <p className="text-sm text-slate-500">
+                <p className="ui-hint">
                   Enter your address and Mira will suggest products, services, hours and FAQs from it. Nothing goes live until you confirm.
                 </p>
                 <WebsiteImport businessId={businessId} embedded />
               </div>
             )}
-            {hasWebsite === false && <p className="text-sm text-slate-500">No problem. If you get a website later you can import from it in Settings.</p>}
+            {hasWebsite === false && <p className="ui-hint">No problem. If you get a website later you can import from it in Settings.</p>}
           </div>
         )}
 
@@ -288,11 +250,11 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
           <div className="space-y-4">
             <YesNo legend="Should Mira reply to your customers' emails too?" value={wantsEmail} onChange={setWantsEmail} />
             {wantsEmail === true && (
-              <p className="text-sm text-slate-500">
+              <p className="ui-hint">
                 Email replies need a Mira email address set up for your business, which you can&apos;t do yourself yet. We&apos;ve noted that you want it.
               </p>
             )}
-            {wantsEmail === false && <p className="text-sm text-slate-500">Okay. Mira will answer on your website chat (and WhatsApp when it&apos;s connected).</p>}
+            {wantsEmail === false && <p className="ui-hint">Okay. Mira will answer on your website chat (and WhatsApp when it&apos;s connected).</p>}
           </div>
         )}
 
@@ -300,12 +262,12 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
           <div className="space-y-4">
             <YesNo legend="Do you keep track of how many of each item you have in stock?" value={tracksInventory} onChange={setTracksInventory} />
             {tracksInventory === true && (
-              <p className="text-sm text-slate-500">
+              <p className="ui-hint">
                 Add a stock number to a product and Mira will use it when answering customers and taking orders. It won&apos;t take an order for more than you have.
               </p>
             )}
             {tracksInventory === false && (
-              <p className="text-sm text-slate-500">No problem. Mira won&apos;t limit orders by stock unless you add a stock number to a product.</p>
+              <p className="ui-hint">No problem. Mira won&apos;t limit orders by stock unless you add a stock number to a product.</p>
             )}
           </div>
         )}
@@ -313,24 +275,22 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
         {step === "courier" && (
           <fieldset>
             <legend className="text-base font-medium text-slate-900">How do you deliver orders?</legend>
-            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+            <div role="radiogroup" aria-label="How you deliver orders" className="ui-group mt-3">
               {COURIER_OPTIONS.map((option) => (
-                <label
-                  key={option.id}
-                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-3 py-2 text-sm has-[input:focus-visible]:ring-2 has-[input:focus-visible]:ring-indigo-400 ${
-                    courier === option.id ? "border-accent bg-indigo-50 text-accent" : "border-slate-300 text-slate-700 hover:bg-slate-50"
-                  }`}
-                >
+                <label key={option.id} className="ui-row justify-between has-[input:focus-visible]:bg-slate-100">
+                  <span className="text-[15px] text-slate-900">{option.label}</span>
                   <input type="radio" name="courier" className="sr-only" checked={courier === option.id} onChange={() => setCourier(option.id)} />
-                  {option.label}
+                  {courier === option.id && (
+                    <svg aria-hidden viewBox="0 0 20 20" className="h-5 w-5 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10.5l4 4 8-9" /></svg>
+                  )}
                 </label>
               ))}
             </div>
             {courier !== null && isConnectableCourier(courier) && (
-              <p className="mt-3 text-sm text-slate-500">Mira can update your orders automatically when Shiip delivers them. You&apos;ll connect it in Settings once you finish.</p>
+              <p className="ui-hint mt-3">Mira can update your orders automatically when Shiip delivers them. You&apos;ll connect it in Settings once you finish.</p>
             )}
             {chosenCourier && !chosenCourier.connectable && chosenCourier.id !== "self" && (
-              <p className="mt-3 text-sm text-slate-500">
+              <p className="ui-hint mt-3">
                 Mira can&apos;t get delivery updates from {chosenCourier.id === "other" ? "other couriers" : chosenCourier.label} yet. We&apos;ve noted it so we know what to build next.
               </p>
             )}
@@ -340,9 +300,9 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
         {step === "done" && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold text-slate-900">You&apos;re set up</h2>
-            <p className="text-sm text-slate-500">Mira is ready to answer your customers. You can change any of these answers later in Settings.</p>
+            <p className="ui-hint">Mira is ready to answer your customers. You can change any of these answers later in Settings.</p>
             {addedCount > 0 && (
-              <p className="text-sm text-slate-500">
+              <p className="ui-hint">
                 We added {addedCount} starter {addedCount === 1 ? "answer" : "answers"} from what you told us. Check them under{" "}
                 <Link href={`/portal/${businessId}/faqs`} className="font-medium text-accent hover:underline">FAQs</Link> and{" "}
                 <Link href={`/portal/${businessId}/policies`} className="font-medium text-accent hover:underline">Policies</Link>.
@@ -355,17 +315,13 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
             )}
             <div className="flex flex-wrap gap-3">
               {isConnectableCourier(courier) && (
-                <Link href={`/portal/${businessId}/settings`} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark">
+                <Link href={`/portal/${businessId}/settings`} className="ui-btn ui-btn-primary">
                   Connect Shiip
                 </Link>
               )}
               <Link
                 href={dashboard}
-                className={
-                  isConnectableCourier(courier)
-                    ? "rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
-                    : "rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark"
-                }
+                className={isConnectableCourier(courier) ? "ui-btn ui-btn-secondary" : "ui-btn ui-btn-primary"}
               >
                 Go to your dashboard
               </Link>
@@ -374,20 +330,20 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
         )}
 
         {error && (
-          <p role="alert" className="mt-4 text-sm text-red-600">
+          <p role="alert" className="mt-4 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </p>
         )}
 
         {step !== "done" && (
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 pt-4">
             <div className="flex items-center gap-4">
               {stepIndex > 0 && (
-                <button type="button" onClick={() => setStep(STEPS[stepIndex - 1])} disabled={saving} className="text-sm font-medium text-slate-600 hover:underline disabled:opacity-50">
+                <button type="button" onClick={() => setStep(STEPS[stepIndex - 1])} disabled={saving} className="ui-btn ui-btn-secondary ui-btn-sm">
                   Back
                 </button>
               )}
-              <button type="button" onClick={() => void skip()} disabled={saving} className="text-sm text-slate-400 hover:underline disabled:opacity-50">
+              <button type="button" onClick={() => void skip()} disabled={saving} className="ui-btn ui-btn-plain ui-btn-sm !text-slate-500">
                 Skip setup
               </button>
             </div>
@@ -395,7 +351,8 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
               type="button"
               onClick={() => void next()}
               disabled={saving || !answered[step]}
-              className="rounded-lg bg-accent px-5 py-2 text-sm font-semibold text-white hover:bg-accent-dark disabled:opacity-50"
+              className="ui-btn ui-btn-primary"
+              aria-busy={saving || undefined}
             >
               {saving ? "Saving..." : stepIndex === STEPS.length - 1 ? "Finish" : "Continue"}
             </button>

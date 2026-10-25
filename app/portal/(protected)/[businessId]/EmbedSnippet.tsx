@@ -70,7 +70,7 @@ export function EmbedSnippet({ slug, businessName }: { slug: string; businessNam
         id="widget-placement"
         value={placement}
         onChange={(e) => setPlacement(e.target.value as Placement)}
-        className="mb-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800"
+        className="ui-field"
       >
         {PLACEMENTS.map((option) => (
           <option key={option.value} value={option.value}>{option.label}</option>
@@ -83,7 +83,7 @@ export function EmbedSnippet({ slug, businessName }: { slug: string; businessNam
         type="button"
         onClick={copy}
         disabled={!snippet}
-        className="mt-3 rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+        className="ui-btn ui-btn-primary ui-btn-sm mt-3"
       >
         {copied ? "Copied!" : "Copy snippet"}
       </button>

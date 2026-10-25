@@ -54,7 +54,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
           <div>
             <label className="block text-xs font-medium text-slate-600">Plan</label>
             <select
-              className="mt-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 ui-field"
               value={plan}
               onChange={(e) => setPlan(e.target.value as "base" | "pro")}
             >
@@ -65,7 +65,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
           <div>
             <label className="block text-xs font-medium text-slate-600">Status</label>
             <select
-              className="mt-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+              className="mt-1 ui-field"
               value={status}
               onChange={(e) => setStatus(e.target.value as "trialing" | "active" | "past_due" | "cancelled")}
             >
@@ -87,7 +87,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
             <div>
               <label className="block text-xs font-medium text-slate-600">Nudges tier</label>
               <select
-                className="mt-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 ui-field"
                 value={nudgesTier}
                 onChange={(e) => setNudgesTier(e.target.value)}
               >
@@ -101,7 +101,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
               <input
                 type="number"
                 min={1}
-                className="mt-1 w-24 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+                className="mt-1 w-24 ui-field"
                 value={maxPerWeek}
                 onChange={(e) => setMaxPerWeek(e.target.value)}
               />
@@ -115,7 +115,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
           <button
             onClick={handleSave}
             disabled={saving}
-            className="rounded-sm bg-accent px-4 py-1.5 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+            className="ui-btn ui-btn-primary"
           >
             {saving ? "Saving…" : "Save"}
           </button>

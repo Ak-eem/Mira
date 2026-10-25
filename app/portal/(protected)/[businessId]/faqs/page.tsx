@@ -1,3 +1,6 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { AddSheet } from "@/components/ui/Sheet";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { NewFaqForm } from "@/app/admin/(protected)/businesses/[businessId]/faqs/NewFaqForm";
@@ -23,12 +26,30 @@ export default async function FaqsPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight text-ink">FAQs</h1>
-      <p className="mb-6 mt-1 text-sm text-muted">Questions customers ask often, with the answers Mira should give.</p>
+      <PageHeader
+        title="FAQs"
+        subtitle="Questions customers ask often, with the answers Mira should give."
+        action={faqs?.length ? (
+          <AddSheet label="Add FAQ">
+            <NewFaqForm businessId={businessId} />
+          </AddSheet>
+        ) : undefined}
+      />
 
-      <FaqList faqs={faqs ?? []} />
-
-      <NewFaqForm businessId={businessId} />
+      {faqs?.length ? (
+        <FaqList faqs={faqs} />
+      ) : (
+        <EmptyState
+          icon="chat"
+          title="No faqs yet"
+          description="Write the questions customers ask most, with the exact answer you want Mira to give."
+          action={
+            <AddSheet label="Add your first FAQ">
+              <NewFaqForm businessId={businessId} />
+            </AddSheet>
+          }
+        />
+      )}
     </div>
   );
 }

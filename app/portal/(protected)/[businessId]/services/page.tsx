@@ -1,3 +1,6 @@
+import { PageHeader } from "@/components/ui/PageHeader";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { AddSheet } from "@/components/ui/Sheet";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { NewServiceForm } from "@/app/admin/(protected)/businesses/[businessId]/services/NewServiceForm";
@@ -29,12 +32,30 @@ export default async function ServicesPage({
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight text-ink">Services</h1>
-      <p className="mb-6 mt-1 text-sm text-muted">The services you offer and their prices.</p>
+      <PageHeader
+        title="Services"
+        subtitle="The services you offer and their prices."
+        action={services?.length ? (
+          <AddSheet label="Add service">
+            <NewServiceForm businessId={businessId} />
+          </AddSheet>
+        ) : undefined}
+      />
 
-      <ServiceList services={services ?? []} currency={business?.currency ?? ""} />
-
-      <NewServiceForm businessId={businessId} />
+      {services?.length ? (
+        <ServiceList services={services} currency={business?.currency ?? ""} />
+      ) : (
+        <EmptyState
+          icon="list"
+          title="No services yet"
+          description="Add the services you offer so Mira can tell customers what they cost."
+          action={
+            <AddSheet label="Add your first service">
+              <NewServiceForm businessId={businessId} />
+            </AddSheet>
+          }
+        />
+      )}
     </div>
   );
 }

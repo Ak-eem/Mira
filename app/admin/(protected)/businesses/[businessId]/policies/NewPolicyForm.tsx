@@ -1,10 +1,12 @@
 "use client";
 
+import { useSheetClose } from "@/components/ui/Sheet";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPolicy } from "./actions";
 
 export function NewPolicyForm({ businessId }: { businessId: string }) {
+  const closeSheet = useSheetClose();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -27,35 +29,38 @@ export function NewPolicyForm({ businessId }: { businessId: string }) {
     setTitle("");
     setContent("");
     setSubmitting(false);
+    closeSheet();
     router.refresh();
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
-      <h2 className="text-sm font-semibold">Add a policy</h2>
+    <form onSubmit={handleSubmit} className="space-y-4">
 
-      <input
-        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
-        placeholder="Title (e.g. 'Cancellation Policy')"
+      <div>
+        <label htmlFor="f-title" className="ui-label">Title</label>
+        <input id="f-title"
+        className="ui-field" placeholder="e.g. 'Cancellation Policy'"
         value={title}
         onChange={(e) => setTitle(e.target.value)}
-        required
-      />
-      <textarea
-        className="w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
-        placeholder="Content"
+        required />
+      </div>
+      <div>
+        <label htmlFor="f-content" className="ui-label">Content</label>
+        <textarea id="f-content"
+        className="ui-field"
         rows={4}
         value={content}
         onChange={(e) => setContent(e.target.value)}
-        required
-      />
+        required />
+      </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        aria-busy={submitting}
+        className="ui-btn ui-btn-primary w-full"
       >
         {submitting ? "Adding…" : "Add policy"}
       </button>

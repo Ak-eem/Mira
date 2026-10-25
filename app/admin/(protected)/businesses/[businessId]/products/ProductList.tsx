@@ -19,12 +19,10 @@ export function ProductList({ products, currency }: { products: Product[]; curre
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  if (products.length === 0) {
-    return <p className="mb-6 text-sm text-slate-500">No products yet.</p>;
-  }
+  if (products.length === 0) return null;
 
   return (
-    <ul className="mb-6 space-y-2">
+    <ul className="ui-group mb-6">
       {products.map((p) =>
         editingId === p.id ? (
           <EditProductRow
@@ -37,12 +35,12 @@ export function ProductList({ products, currency }: { products: Product[]; curre
             onCancel={() => setEditingId(null)}
           />
         ) : (
-          <li key={p.id} className="flex gap-3 rounded-sm border border-slate-200 bg-white p-3">
+          <li key={p.id} className="ui-row items-start">
             {p.image_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={p.image_url} alt={p.name} className="h-14 w-14 shrink-0 rounded-sm object-cover" />
+              <img src={p.image_url} alt={p.name} className="h-14 w-14 shrink-0 rounded-xl object-cover" />
             ) : (
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-sm bg-slate-100 text-xs text-slate-400">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-500">
                 No photo
               </div>
             )}
@@ -52,7 +50,7 @@ export function ProductList({ products, currency }: { products: Product[]; curre
                 <span className="font-mono text-sm text-slate-500">{currency} {p.price}</span>
               </div>
               {p.description && <p className="mt-1 text-sm text-slate-500">{p.description}</p>}
-              <p className="mt-1 text-xs text-slate-400">
+              <p className="mt-1 text-xs text-slate-500">
                 {p.stock_quantity != null ? `${p.stock_quantity} in stock` : "Stock not tracked"}
               </p>
               {!p.is_available && (
@@ -60,8 +58,8 @@ export function ProductList({ products, currency }: { products: Product[]; curre
                   Unavailable{p.availability_note ? ` — ${p.availability_note}` : ""}
                 </p>
               )}
-              <div className="mt-2 flex gap-3 text-xs">
-                <button onClick={() => setEditingId(p.id)} className="text-accent hover:underline">
+              <div className="mt-2 flex gap-2">
+                <button onClick={() => setEditingId(p.id)} className="ui-btn ui-btn-plain ui-btn-sm">
                   Edit
                 </button>
                 <button
@@ -70,7 +68,7 @@ export function ProductList({ products, currency }: { products: Product[]; curre
                     await deleteProduct(p.id);
                     router.refresh();
                   }}
-                  className="text-red-600 hover:underline"
+                  className="ui-btn ui-btn-danger ui-btn-sm"
                 >
                   Delete
                 </button>
@@ -147,18 +145,18 @@ function EditProductRow({
   }
 
   return (
-    <li className="space-y-2 rounded-sm border border-accent bg-white p-3">
+    <li className="ui-row flex-col items-stretch gap-3 bg-slate-50">
       <div className="flex items-center gap-3">
         {imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={imageUrl} alt={name} className="h-14 w-14 shrink-0 rounded-sm object-cover" />
+          <img src={imageUrl} alt={name} className="h-14 w-14 shrink-0 rounded-xl object-cover" />
         ) : (
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-sm bg-slate-100 text-xs text-slate-400">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-xs text-slate-500">
             No photo
           </div>
         )}
         <div className="flex flex-col gap-1 text-xs">
-          <label className="cursor-pointer text-accent hover:underline">
+          <label className="cursor-pointer ui-btn ui-btn-plain ui-btn-sm">
             {imageBusy ? "Working…" : imageUrl ? "Replace photo" : "Add photo"}
             <input
               ref={fileInputRef}
@@ -170,31 +168,31 @@ function EditProductRow({
             />
           </label>
           {imageUrl && (
-            <button onClick={handleRemoveImage} disabled={imageBusy} className="text-left text-red-600 hover:underline disabled:opacity-50">
+            <button onClick={handleRemoveImage} disabled={imageBusy} className="text-left ui-btn ui-btn-danger ui-btn-sm disabled:opacity-50">
               Remove photo
             </button>
           )}
         </div>
       </div>
-      <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-      <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
+      <input className="ui-field" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+      <input className="ui-field" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Description" />
       <div className="flex gap-2">
-        <input className="flex-1 rounded-sm border border-slate-300 px-2 py-1 text-sm" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" inputMode="decimal" />
-        <input className="flex-1 rounded-sm border border-slate-300 px-2 py-1 text-sm" value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} placeholder="Stock (blank = untracked)" inputMode="numeric" />
+        <input className="ui-field flex-1" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="Price" inputMode="decimal" />
+        <input className="ui-field flex-1" value={stockQuantity} onChange={(e) => setStockQuantity(e.target.value)} placeholder="Stock (blank = untracked)" inputMode="numeric" />
       </div>
-      <label className="flex items-center gap-2 text-xs">
-        <input type="checkbox" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
-        Available
+      <label className="ui-row justify-between rounded-xl bg-white shadow-[0_0_0_1px_rgb(15_42_34/0.06)]">
+        <span className="text-[15px] font-medium text-slate-900">Available</span>
+        <input type="checkbox" role="switch" className="ui-switch" checked={isAvailable} onChange={(e) => setIsAvailable(e.target.checked)} />
       </label>
       {!isAvailable && (
-        <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={availabilityNote} onChange={(e) => setAvailabilityNote(e.target.value)} placeholder="Note" />
+        <input className="ui-field" value={availabilityNote} onChange={(e) => setAvailabilityNote(e.target.value)} placeholder="Note" />
       )}
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button onClick={handleSave} disabled={saving} className="rounded-sm bg-accent px-3 py-1 text-xs font-medium text-white disabled:opacity-50">
+        <button onClick={handleSave} disabled={saving} className="ui-btn ui-btn-primary ui-btn-sm">
           {saving ? "Saving…" : "Save"}
         </button>
-        <button onClick={onCancel} className="rounded-sm border border-slate-300 px-3 py-1 text-xs">
+        <button onClick={onCancel} className="ui-btn ui-btn-secondary ui-btn-sm">
           Cancel
         </button>
       </div>

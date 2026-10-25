@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { createClient } from "@/lib/supabase/server";
 import type { Business } from "@/lib/types";
 import { subscriptionLabel, type BusinessSubscription, type SubscriptionStatus } from "@/lib/plans";
@@ -53,15 +54,11 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-slate-900">Businesses</h1>
-        <Link
-          href="/admin/businesses/new"
-          className="glass-hover rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white"
-        >
-          + New business
-        </Link>
-      </div>
+      <PageHeader
+        title="Businesses"
+        subtitle="Every business on Mira. Open one to manage its info, conversations and plan."
+        action={<Link href="/admin/businesses/new" className="ui-btn ui-btn-primary"><span aria-hidden className="text-lg leading-none">+</span>New business</Link>}
+      />
 
       <form className="mb-5 flex flex-wrap gap-2" method="get">
         <input name="q" defaultValue={search} placeholder="Search businesses" aria-label="Search businesses" className="min-w-52 flex-1 rounded-lg border border-teal-900/10 bg-white/70 px-3 py-2 text-sm" />
@@ -84,7 +81,7 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
       )}
 
       {!error && !subscriptionsError && !flaggedError && businesses && businesses.length > 0 && (
-        <div className="glass-panel divide-y divide-teal-900/10 overflow-hidden rounded-xl">
+        <div className="ui-group ui-enter">
           {businesses.map((b) => {
             const sub = subscriptionByBusiness.get(b.id);
             const flaggedCount = flaggedCountByBusiness.get(b.id) ?? 0;
@@ -92,7 +89,7 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
               <Link
                 key={b.id}
                 href={`/admin/businesses/${b.id}`}
-                className="glass-hover flex items-center justify-between px-4 py-3"
+                className="ui-row justify-between"
               >
                 <div>
                   <p className="font-medium text-slate-900">{b.name}</p>

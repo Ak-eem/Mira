@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatDateTime, formatRelativeTime } from "@/lib/format";
 import { ErrorNotice } from "@/components/ErrorNotice";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 type ActivityRow = {
   id: string;
@@ -33,11 +34,7 @@ export default async function PlatformActivityPage() {
 
   return (
     <div>
-      <h1 className="mb-4 text-xl font-semibold text-slate-900">Activity</h1>
-      <p className="mb-4 text-sm text-slate-500">
-        The last 100 changes across every business — services, FAQs, policies, hours,
-        promotions, and closures being created, edited, or removed.
-      </p>
+      <PageHeader title="Activity" subtitle={<>The last 100 changes across every business — services, FAQs, policies, hours, promotions, and closures being created, edited, or removed.</>} />
 
       {error && <ErrorNotice what="load activity" error={error} />}
       {businessesError && <ErrorNotice what="load business names" error={businessesError} />}

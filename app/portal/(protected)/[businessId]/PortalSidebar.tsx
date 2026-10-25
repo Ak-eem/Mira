@@ -134,7 +134,7 @@ export function PortalSidebar({
           if (items.length === 0) return null;
           return (
             <div key={group.label}>
-              <p className="mb-1.5 px-3 text-[11px] font-medium uppercase tracking-wider text-muted">{group.label}</p>
+              <p className="ui-section-label !mb-1 !ml-3">{group.label}</p>
               <ul className="space-y-0.5">
                 {items.map((item) => {
                   const active = item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -145,11 +145,11 @@ export function PortalSidebar({
                         href={item.href}
                         onClick={() => setOpen(false)}
                         aria-current={active ? "page" : undefined}
-                        className={`flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition ${
-                          active ? "bg-ink font-medium text-white shadow-soft" : "text-ink-2 hover:bg-mist hover:text-ink"
+                        className={`flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[15px] transition-colors duration-200 ${
+                          active ? "bg-accent/10 font-semibold text-accent" : "text-ink-2 hover:bg-slate-900/5 hover:text-ink"
                         }`}
                       >
-                        <Icon className={`h-4 w-4 shrink-0 ${active ? "text-marigold" : "text-muted"}`} aria-hidden="true" />
+                        <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? "text-accent" : "text-muted"}`} aria-hidden="true" />
                         <span className="flex-1 truncate">{item.label}</span>
                         {item.badge ? (
                           <span className="rounded-full bg-marigold px-2 py-0.5 text-[11px] font-semibold text-ink">{item.badge}</span>

@@ -58,7 +58,7 @@ export function AgentSettingsPanel({
       <div>
         <label className="block text-sm font-medium text-slate-700">Which AI agent</label>
         <select
-          className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full ui-field"
           value={provider}
           onChange={(e) => setProvider(e.target.value as ProviderName)}
         >
@@ -73,7 +73,7 @@ export function AgentSettingsPanel({
         type="button"
         onClick={handleSave}
         disabled={saving}
-        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="ui-btn ui-btn-primary"
       >
         {saving ? "Saving…" : "Save"}
       </button>

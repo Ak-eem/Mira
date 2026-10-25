@@ -47,7 +47,7 @@ export function OwnersPanel({ businessId, owners }: { businessId: string; owners
               <button
                 type="button"
                 onClick={() => handleRemove(owner.id)}
-                className="text-xs text-slate-400 hover:text-red-600"
+                className="text-xs text-slate-500 hover:text-red-600"
               >
                 Remove
               </button>
@@ -59,7 +59,7 @@ export function OwnersPanel({ businessId, owners }: { businessId: string; owners
       <form onSubmit={handleInvite} className="flex gap-2">
         <input
           type="email"
-          className="flex-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+          className="flex-1 ui-field"
           placeholder="owner@business.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
@@ -68,13 +68,13 @@ export function OwnersPanel({ businessId, owners }: { businessId: string; owners
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-sm bg-accent px-3 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+          className="ui-btn ui-btn-primary"
         >
           {submitting ? "Inviting…" : "Invite"}
         </button>
       </form>
       {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
-      <p className="mt-2 text-xs text-slate-400">
+      <p className="mt-2 text-xs text-slate-500">
         Sends a Supabase invite email so they can set their own password.
       </p>
     </div>

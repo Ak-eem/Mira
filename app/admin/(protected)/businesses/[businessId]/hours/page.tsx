@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { HoursForm } from "./HoursForm";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 const DAY_NAMES = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
 
@@ -29,7 +30,7 @@ export default async function HoursPage({
 
   return (
     <div className="max-w-lg">
-      <h1 className="mb-6 mt-2 text-xl font-semibold">Hours</h1>
+      <PageHeader title="Hours" />
       <HoursForm businessId={businessId} initialDays={byDay} />
     </div>
   );

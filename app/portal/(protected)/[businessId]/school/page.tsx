@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { SchoolManager } from "./SchoolManager";
 
 const STUDENT_PAGE_LIMIT = 300;
@@ -27,10 +28,7 @@ export default async function SchoolPage({ params }: { params: Promise<{ busines
 
   return (
     <div>
-      <h1 className="text-2xl font-semibold tracking-tight text-ink">School</h1>
-      <p className="mb-6 mt-1 text-sm text-muted">
-        The calendar, classes, fees and students Mira answers from. Changes reach customers within about a minute.
-      </p>
+      <PageHeader title="School" subtitle="The calendar, classes, fees and students Mira answers from. Changes reach customers within about a minute." />
       <SchoolManager
         businessId={businessId}
         sessions={sessions.data ?? []}

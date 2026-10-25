@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { interpretInventoryCommand as interpretCommand, executeInventoryCommand as executeCommand, type CommandResult } from "./actions";
 
@@ -16,6 +16,8 @@ export function CommandCenter({ businessId }: { businessId: string }) {
   const [pending, setPending] = useState<CommandResult | null>(null);
   const [thinking, setThinking] = useState(false);
   const [executing, setExecuting] = useState(false);
+  const endRef = useRef<HTMLDivElement>(null);
+  useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [turns, thinking, pending]);
 
   async function handleSend(e: React.FormEvent) {
     e.preventDefault();
@@ -58,20 +60,25 @@ export function CommandCenter({ businessId }: { businessId: string }) {
   }
 
   return (
-    <div className="flex min-h-[60vh] flex-col rounded-lg border border-slate-200 bg-white">
-      <div className="flex-1 space-y-3 overflow-y-auto p-4">
+    <div className="ui-card flex min-h-[60vh] flex-col overflow-hidden !p-0">
+      <div className="flex-1 space-y-3 overflow-y-auto p-5">
         {turns.length === 0 && !pending && (
-          <p className="text-sm text-slate-400">
-            Try something like &quot;we&apos;re out of the red shirts&quot; or &quot;set the blue
-            hoodie to ₦8,500.&quot; Nothing changes until you confirm.
-          </p>
+          <div className="ui-enter py-6 text-center">
+            <h2 className="text-lg font-semibold tracking-tight text-slate-900">What changed in your shop?</h2>
+            <p className="ui-subtitle mx-auto mt-1 text-center">Tell Mira in your own words. It shows you what it understood, and nothing changes until you confirm.</p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {["We're out of the red shirts", "Set the blue hoodie to ₦8,500", "We close at 5pm on Fridays", "Add an FAQ: do you deliver?"].map((chip) => (
+                <button key={chip} type="button" onClick={() => setInput(chip)} className="ui-btn ui-btn-secondary ui-btn-sm">{chip}</button>
+              ))}
+            </div>
+          </div>
         )}
 
         {turns.map((t, i) => {
           if (t.role === "user") {
             return (
               <div key={i} className="text-right">
-                <span className="inline-block max-w-[85%] rounded-lg bg-accent px-3 py-2 text-sm text-white">
+                <span className="inline-block max-w-[85%] rounded-[1.25rem] rounded-br-md bg-accent px-4 py-2.5 text-[15px] text-white">
                   {t.text}
                 </span>
               </div>
@@ -80,7 +87,7 @@ export function CommandCenter({ businessId }: { businessId: string }) {
           if ("done" in t) {
             return (
               <div key={i} className="text-left">
-                <span className="inline-block rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                <span className="inline-block max-w-[85%] rounded-[1.25rem] rounded-bl-md bg-emerald-50 px-4 py-2.5 text-[15px] text-emerald-800">
                   ✓ {t.message}
                 </span>
               </div>
@@ -93,8 +100,8 @@ export function CommandCenter({ businessId }: { businessId: string }) {
               <span
                 className={
                   r.kind === "error"
-                    ? "inline-block max-w-[85%] rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-                    : "inline-block max-w-[85%] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                    ? "inline-block max-w-[85%] rounded-[1.25rem] rounded-bl-md bg-red-50 px-4 py-2.5 text-[15px] text-red-700"
+                    : "inline-block max-w-[85%] rounded-[1.25rem] rounded-bl-md bg-slate-100 px-4 py-2.5 text-[15px] text-slate-900"
                 }
               >
                 {r.message}
@@ -103,23 +110,23 @@ export function CommandCenter({ businessId }: { businessId: string }) {
           );
         })}
 
-        {thinking && <p className="text-sm text-slate-400">Thinking…</p>}
+        {thinking && <p className="ui-typing" aria-label="Mira is thinking"><span /><span /><span /></p>}
 
         {pending && pending.kind === "confirm" && (
-          <div className="rounded-lg border border-accent bg-white p-3">
-            <p className="mb-3 text-sm">{pending.summary}</p>
+          <div className="ui-enter rounded-2xl bg-white p-4 shadow-[0_0_0_2px_color-mix(in_srgb,var(--color-accent)_30%,transparent)]">
+            <p className="mb-3 text-[15px] text-slate-900">{pending.summary}</p>
             <div className="flex gap-2">
               <button
                 onClick={() => handleConfirm(pending.action, pending.payload)}
                 disabled={executing}
-                className="rounded-sm bg-accent px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
+                className="ui-btn ui-btn-primary ui-btn-sm"
               >
                 {executing ? "Working…" : "Confirm"}
               </button>
               <button
                 onClick={handleCancel}
                 disabled={executing}
-                className="rounded-sm border border-slate-300 px-3 py-1.5 text-xs"
+                className="ui-btn ui-btn-secondary ui-btn-sm"
               >
                 Cancel
               </button>
@@ -128,8 +135,8 @@ export function CommandCenter({ businessId }: { businessId: string }) {
         )}
 
         {pending && pending.kind === "choose" && (
-          <div className="rounded-lg border border-accent bg-white p-3">
-            <p className="mb-3 text-sm">I found more than one match -- which did you mean?</p>
+          <div className="ui-enter rounded-2xl bg-white p-4 shadow-[0_0_0_2px_color-mix(in_srgb,var(--color-accent)_30%,transparent)]">
+            <p className="mb-3 text-sm">I found more than one match. Which did you mean?</p>
             <div className="space-y-2">
               {pending.options.map((opt, i) => (
                 <button
@@ -137,22 +144,23 @@ export function CommandCenter({ businessId }: { businessId: string }) {
                   onClick={() =>
                     setPending({ kind: "confirm", action: pending.action, summary: opt.summary, payload: opt.payload })
                   }
-                  className="block w-full rounded-sm border border-slate-300 px-3 py-2 text-left text-sm hover:border-accent"
+                  className="ui-btn ui-btn-secondary w-full !justify-start text-left"
                 >
                   {opt.label}
                 </button>
               ))}
             </div>
-            <button onClick={handleCancel} className="mt-2 text-xs text-slate-400 hover:underline">
+            <button onClick={handleCancel} className="ui-btn ui-btn-plain ui-btn-sm mt-2">
               Cancel
             </button>
           </div>
         )}
+        <div ref={endRef} />
       </div>
 
-      <form onSubmit={handleSend} className="flex gap-2 border-t border-slate-200 p-3">
+      <form onSubmit={handleSend} className="flex gap-2 border-t border-slate-200/80 bg-white p-3">
         <input
-          className="flex-1 rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+          className="ui-field flex-1" aria-label="Tell Mira what to change"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Tell Mira what to change…"
@@ -161,7 +169,7 @@ export function CommandCenter({ businessId }: { businessId: string }) {
         <button
           type="submit"
           disabled={thinking || !!pending || !input.trim()}
-          className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+          className="ui-btn ui-btn-primary" aria-busy={thinking}
         >
           Send
         </button>

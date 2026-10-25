@@ -1,3 +1,4 @@
+import { duplicateTarget, escapeLike } from "@/lib/scrape/duplicateTarget";
 import { NextRequest, NextResponse } from "next/server";
 import { extractBusinessInfo } from "@/lib/ai/extractBusinessInfo";
 import { scrapeBusinessWebsite } from "@/lib/ai/scrapeBusiness";
@@ -61,6 +62,15 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     let imageImportFailed = false;
     if (body.status === "approved") {
       const { data: draft } = await supabase.from("scrape_drafts").select("kind, payload").eq("id", body.draftId).eq("business_id", businessId).eq("status", "pending").maybeSingle();
+      // Do not add something the business already has.
+      const target = draft && typeof draft.payload === "object" && draft.payload ? duplicateTarget(draft.kind, draft.payload as Record<string, unknown>) : null;
+      if (target) {
+        const { count } = await supabase.from(target.table).select("id", { count: "exact", head: true }).eq("business_id", businessId).ilike(target.column, escapeLike(target.value));
+        if ((count ?? 0) > 0) {
+          await supabase.rpc("reject_scrape_draft", { p_draft_id: body.draftId });
+          return NextResponse.json({ message: "That is already in your business info, so it was skipped.", duplicate: true });
+        }
+      }
       const payload = draft?.kind === "product" && typeof draft?.payload === "object" && draft.payload ? (draft.payload as Record<string, unknown>) : null;
       const candidateRaw = payload?.candidate_image_url;
       const candidateImageUrl = typeof candidateRaw === "string" ? candidateRaw : null;

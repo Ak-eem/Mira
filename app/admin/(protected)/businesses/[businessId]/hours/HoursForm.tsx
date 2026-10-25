@@ -15,6 +15,7 @@ export function HoursForm({
   const [days, setDays] = useState(initialDays);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
   function updateDay(index: number, patch: Partial<DayInput>) {
     setDays((prev) => prev.map((d, i) => (i === index ? { ...d, ...patch } : d)));
@@ -35,46 +36,38 @@ export function HoursForm({
 
     router.refresh();
     setSaving(false);
+    setSaved(true);
+    window.setTimeout(() => setSaved(false), 2500);
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      {days.map((d, i) => (
-        <div key={d.day_of_week} className="flex flex-wrap items-center gap-3 rounded-sm border border-slate-200 bg-white p-3">
-          <span className="w-24 text-sm font-medium">{d.name}</span>
-          <label className="flex items-center gap-1 text-xs text-slate-500">
-            <input type="checkbox" checked={d.closed} onChange={(e) => updateDay(i, { closed: e.target.checked })} />
-            Closed
-          </label>
-          {!d.closed && (
-            <>
-              <input
-                type="time"
-                value={d.opens_at}
-                onChange={(e) => updateDay(i, { opens_at: e.target.value })}
-                className="rounded-sm border border-slate-300 px-2 py-1 text-sm"
-              />
-              <span className="text-slate-400">–</span>
-              <input
-                type="time"
-                value={d.closes_at}
-                onChange={(e) => updateDay(i, { closes_at: e.target.value })}
-                className="rounded-sm border border-slate-300 px-2 py-1 text-sm"
-              />
-            </>
-          )}
-        </div>
-      ))}
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div className="ui-group">
+        {days.map((d, i) => (
+          <div key={d.day_of_week} className="ui-row flex-wrap">
+            <span className="w-28 text-[15px] font-medium text-slate-900">{d.name}</span>
+            <span className="ml-auto flex items-center gap-3">
+              {d.closed ? (
+                <span className="text-sm text-slate-500">Closed</span>
+              ) : (
+                <>
+                  <input type="time" aria-label={`${d.name} opens`} value={d.opens_at} onChange={(e) => updateDay(i, { opens_at: e.target.value })} className="ui-field w-auto min-w-[7.5rem]" />
+                  <span aria-hidden className="text-slate-400">&ndash;</span>
+                  <input type="time" aria-label={`${d.name} closes`} value={d.closes_at} onChange={(e) => updateDay(i, { closes_at: e.target.value })} className="ui-field w-auto min-w-[7.5rem]" />
+                </>
+              )}
+              <input type="checkbox" role="switch" aria-label={`Open on ${d.name}`} className="ui-switch" checked={!d.closed} onChange={(e) => updateDay(i, { closed: !e.target.checked })} />
+            </span>
+          </div>
+        ))}
+      </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
 
-      <button
-        type="submit"
-        disabled={saving}
-        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
-      >
-        {saving ? "Saving…" : "Save hours"}
-      </button>
+      <div className="flex items-center gap-3">
+        <button type="submit" disabled={saving} aria-busy={saving} className="ui-btn ui-btn-primary">{saving ? "Saving…" : "Save hours"}</button>
+        {saved && <span className="text-sm font-medium text-emerald-700" role="status">&#10003; Saved</span>}
+      </div>
     </form>
   );
 }

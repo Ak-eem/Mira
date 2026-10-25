@@ -57,7 +57,7 @@ export default function PortalLoginPage() {
   }
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-50 px-4 py-12 text-slate-900">
+    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12 text-slate-900">
       <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(165,243,252,0.4),transparent_42%)]" />
       <div className="relative w-full max-w-sm">
         <h1 className="mb-8 text-center text-2xl font-semibold tracking-tight text-slate-900">
@@ -65,7 +65,7 @@ export default function PortalLoginPage() {
           <span className="mt-1 block text-sm font-normal text-slate-600">Log in to your account</span>
         </h1>
 
-        <div className="space-y-4 rounded-4xl border border-white/80 bg-white/65 p-7 shadow-2xl shadow-sky-200/60 backdrop-blur-2xl sm:p-8">
+        <div className="ui-card ui-enter space-y-4 !p-6 sm:!p-8">
           <GoogleAuthButton next={getSafeRedirect(typeof window !== "undefined" ? window.location.search : "")} />
 
           <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-500">
@@ -76,10 +76,10 @@ export default function PortalLoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="field-email" className="block text-sm font-medium text-slate-700">Email</label>
+            <label htmlFor="field-email" className="ui-label">Email</label>
             <input id="field-email"
               type="email"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-accent focus:outline-hidden focus:ring-4 focus:ring-accent/15"
+              className="ui-field"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
@@ -87,10 +87,10 @@ export default function PortalLoginPage() {
           </div>
 
           <div>
-            <label htmlFor="field-password" className="block text-sm font-medium text-slate-700">Password</label>
+            <label htmlFor="field-password" className="ui-label">Password</label>
             <input id="field-password"
               type="password"
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white/80 px-4 py-3 text-sm focus:border-accent focus:outline-hidden focus:ring-4 focus:ring-accent/15"
+              className="ui-field"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -103,12 +103,12 @@ export default function PortalLoginPage() {
             </Link>
           </div>
 
-          {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+          {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
 
           <button
             type="submit"
             disabled={submitting}
-            className="w-full rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-200/70 transition hover:bg-accent-dark disabled:opacity-50"
+            className="ui-btn ui-btn-primary w-full"
           >
             {submitting ? "Signing in…" : "Sign in"}
           </button>
@@ -119,7 +119,7 @@ export default function PortalLoginPage() {
           <p className="text-sm text-slate-500">Need an account?</p>
           <Link
             href="/portal/signup"
-            className="inline-flex w-full items-center justify-center rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-200/70 transition hover:bg-accent-dark"
+            className="ui-btn ui-btn-primary w-full"
           >
             Create account
           </Link>

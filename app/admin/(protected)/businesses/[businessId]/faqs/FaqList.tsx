@@ -10,12 +10,10 @@ export function FaqList({ faqs }: { faqs: Faq[] }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
 
-  if (faqs.length === 0) {
-    return <p className="mb-6 text-sm text-slate-500">No FAQs yet.</p>;
-  }
+  if (faqs.length === 0) return null;
 
   return (
-    <ul className="mb-6 space-y-2">
+    <ul className="ui-group mb-6">
       {faqs.map((f) =>
         editingId === f.id ? (
           <EditFaqRow
@@ -28,11 +26,11 @@ export function FaqList({ faqs }: { faqs: Faq[] }) {
             onCancel={() => setEditingId(null)}
           />
         ) : (
-          <li key={f.id} className="rounded-sm border border-slate-200 bg-white p-3">
+          <li key={f.id} className="ui-row flex-col items-stretch gap-1">
             <p className="text-sm font-medium">{f.question}</p>
             <p className="mt-1 text-sm text-slate-500">{f.answer}</p>
-            <div className="mt-2 flex gap-3 text-xs">
-              <button onClick={() => setEditingId(f.id)} className="text-accent hover:underline">
+            <div className="mt-2 flex gap-2">
+              <button onClick={() => setEditingId(f.id)} className="ui-btn ui-btn-plain ui-btn-sm">
                 Edit
               </button>
               <button
@@ -41,7 +39,7 @@ export function FaqList({ faqs }: { faqs: Faq[] }) {
                   await deleteFaq(f.id);
                   router.refresh();
                 }}
-                className="text-red-600 hover:underline"
+                className="ui-btn ui-btn-danger ui-btn-sm"
               >
                 Delete
               </button>
@@ -80,15 +78,15 @@ function EditFaqRow({
   }
 
   return (
-    <li className="space-y-2 rounded-sm border border-accent bg-white p-3">
-      <input className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Question" />
-      <textarea className="w-full rounded-sm border border-slate-300 px-2 py-1 text-sm" rows={3} value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="Answer" />
+    <li className="ui-row flex-col items-stretch gap-3 bg-slate-50">
+      <input className="ui-field" value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="Question" />
+      <textarea className="ui-field" rows={3} value={answer} onChange={(e) => setAnswer(e.target.value)} placeholder="Answer" />
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
-        <button onClick={handleSave} disabled={saving} className="rounded-sm bg-accent px-3 py-1 text-xs font-medium text-white disabled:opacity-50">
+        <button onClick={handleSave} disabled={saving} className="ui-btn ui-btn-primary ui-btn-sm">
           {saving ? "Saving…" : "Save"}
         </button>
-        <button onClick={onCancel} className="rounded-sm border border-slate-300 px-3 py-1 text-xs">
+        <button onClick={onCancel} className="ui-btn ui-btn-secondary ui-btn-sm">
           Cancel
         </button>
       </div>

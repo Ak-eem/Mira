@@ -4,6 +4,8 @@ import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
 import { EmailForwardingGuide } from "@/components/EmailForwardingGuide";
 import { getCurrentDraft, getActiveRelease, getPublishedHistory } from "@/lib/promptReleases";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { SegmentedLinks } from "@/components/ui/Segmented";
 import { PromptEditor } from "./PromptEditor";
 import { OrderTakingPanel } from "./OrderTakingPanel";
 import { CourierPanel } from "./CourierPanel";
@@ -22,10 +24,12 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: Promise<{ businessId: string }> | { businessId: string };
+  searchParams?: Promise<{ tab?: string }>;
 };
 
-export default async function PortalSettingsPage({ params }: PageProps) {
+export default async function PortalSettingsPage({ params, searchParams }: PageProps) {
   const { businessId } = await Promise.resolve(params);
+  const requestedTab = (await searchParams)?.tab;
 
   const owner = await getCurrentBusinessOwner();
   const membership = owner?.businesses.find((b) => b.id === businessId);
@@ -71,77 +75,69 @@ export default async function PortalSettingsPage({ params }: PageProps) {
   const businessName = membership.name ?? "your business";
   const inboundAddress: string | null = emailBusiness?.email_inbound_address ?? null;
 
+  const isOwner = membership.role === "owner";
+  const base = `/portal/${businessId}/settings`;
+  const tabs = [
+    { key: "info", label: "Business info", href: `${base}?tab=info` },
+    { key: "widget", label: "Website chat", href: `${base}?tab=widget` },
+    { key: "behaviour", label: "How Mira behaves", href: `${base}?tab=behaviour` },
+    ...(isOwner ? [{ key: "plan", label: "Plan", href: `${base}?tab=plan` }] : []),
+  ];
+  const tab = tabs.some((t) => t.key === requestedTab) ? (requestedTab as string) : "info";
+
   return (
-    <div className="max-w-2xl space-y-4">
-      <div>
-        <h1 className="mb-1 mt-2 text-xl font-semibold">Settings</h1>
-        <p className="text-sm text-slate-500">
-          Every published version is kept and diffable. Publishing here is the only thing that
-          changes what Mira actually says to your customers.
-        </p>
+    <div className="max-w-2xl">
+      <PageHeader title="Settings" subtitle="Everything that changes what Mira says and how it behaves. Publishing a new version is the only thing that changes what customers see." />
+
+      <div className="mb-6 overflow-x-auto pb-1">
+        <SegmentedLinks label="Settings sections" current={tab} options={tabs} />
       </div>
 
-      <div id="import-website" className="scroll-mt-24">
-        <WebsiteImport businessId={businessId} />
+      <div className="ui-enter space-y-6" key={tab}>
+        {tab === "info" && (
+          <>
+            <div id="import-website" className="scroll-mt-24">
+              <WebsiteImport businessId={businessId} />
+            </div>
+            {inboundAddress && (
+              <section className="ui-card space-y-1">
+                <p className="ui-section-label ml-0">Email</p>
+                <h2 className="text-lg font-semibold tracking-tight">Let Mira answer your customer emails</h2>
+                <p className="ui-subtitle mt-0">Forward your support email to the address below and Mira will reply on your behalf.</p>
+                <EmailForwardingGuide inboundAddress={inboundAddress} />
+              </section>
+            )}
+          </>
+        )}
+
+        {tab === "widget" && (
+          <>
+            {emailBusiness?.slug && (
+              <div id="add-widget" className="scroll-mt-24">
+                <EmbedSnippet slug={emailBusiness.slug} businessName={businessName} />
+              </div>
+            )}
+            <BrandColorPanel businessId={businessId} businessName={businessName} initialColor={brandColor} canEdit={isOwner} />
+          </>
+        )}
+
+        {tab === "behaviour" && (
+          <>
+            <OrderTakingPanel businessId={businessId} initialEnabled={orderTakingEnabled} canEdit={isOwner} />
+            {courierAvailable && <CourierPanel businessId={businessId} connected={Boolean(courier.data)} webhookUrl={courierWebhookUrl} canEdit={isOwner} />}
+            <GroundingPanel businessId={businessId} initialLevel={groundingSettings.reviewLevel} initialEscalate={groundingSettings.escalateRepeat} canEdit={isOwner} />
+            <PromptEditor businessId={businessId} initialDraft={draft} active={active} history={history} canPublish={isOwner} />
+          </>
+        )}
+
+        {/* Owners only. Staff never see the cancel option. */}
+        {tab === "plan" && isOwner && (
+          <>
+            <CancelSubscriptionPanel businessId={businessId} businessName={businessName} />
+            <AccountDeletionPanel businessId={businessId} businessName={businessName} requestedOn={deletionRequestedOn} />
+          </>
+        )}
       </div>
-
-      {emailBusiness?.slug && (
-        <div id="add-widget" className="scroll-mt-24">
-          <EmbedSnippet slug={emailBusiness.slug} businessName={businessName} />
-        </div>
-      )}
-
-      <OrderTakingPanel
-        businessId={businessId}
-        initialEnabled={orderTakingEnabled}
-        canEdit={membership.role === "owner"}
-      />
-
-      {courierAvailable && (
-        <CourierPanel
-          businessId={businessId}
-          connected={Boolean(courier.data)}
-          webhookUrl={courierWebhookUrl}
-          canEdit={membership.role === "owner"}
-        />
-      )}
-
-      <BrandColorPanel
-        businessId={businessId}
-        businessName={businessName}
-        initialColor={brandColor}
-        canEdit={membership.role === "owner"}
-      />
-
-      <GroundingPanel
-        businessId={businessId}
-        initialLevel={groundingSettings.reviewLevel}
-        initialEscalate={groundingSettings.escalateRepeat}
-        canEdit={membership.role === "owner"}
-      />
-
-      {inboundAddress && (
-        <section className="space-y-1 rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
-          <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Email</p>
-          <h2 className="text-lg font-semibold">Let Mira answer your customer emails</h2>
-          <p className="text-sm text-slate-500">
-            Forward your support email to the address below and Mira will reply on your behalf.
-          </p>
-          <EmailForwardingGuide inboundAddress={inboundAddress} />
-        </section>
-      )}
-
-      <PromptEditor
-        businessId={businessId}
-        initialDraft={draft}
-        active={active}
-        history={history}
-        canPublish={membership.role === "owner"}
-      />
-
-      {/* Owners only. Staff never see the cancel option. */}
-      {membership.role === "owner" && <CancelSubscriptionPanel businessId={businessId} businessName={businessName} />}
-      {membership.role === "owner" && <AccountDeletionPanel businessId={businessId} businessName={businessName} requestedOn={deletionRequestedOn} />}
     </div>
   );
 }

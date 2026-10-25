@@ -13,9 +13,9 @@ type SchoolClass = { id: string; name: string; arm: string };
 type Fee = { classId: string; termId: string; amount: number };
 type Student = { id: string; admission_no: string; full_name: string; class_id: string; guardian_name: string | null; guardian_phone: string | null };
 
-const card = "mb-6 rounded-2xl border border-line bg-surface p-5 shadow-soft";
-const input = "w-full rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink";
-const primary = "rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50";
+const card = "ui-card mb-6";
+const input = "ui-field";
+const primary = "ui-btn ui-btn-primary";
 const subtle = "text-xs text-muted underline-offset-2 hover:text-ink hover:underline";
 const fmtDate = (d: string) => new Date(`${d}T00:00:00Z`).toLocaleDateString("en-GB", { timeZone: "UTC", day: "numeric", month: "short", year: "numeric" });
 

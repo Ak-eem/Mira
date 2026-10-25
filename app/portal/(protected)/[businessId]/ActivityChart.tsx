@@ -29,17 +29,12 @@ function Segmented<T extends string>({
   options: { id: T; text: React.ReactNode; aria?: string }[];
   onChange: (id: T) => void;
 }) {
+  const index = Math.max(0, options.findIndex((o) => o.id === value));
   return (
-    <div role="group" aria-label={label} className="inline-flex rounded-full border border-line bg-surface p-0.5 text-xs">
+    <div role="radiogroup" aria-label={label} className="ui-segmented" style={{ "--n": options.length, "--i": index } as React.CSSProperties}>
+      <span aria-hidden className="ui-segmented-thumb" />
       {options.map((option) => (
-        <button
-          key={option.id}
-          type="button"
-          aria-pressed={value === option.id}
-          aria-label={option.aria}
-          onClick={() => onChange(option.id)}
-          className={`inline-flex items-center rounded-full px-3 py-1 font-medium transition ${value === option.id ? "bg-ink text-white" : "text-muted hover:text-ink"}`}
-        >
+        <button key={option.id} type="button" role="radio" aria-checked={value === option.id} aria-label={option.aria} onClick={() => onChange(option.id)} className="ui-segment inline-flex items-center justify-center">
           {option.text}
         </button>
       ))}

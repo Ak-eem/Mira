@@ -31,7 +31,7 @@ export function AccountDeletionPanel({ businessId, businessName, requestedOn }: 
   const requested = Boolean(requestedOn) || done;
 
   return (
-    <section className="space-y-4 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+    <section className="ui-card space-y-4">
       <div>
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Delete account</p>
         <h2 className="mt-1 text-lg font-semibold">Ask us to delete {businessName} and its data</h2>
@@ -47,15 +47,15 @@ export function AccountDeletionPanel({ businessId, businessName, requestedOn }: 
       </div>
 
       {requested ? (
-        <p className="rounded-lg bg-slate-50 p-3 text-sm text-slate-700">
+        <p className="rounded-xl bg-slate-100/70 p-3 text-sm text-slate-700">
           Deletion requested{requestedOn ? ` on ${requestedOn}` : ""}. We&apos;ll email you to confirm before anything is deleted.
         </p>
       ) : !open ? (
-        <button type="button" onClick={() => setOpen(true)} className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">
+        <button type="button" onClick={() => setOpen(true)} className="ui-btn ui-btn-secondary">
           Request account deletion…
         </button>
       ) : (
-        <div className="space-y-3 rounded-lg bg-slate-50 p-4">
+        <div className="rounded-xl bg-slate-100/70 space-y-3 p-4">
           <label className="block text-sm text-slate-700">
             Type <strong>{DELETE_REQUEST_WORD}</strong> to send the request
             <input
@@ -63,7 +63,7 @@ export function AccountDeletionPanel({ businessId, businessName, requestedOn }: 
               value={typed}
               onChange={(e) => setTyped(e.target.value)}
               autoComplete="off"
-              className="mt-1 block w-full rounded border border-slate-300 px-3 py-2 text-sm"
+              className="ui-field"
             />
           </label>
           {error && <p className="text-sm text-red-600">{error}</p>}
@@ -84,7 +84,7 @@ export function AccountDeletionPanel({ businessId, businessName, requestedOn }: 
                 setError(null);
               }}
               disabled={working}
-              className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700"
+              className="ui-btn ui-btn-secondary"
             >
               Never mind
             </button>
