@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { ErrorNotice } from "@/components/ErrorNotice";
 import { OrdersPanel } from "./OrdersPanel";
 import { listRecentConversations } from "./actions";
@@ -47,10 +48,7 @@ export default async function OrdersPage({
 
   return (
     <div className="space-y-6">
-      <div className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-500 shadow-xs">
-        When a customer orders in chat, Mira writes the order down here. Check new orders and confirm them. You can switch
-        this off in Settings, and you can still add an order by hand below. Nudges (order shipped, abandoned cart) read from this list.
-      </div>
+      <PageHeader title="Orders" subtitle="When a customer orders in chat, Mira writes the order down here. Check new orders and confirm them. You can switch this off in Settings, and you can still add an order by hand. Nudges (order shipped, abandoned cart) read from this list." />
       {ordersError && <ErrorNotice what="load your orders" error={ordersError} />}
       <OrdersPanel
         businessId={businessId}

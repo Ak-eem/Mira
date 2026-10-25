@@ -81,14 +81,14 @@ export function BrandColorPanel({
           }}
           maxLength={7}
           spellCheck={false}
-          className="w-28 rounded-sm border border-slate-300 px-3 py-2 font-mono text-sm uppercase focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+          className="w-28 ui-field font-mono uppercase focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
         />
         {!check.ok && text.trim() !== "" && <p className="text-xs text-red-600">{check.error}</p>}
       </div>
 
       {/* Live preview: a customer's message, Mira's reply and the send button. */}
       <div className="max-w-sm space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-4" aria-label="Preview">
-        <p className="text-xs text-slate-400">Preview · {businessName}</p>
+        <p className="text-xs text-slate-500">Preview · {businessName}</p>
         <div className="flex justify-end">
           <span
             className="inline-block max-w-[85%] rounded-lg px-3 py-2 text-sm"
@@ -110,10 +110,10 @@ export function BrandColorPanel({
         </span>
       </div>
 
-      {!canEdit && <p className="text-xs text-slate-400">Only the business owner can change this.</p>}
+      {!canEdit && <p className="text-xs text-slate-500">Only the business owner can change this.</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
       {note && <p className="text-sm text-emerald-600">{note}</p>}
-      <p className="text-xs text-slate-400">Changes can take up to a minute to reach live chats.</p>
+      <p className="text-xs text-slate-500">Changes can take up to a minute to reach live chats.</p>
 
       {canEdit && (
         <div className="flex flex-wrap gap-2">
@@ -130,7 +130,7 @@ export function BrandColorPanel({
               type="button"
               onClick={() => persist(null)}
               disabled={busy}
-              className="rounded-sm border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+              className="ui-field font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
             >
               Use Mira&apos;s default
             </button>

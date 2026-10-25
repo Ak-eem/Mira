@@ -40,7 +40,7 @@ export default async function ActivityPage({
                   </span>
                 )}
               </span>
-              <span className="whitespace-nowrap pl-3 text-xs text-slate-400">
+              <span className="whitespace-nowrap pl-3 text-xs text-slate-500">
                 {formatRelativeTime(a.created_at)}
               </span>
             </li>

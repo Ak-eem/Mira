@@ -54,7 +54,7 @@ export default async function NudgesPage({
         </div>
       )}
 
-      <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+      <div className="ui-card">
         <p className="mb-4 font-medium text-slate-900">Last 30 days</p>
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div>

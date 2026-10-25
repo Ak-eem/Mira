@@ -120,7 +120,7 @@ export function PromptEditor({
             AI tone <span className="font-normal text-slate-400">— shapes how Mira talks</span>
           </label>
           <input
-            className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full ui-field"
             placeholder="e.g. friendly, casual, short sentences"
             value={aiTone}
             onChange={(e) => setAiTone(e.target.value)}
@@ -132,7 +132,7 @@ export function PromptEditor({
             Additional instructions <span className="font-normal text-slate-400">— optional</span>
           </label>
           <textarea
-            className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full ui-field"
             rows={3}
             placeholder="e.g. Always mention we're cash-only on Mondays"
             value={aiInstructions}
@@ -145,7 +145,7 @@ export function PromptEditor({
             Note <span className="font-normal text-slate-400">— what changed and why, shown in history</span>
           </label>
           <input
-            className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
+            className="mt-1 w-full ui-field"
             placeholder="e.g. Tightened refund policy wording"
             value={note}
             onChange={(e) => setNote(e.target.value)}
@@ -159,7 +159,7 @@ export function PromptEditor({
             type="button"
             onClick={handleSaveDraft}
             disabled={saving}
-            className="rounded-sm border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+            className="ui-field font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
           >
             {saving ? "Saving…" : "Save draft"}
           </button>
@@ -167,11 +167,11 @@ export function PromptEditor({
             type="button"
             onClick={() => draft && handlePromote(draft.id)}
             disabled={!draft || publishing === draft?.id}
-            className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+            className="ui-btn ui-btn-primary"
           >
             {publishing === draft?.id ? "Publishing…" : "Publish"}
           </button>
-          {!draft && <span className="text-xs text-slate-400">Save a draft before you can publish.</span>}
+          {!draft && <span className="text-xs text-slate-500">Save a draft before you can publish.</span>}
         </div>
       </section>
 
@@ -226,7 +226,7 @@ export function PromptEditor({
                       type="button"
                       onClick={() => handlePromote(release.id)}
                       disabled={publishing === release.id}
-                      className="shrink-0 rounded-sm border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                      className="shrink-0 ui-btn ui-btn-secondary ui-btn-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                     >
                       {publishing === release.id ? "Rolling back…" : "Roll back to this version"}
                     </button>

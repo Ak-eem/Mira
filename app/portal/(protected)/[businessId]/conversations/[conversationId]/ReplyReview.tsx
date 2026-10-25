@@ -148,7 +148,7 @@ export function ReplyReview({
                 maxLength={MAX_FEEDBACK_NOTE_LENGTH}
                 rows={2}
                 placeholder="Optional note: what should it have said?"
-                className="w-full rounded-sm border border-slate-300 px-2 py-1.5 text-sm"
+                className="w-full ui-field"
               />
             </>
           )}

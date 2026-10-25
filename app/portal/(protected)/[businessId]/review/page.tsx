@@ -162,7 +162,7 @@ export default async function PortalReviewPage({ params }: PageProps) {
           const unsupported = item.signals.filter((signal) => !signal.supported);
           const customerReason = isFeedbackReason(item.customer?.reason) ? CUSTOMER_REASON_LABELS[item.customer.reason] : null;
           return (
-            <li key={item.messageId} className="space-y-2 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+            <li key={item.messageId} className="space-y-2 ui-card">
               <div className="flex flex-wrap items-center gap-2 text-xs">
                 {item.verdict && (
                   <span

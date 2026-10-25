@@ -46,7 +46,7 @@ export function BusinessSidebar({
       <nav className={`glass-panel-strong fixed inset-y-0 left-0 z-30 flex w-64 flex-col gap-3 rounded-none p-4 transition-transform md:static md:z-auto md:w-56 md:rounded-xl md:p-3 ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         <button type="button" onClick={() => setOpen(false)} className="self-end text-sm text-slate-500 md:hidden">Close</button>
         <div>
-          <Link href="/admin/businesses" onClick={() => setOpen(false)} className="text-xs text-slate-400 hover:underline">
+          <Link href="/admin/businesses" onClick={() => setOpen(false)} className="text-xs text-slate-500 hover:underline">
             ← All businesses
           </Link>
           <select

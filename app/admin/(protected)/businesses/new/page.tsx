@@ -38,7 +38,7 @@ export default function NewBusinessPage() {
         <div>
           <label className="block text-sm font-medium text-slate-700">Name</label>
           <input
-            className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full ui-field"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Fresh Cuts"
@@ -51,7 +51,7 @@ export default function NewBusinessPage() {
             Slug <span className="font-normal text-slate-400">— used in /chat/slug</span>
           </label>
           <input
-            className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full ui-field"
             value={slug}
             onChange={(e) => setSlug(e.target.value)}
             placeholder="fresh-cuts"
@@ -64,7 +64,7 @@ export default function NewBusinessPage() {
         <div>
           <label className="block text-sm font-medium text-slate-700">Currency</label>
           <input
-            className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+            className="mt-1 w-full ui-field"
             value={currency}
             onChange={(e) => setCurrency(e.target.value)}
           />
@@ -75,7 +75,7 @@ export default function NewBusinessPage() {
         <button
           type="submit"
           disabled={submitting}
-          className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+          className="ui-btn ui-btn-primary"
         >
           {submitting ? "Creating…" : "Create business"}
         </button>

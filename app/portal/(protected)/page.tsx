@@ -24,7 +24,7 @@ async function PortalHomeContent() {
         </p>
         <Link
           href="/portal/login"
-          className="mt-6 inline-flex rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white transition hover:bg-accent-dark"
+          className="mt-6 inline-flex ui-btn ui-btn-primary"
         >
           Use a different account
         </Link>

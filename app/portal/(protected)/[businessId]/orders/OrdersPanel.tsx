@@ -68,7 +68,7 @@ function CourierLink({ businessId, orderId }: { businessId: string; orderId: str
         <button
           type="submit"
           disabled={busy || !reference.trim()}
-          className="shrink-0 rounded-sm border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+          className="shrink-0 ui-btn ui-btn-secondary ui-btn-sm font-medium text-slate-700 hover:bg-slate-50 disabled:opacity-50"
         >
           {busy ? "Adding…" : "Track delivery"}
         </button>
@@ -124,13 +124,13 @@ function NewOrderForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3 rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+    <form onSubmit={handleSubmit} className="space-y-3 ui-card">
       <p className="font-medium text-slate-900">Log an order</p>
 
       <div>
         <label className="block text-xs font-medium text-slate-600">Customer</label>
         <select
-          className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 w-full ui-field"
           value={selectedConversation}
           onChange={(e) => setSelectedConversation(e.target.value)}
         >
@@ -149,7 +149,7 @@ function NewOrderForm({
             matters for a WhatsApp customer without a chat on record yet. */}
         {!selectedConversation && (
           <input
-            className="mt-2 w-full rounded-sm border border-slate-300 px-3 py-2 font-mono text-sm"
+            className="mt-2 w-full ui-field font-mono"
             placeholder="or enter a WhatsApp number, e.g. 2348012345678"
             value={customerIdentifier}
             onChange={(e) => setCustomerIdentifier(e.target.value)}
@@ -162,19 +162,19 @@ function NewOrderForm({
         {items.map((item, i) => (
           <div key={i} className="flex gap-2">
             <input
-              className="w-1/2 rounded-sm border border-slate-300 px-2 py-1.5 text-sm"
+              className="w-1/2 ui-field"
               placeholder="Item name"
               value={item.name}
               onChange={(e) => updateItem(i, "name", e.target.value)}
             />
             <input
-              className="w-1/4 rounded-sm border border-slate-300 px-2 py-1.5 text-sm"
+              className="w-1/4 ui-field"
               placeholder="Qty"
               value={item.quantity}
               onChange={(e) => updateItem(i, "quantity", e.target.value)}
             />
             <input
-              className="w-1/4 rounded-sm border border-slate-300 px-2 py-1.5 text-sm"
+              className="w-1/4 ui-field"
               placeholder="Unit price"
               value={item.unitPrice}
               onChange={(e) => updateItem(i, "unitPrice", e.target.value)}
@@ -193,7 +193,7 @@ function NewOrderForm({
       <div>
         <label className="block text-xs font-medium text-slate-600">Status</label>
         <select
-          className="mt-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+          className="mt-1 ui-field"
           value={status}
           onChange={(e) => setStatus(e.target.value as OrderStatus)}
         >
@@ -210,7 +210,7 @@ function NewOrderForm({
       <button
         type="submit"
         disabled={submitting}
-        className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+        className="ui-btn ui-btn-primary"
       >
         {submitting ? "Saving…" : "Log order"}
       </button>
@@ -269,7 +269,7 @@ function OrderRow({
               type="button"
               disabled={updating}
               onClick={() => handleStatusChange("confirmed")}
-              className="rounded-sm bg-accent px-2.5 py-1 text-xs font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+              className="ui-btn ui-btn-primary ui-btn-sm"
             >
               Confirm order
             </button>
@@ -278,7 +278,7 @@ function OrderRow({
             value={status}
             disabled={updating}
             onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
-            className="rounded-sm border border-slate-300 px-2 py-1 text-xs"
+            className="ui-btn ui-btn-secondary ui-btn-sm"
           >
             {STATUS_OPTIONS.map((s) => (
               <option key={s} value={s}>
@@ -292,7 +292,7 @@ function OrderRow({
         {order.order_items.map((item) => `${item.quantity > 1 ? `${item.quantity} × ` : ""}${item.name}`).join(", ") || "(no items)"}
       </p>
       {order.note && <p className="mt-1 text-xs text-slate-500">Note: {order.note}</p>}
-      <p className="mt-1 text-xs text-slate-400">
+      <p className="mt-1 text-xs text-slate-500">
         ₦{Number(order.total ?? 0).toLocaleString()} · {new Date(order.status_changed_at).toLocaleString()}
       </p>
       {awaitingConfirmation && (

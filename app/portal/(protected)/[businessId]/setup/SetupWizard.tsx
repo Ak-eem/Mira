@@ -105,7 +105,7 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
           >
             <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }} />
           </div>
-          <p className="mt-1 text-xs text-slate-400">
+          <p className="mt-1 text-xs text-slate-500">
             Step {stepIndex + 1} of {STEPS.length}
           </p>
         </div>

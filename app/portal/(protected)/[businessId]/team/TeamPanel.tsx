@@ -195,7 +195,7 @@ export function TeamPanel({ businessId }: { businessId: string }) {
                   <p className="truncate text-sm font-medium text-slate-800">
                     {member.name !== "Unnamed member" ? member.name : member.email}
                   </p>
-                  <p className="truncate text-xs text-slate-400">
+                  <p className="truncate text-xs text-slate-500">
                     {member.name !== "Unnamed member" ? `${member.email} · ` : ""}
                     {roleLabel(member.role)}
                     {formatDate(member.joinedAt) ? ` · joined ${formatDate(member.joinedAt)}` : ""}
@@ -237,7 +237,7 @@ export function TeamPanel({ businessId }: { businessId: string }) {
               <li key={invite.id} className="flex items-center justify-between gap-3 py-2.5">
                 <div className="min-w-0">
                   <p className="truncate text-sm text-slate-800">{invite.email}</p>
-                  <p className="text-xs text-slate-400">
+                  <p className="text-xs text-slate-500">
                     {invite.status === "expired" ? "Expired" : `Expires ${formatDate(invite.expiresAt)}`}
                   </p>
                 </div>
@@ -278,12 +278,12 @@ export function TeamPanel({ businessId }: { businessId: string }) {
             onChange={(event) => setEmail(event.target.value)}
             placeholder="teammate@example.com"
             aria-label="Teammate email address"
-            className="min-w-0 flex-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+            className="min-w-0 flex-1 ui-field"
           />
           <button
             type="submit"
             disabled={inviting}
-            className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark disabled:opacity-50"
+            className="ui-btn ui-btn-primary"
           >
             {inviting ? "Sending…" : "Send invite"}
           </button>

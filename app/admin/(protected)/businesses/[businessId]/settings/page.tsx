@@ -170,7 +170,7 @@ export default async function SettingsPage({ params }: PageProps) {
         </p>
         <a
           href={`/admin/businesses/${businessId}/settings/prompt`}
-          className="mt-3 inline-block rounded-sm bg-accent px-4 py-2 text-sm font-medium text-white hover:bg-accent-dark"
+          className="mt-3 inline-block ui-btn ui-btn-primary"
         >
           Open prompt editor
         </a>

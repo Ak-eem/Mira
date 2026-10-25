@@ -153,7 +153,7 @@ export default async function PortalConversationThreadPage({
 
       {!conversation.needs_human && !isClaimed && <div className="mb-6" />}
 
-      <div className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+      <div className="space-y-3 ui-card">
         {messages?.map((m) => {
           const snapshot = m.context_snapshot as MessageContextSnapshot | null;
 
@@ -198,7 +198,7 @@ export default async function PortalConversationThreadPage({
                 </div>
               )}
 
-              <p className="mt-0.5 text-xs text-slate-400">
+              <p className="mt-0.5 text-xs text-slate-500">
                 {isOperatorReply && <span className="mr-2 font-medium text-sky-600">You replied</span>}
                 {new Date(m.created_at).toLocaleTimeString()}
               </p>

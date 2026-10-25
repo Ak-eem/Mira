@@ -51,7 +51,7 @@ export function EmbedSnippet({ slug, businessName }: { slug: string; businessNam
   }
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
+    <section className="ui-card">
       <h2 className="mb-1 text-sm font-semibold text-slate-800">Add Mira to your website</h2>
       <p className="mb-3 text-xs text-slate-500">
         Paste this one snippet just before the closing <code className="rounded-sm bg-slate-100 px-1 py-0.5">&lt;/body&gt;</code> tag on your site. No account, no build step, works on any platform.

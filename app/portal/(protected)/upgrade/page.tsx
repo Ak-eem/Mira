@@ -70,7 +70,7 @@ export default async function PortalUpgradePage({
           <SubscribeButton plan="base" businessName={business.name} email={user.email ?? ""} />
         </Suspense>
       </div>
-      <Link href="/portal" className="mt-6 inline-flex rounded-sm border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">Back to businesses</Link>
+      <Link href="/portal" className="mt-6 inline-flex ui-field font-medium text-slate-700">Back to businesses</Link>
     </main>
   );
 }

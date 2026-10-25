@@ -144,7 +144,7 @@ export default async function BusinessDetailPage({
               href={`/chat/${business.slug}`}
               target="_blank"
               rel="noreferrer"
-              className="rounded-sm bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-dark"
+              className="ui-btn ui-btn-primary ui-btn-sm"
             >
               Preview Mira →
             </a>
@@ -215,7 +215,7 @@ export default async function BusinessDetailPage({
                     </span>
                   )}
                 </span>
-                <span className="whitespace-nowrap pl-3 text-xs text-slate-400">
+                <span className="whitespace-nowrap pl-3 text-xs text-slate-500">
                   {formatRelativeTime(a.created_at)}
                 </span>
               </li>
@@ -255,7 +255,7 @@ export default async function BusinessDetailPage({
                       {c.channel === "whatsapp" ? "WhatsApp" : "Web"}
                     </span>
                   </span>
-                  <span className="text-xs text-slate-400">{formatRelativeTime(c.last_message_at)}</span>
+                  <span className="text-xs text-slate-500">{formatRelativeTime(c.last_message_at)}</span>
                 </Link>
               </li>
             ))}

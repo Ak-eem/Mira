@@ -145,7 +145,7 @@ export default async function ConversationThreadPage({
                 </div>
               )}
 
-              <p className="mt-0.5 text-xs text-slate-400">
+              <p className="mt-0.5 text-xs text-slate-500">
                 {isOperatorReply && <span className="mr-2 font-medium text-sky-600">Team reply</span>}
                 {new Date(m.created_at).toLocaleTimeString()}
                 {customerFeedbackByMessage.get(m.id)?.rating === "up" && <span className="ml-2 text-emerald-600">👍 helpful</span>}

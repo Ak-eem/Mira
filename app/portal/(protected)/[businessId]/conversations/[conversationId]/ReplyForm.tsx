@@ -41,7 +41,7 @@ export function ReplyForm({
         {state.error ? (
           <p className="text-xs text-red-600">{state.error}</p>
         ) : (
-          <span className="text-xs text-slate-400">
+          <span className="text-xs text-slate-500">
             Sends immediately — for WhatsApp conversations, straight to the customer&apos;s phone.
           </span>
         )}

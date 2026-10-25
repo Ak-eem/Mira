@@ -147,7 +147,7 @@ export function WebsiteImport({
           onChange={(event) => setWebsiteUrl(event.target.value)}
           placeholder="https://your-business.com"
           aria-label="Your website address"
-          className="min-w-0 flex-1 rounded-sm border border-slate-300 px-3 py-2 text-sm"
+          className="min-w-0 flex-1 ui-field"
         />
         <button disabled={loading} className="rounded-lg bg-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-50">
           {loading ? "Importing..." : "Find website information"}
@@ -192,7 +192,7 @@ export function WebsiteImport({
                             <p className="text-sm font-medium text-slate-900">{summary.title}</p>
                             {summary.detail && <p className="mt-0.5 text-xs text-slate-500">{summary.detail}</p>}
                             <details className="mt-1">
-                              <summary className="cursor-pointer text-xs text-slate-400">Details</summary>
+                              <summary className="cursor-pointer text-xs text-slate-500">Details</summary>
                               <pre className="mt-1 whitespace-pre-wrap wrap-break-word font-sans text-xs text-slate-700">{JSON.stringify(draft.payload, null, 2)}</pre>
                               <a href={draft.source_url} target="_blank" rel="noreferrer" className="mt-1 block truncate text-xs text-accent hover:underline">
                                 Source: {draft.source_url}
@@ -205,7 +205,7 @@ export function WebsiteImport({
                               setEditing(draft.id);
                               setEditText(JSON.stringify(draft.payload, null, 2));
                             }}
-                            className="shrink-0 rounded-sm border border-slate-300 px-2 py-1 text-xs"
+                            className="shrink-0 ui-btn ui-btn-secondary ui-btn-sm"
                           >
                             Edit
                           </button>
@@ -217,7 +217,7 @@ export function WebsiteImport({
                               <button type="button" onClick={() => void saveEdit(draft)} className="rounded-sm bg-accent px-3 py-1 text-xs text-white">
                                 Save changes
                               </button>
-                              <button type="button" onClick={() => setEditing(null)} className="rounded-sm border border-slate-300 px-3 py-1 text-xs">
+                              <button type="button" onClick={() => setEditing(null)} className="ui-btn ui-btn-secondary ui-btn-sm">
                                 Cancel
                               </button>
                             </div>
@@ -245,7 +245,7 @@ export function WebsiteImport({
       )}
 
       {pending.length === 0 && reviewedCount > 0 && (
-        <p className="mt-4 text-xs text-slate-400">
+        <p className="mt-4 text-xs text-slate-500">
           {reviewedCount} earlier suggestion{reviewedCount === 1 ? "" : "s"} already reviewed.
         </p>
       )}

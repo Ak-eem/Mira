@@ -25,7 +25,7 @@ export function CopyLinkButton({ slug }: { slug: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="rounded-sm border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 hover:border-accent hover:text-accent"
+      className="ui-btn ui-btn-secondary ui-btn-sm font-medium text-slate-700 hover:border-accent hover:text-accent"
     >
       {copied ? "Copied!" : "Copy link"}
     </button>
