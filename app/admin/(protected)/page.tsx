@@ -7,6 +7,7 @@ import type { BusinessSubscription, SubscriptionStatus } from "@/lib/plans";
 import { AnalyticsStripAsync } from "./AnalyticsStripAsync";
 import { SystemIssues, SystemIssuesSkeleton } from "./SystemIssues";
 import { countSubscriptions } from "@/lib/admin/subscriptionCounts";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { ErrorNotice } from "@/components/ErrorNotice";
 import { Skeleton } from "@/components/Skeleton";
 
@@ -45,7 +46,7 @@ export default async function AdminDashboardPage() {
         </div>
       )}
       <div>
-        <h1 className="mb-4 text-xl font-semibold text-slate-900">Dashboard</h1>
+        <PageHeader title="Dashboard" subtitle="How Mira is doing across every business." />
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
           <div className="glass-panel rounded-xl p-5">
             <p className="text-3xl font-semibold tracking-tight text-slate-900">{businessesError ? "-" : businesses?.length ?? 0}</p>
