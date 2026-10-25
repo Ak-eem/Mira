@@ -136,6 +136,11 @@ webhook end to end, then switch to live keys and the live webhook URL.
 - Open `/portal/signup`, create a test business, and confirm you land in the dashboard.
 - Open the business's chat page (the **Try your Mira** button) and send a message.
 - Add a team member to the test business, ask for "a human" in the chat, and confirm the alert email reaches them.
+- Send a test message through each channel you use (web widget, WhatsApp, email) and confirm the reply.
+- Make a test payment with the live key for the smallest amount, then refund it.
+- Confirm Admin > System health is green and a test alert email arrives.
+- Read the Terms and Privacy pages and have them reviewed by a lawyer (they are still drafts).
+- Confirm backups: Supabase > Database > Backups. What your plan keeps, and for how long, is what you can honestly promise customers (see `docs/data-retention.md`).
 
 ## 7. What it costs to run
 
