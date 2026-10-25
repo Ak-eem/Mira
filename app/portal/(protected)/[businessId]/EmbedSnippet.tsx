@@ -3,6 +3,14 @@
 import { useEffect, useState } from "react";
 import { escapeHtml } from "@/lib/escapeHtml";
 
+type Placement = "right" | "left" | "right-raised" | "left-raised";
+const PLACEMENTS: Array<{ value: Placement; label: string }> = [
+  { value: "right", label: "Bottom right (default)" },
+  { value: "left", label: "Bottom left" },
+  { value: "right-raised", label: "Bottom right, raised (clears your own floating buttons)" },
+  { value: "left-raised", label: "Bottom left, raised" },
+];
+
 export function EmbedSnippet({ slug, businessName }: { slug: string; businessName: string }) {
   const [copied, setCopied] = useState(false);
 
@@ -14,6 +22,7 @@ export function EmbedSnippet({ slug, businessName }: { slug: string; businessNam
   // a hydration mismatch. The effect runs after hydration completes, so
   // the real value swaps in a moment later instead.
   const [origin, setOrigin] = useState("");
+  const [placement, setPlacement] = useState<Placement>("right");
   useEffect(() => {
     // window.location.origin only exists client-side; a lazy useState initializer would
     // run during SSR too and throw (window is not defined). This effect + empty-string
@@ -34,7 +43,7 @@ export function EmbedSnippet({ slug, businessName }: { slug: string; businessNam
     ? `<script src="${origin}/embed.js"
         data-business="${safeSlug}"
         data-title="Chat with ${safeBusinessName}"
-        data-primary-color="#0f766e"
+        data-primary-color="#0f766e"${placement.startsWith("left") ? '\n        data-position="left"' : ""}${placement.endsWith("raised") ? '\n        data-offset-y="90"' : ""}
         defer></script>`
     : "";
 
@@ -56,6 +65,17 @@ export function EmbedSnippet({ slug, businessName }: { slug: string; businessNam
       <p className="mb-3 text-xs text-slate-500">
         Paste this one snippet just before the closing <code className="rounded-sm bg-slate-100 px-1 py-0.5">&lt;/body&gt;</code> tag on your site. No account, no build step, works on any platform.
       </p>
+      <label htmlFor="widget-placement" className="mb-1 block text-xs font-medium text-slate-700">Where should the chat button sit?</label>
+      <select
+        id="widget-placement"
+        value={placement}
+        onChange={(e) => setPlacement(e.target.value as Placement)}
+        className="mb-3 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800"
+      >
+        {PLACEMENTS.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
+        ))}
+      </select>
       <pre className="overflow-x-auto rounded-lg bg-slate-900 p-3 text-xs leading-relaxed text-slate-100">
         <code>{snippet || "Loading…"}</code>
       </pre>

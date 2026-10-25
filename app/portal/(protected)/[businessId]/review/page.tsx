@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
 import { describeSignal, type GroundingSignal } from "@/lib/grounding/assess";
+import { formatDateTime } from "@/lib/format";
 import { getGroundingSettings } from "@/lib/grounding/settings";
 import { CUSTOMER_REASON_LABELS, isFeedbackReason } from "@/lib/feedback/reasons";
 import { ReplyReview } from "../conversations/[conversationId]/ReplyReview";
@@ -181,7 +182,7 @@ export default async function PortalReviewPage({ params }: PageProps) {
                   <span
                     className={`rounded-sm px-1.5 py-0.5 font-semibold uppercase ${item.verdict === "low" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"}`}
                   >
-                    Grounding: {item.verdict}
+                    {item.verdict === "low" ? "Not backed by your info" : "Partly backed by your info"}
                   </span>
                 )}
                 {item.customer && (
@@ -189,7 +190,7 @@ export default async function PortalReviewPage({ params }: PageProps) {
                     Customer 👎{customerReason ? ` ${customerReason}` : ""}
                   </span>
                 )}
-                <span className="text-slate-400">{new Date(item.createdAt).toLocaleString()}</span>
+                <span className="text-slate-400">{formatDateTime(item.createdAt)}</span>
                 <Link href={`/portal/${businessId}/conversations/${item.conversationId}`} className="ml-auto text-slate-400 underline">
                   Open conversation
                 </Link>

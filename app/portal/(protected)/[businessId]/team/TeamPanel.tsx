@@ -201,6 +201,9 @@ export function TeamPanel({ businessId }: { businessId: string }) {
                     {formatDate(member.joinedAt) ? ` · joined ${formatDate(member.joinedAt)}` : ""}
                   </p>
                 </div>
+                {member.role === "owner" && members.filter((m) => m.role === "owner").length === 1 ? (
+                  <p className="shrink-0 text-xs text-slate-500">Only owner</p>
+                ) : (
                 <div className="flex shrink-0 items-center gap-3 text-xs">
                   <button
                     type="button"
@@ -219,6 +222,7 @@ export function TeamPanel({ businessId }: { businessId: string }) {
                     Remove
                   </button>
                 </div>
+                )}
               </li>
             ))}
           </ul>

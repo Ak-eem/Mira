@@ -29,6 +29,8 @@ export function formatTime(t: string | null): string {
 // header all call through this same function, so they can never
 // disagree with each other about the same fact.
 export function isOpenNow(hours: HoursRow[], timezone: string): boolean | null {
+  // A business that has not set any opening hours is not "Closed", we simply do not know: show nothing.
+  if (!hours.some((h) => h.opens_at && h.closes_at)) return null;
   try {
     const parts = new Intl.DateTimeFormat("en-US", {
       timeZone: timezone,

@@ -605,7 +605,7 @@ export function ChatWindow({
   if (locked) {
     return (
       <div
-        className={`${embedMode ? "flex h-full flex-col" : "flex min-h-screen flex-col"} mira-wash items-center justify-center ${nunito.className}`}
+        className={`${embedMode ? "flex h-dvh flex-col" : "flex min-h-screen flex-col"} mira-wash items-center justify-center ${nunito.className}`}
       >
         <div className="glass-panel-strong mx-4 max-w-sm rounded-lg px-6 py-8 text-center">
           <p className="text-sm text-slate-600">This business is temporarily unavailable.</p>
@@ -625,7 +625,7 @@ export function ChatWindow({
 
   return (
     <div
-      className={`${embedMode ? "flex h-full flex-col" : "flex min-h-screen flex-col"} mira-wash ${nunito.className}`}
+      className={`${embedMode ? "flex h-dvh flex-col" : "flex min-h-screen flex-col"} mira-wash ${nunito.className}`}
       style={brandStyle}
     >
       <header

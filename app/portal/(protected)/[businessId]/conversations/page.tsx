@@ -1,3 +1,5 @@
+import { customerLabel } from "@/lib/customerLabel";
+import { formatDateTime } from "@/lib/format";
 import { ErrorNotice } from "@/components/ErrorNotice";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -143,8 +145,8 @@ export default async function PortalConversationsPage({
                       Needs you
                     </span>
                   )}
-                  <span className="font-mono text-xs text-slate-500">
-                    {conversation.session_token.slice(0, 8)}…
+                  <span className="text-sm font-medium text-slate-700">
+                    {customerLabel(conversation.session_token)}
                   </span>
                   <span
                     className={`text-xs font-medium ${
@@ -157,7 +159,7 @@ export default async function PortalConversationsPage({
                   </span>
                 </span>
                 <span className="shrink-0 text-sm text-slate-500">
-                  {new Date(conversation.last_message_at).toLocaleString()}
+                  {formatDateTime(conversation.last_message_at)}
                 </span>
               </Link>
 
