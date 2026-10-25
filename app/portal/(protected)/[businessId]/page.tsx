@@ -1,3 +1,4 @@
+import { customerLabel } from "@/lib/customerLabel";
 import { ErrorNotice } from "@/components/ErrorNotice";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -47,14 +48,6 @@ function dailySeries(now: number, entries: { at: string; value: number }[]): Cha
     const date = new Date(now - (29 - i) * DAY_MS);
     return { label: dayLabel(date), value: totals.get(dayKey(date)) ?? 0 };
   });
-}
-
-function customerLabel(sessionToken: string | null): string {
-  if (!sessionToken) return "Website visitor";
-  if (sessionToken.startsWith("email_")) return sessionToken.slice(6);
-  if (sessionToken.startsWith("wa_")) return `+${sessionToken.slice(3)}`;
-  if (sessionToken.startsWith("web_")) return "Website visitor";
-  return "Website visitor";
 }
 
 const CHANNEL_LABEL: Record<string, string> = { web: "Website", whatsapp: "WhatsApp", email: "Email" };

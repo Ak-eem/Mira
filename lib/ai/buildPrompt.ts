@@ -1,7 +1,7 @@
 import type { BusinessContext } from "./buildContext";
 
 const FALLBACK_TEMPLATE =
-  "I don't have that information for {business} yet -- I'd recommend contacting them directly to confirm.";
+  "I don't have that information for {business} yet. I'd recommend contacting them directly to confirm.";
 
 export type ChatMessage = { role: "customer" | "assistant"; content: string };
 

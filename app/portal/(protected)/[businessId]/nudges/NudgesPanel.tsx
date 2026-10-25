@@ -63,11 +63,11 @@ function RuleCard({ businessId, rule }: { businessId: string; rule: Rule }) {
       <div className="space-y-3">
         <div>
           <label className="block text-xs font-medium text-slate-600">
-            Meta template name <span className="font-normal text-slate-400">— leave blank until yours is approved</span>
+            Meta template name <span className="font-normal text-slate-500">(the WhatsApp message template your business has had approved by Meta; leave blank until then)</span>
           </label>
           <input
             className="mt-1 w-full rounded-sm border border-slate-300 px-3 py-2 font-mono text-sm"
-            placeholder="e.g. order_shipped_v1"
+            placeholder={`e.g. ${rule.trigger_type}_v1`}
             value={templateName}
             onChange={(e) => setTemplateName(e.target.value)}
           />

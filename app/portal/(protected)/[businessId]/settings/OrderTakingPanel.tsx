@@ -39,7 +39,7 @@ export function OrderTakingPanel({
         <p className="text-xs font-semibold uppercase tracking-wide text-indigo-600">Order taking</p>
         <h2 className="mt-1 text-lg font-semibold">Let Mira take orders in chat</h2>
         <p className="mt-1 text-sm text-slate-500">
-          On by default. When on, a customer who wants to buy something gets an exact summary from Mira and
+          On for new businesses; turn it off if you would rather take orders yourself. When on, a customer who wants to buy something gets an exact summary from Mira and
           must reply yes before anything is sent. The order then waits for your confirmation on the Orders
           page, and the customer&apos;s chat is flagged for your team until you confirm or cancel it. Mira
           never takes payment.
