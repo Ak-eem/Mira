@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { isOpenNow } from "@/lib/hours";
 import { isCancelled, isLocked } from "@/lib/plans";
+import { parseBrandColor } from "@/lib/brandColor";
 import { BusinessNotFound } from "./BusinessNotFound";
 import { ChatWindow } from "./ChatWindow";
 
@@ -94,12 +95,18 @@ export default async function ChatPage({
 
   const openNow = isOpenNow(hours ?? [], business.timezone);
 
+  // Best effort and separate from the main lookup: a missing column (migration not
+  // applied yet) or any error just means the default colour, never a broken chat.
+  const { data: brand } = await supabase.from("businesses").select("brand_color").eq("id", business.id).maybeSingle();
+  const brandColor = parseBrandColor(brand?.brand_color);
+
   return (
     <ChatWindow
       businessSlug={businessSlug}
       businessName={business.name}
       openNow={openNow}
       embedMode={embedMode}
+      brandColor={brandColor}
     />
   );
 }

@@ -1,15 +1,19 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
 import { EmailForwardingGuide } from "@/components/EmailForwardingGuide";
 import { getCurrentDraft, getActiveRelease, getPublishedHistory } from "@/lib/promptReleases";
-import { getAgentSettings } from "@/lib/agentSettings";
 import { PromptEditor } from "./PromptEditor";
-import { AgentSettingsPanel } from "./AgentSettingsPanel";
 import { OrderTakingPanel } from "./OrderTakingPanel";
+import { CourierPanel } from "./CourierPanel";
+import { BrandColorPanel } from "./BrandColorPanel";
+import { getBrandColor } from "@/lib/brandSettings";
 import { GroundingPanel } from "./GroundingPanel";
 import { getGroundingSettings } from "@/lib/grounding/settings";
 import { CancelSubscriptionPanel } from "./CancelSubscriptionPanel";
+import { AccountDeletionPanel } from "./AccountDeletionPanel";
+import { DELETE_REQUEST_SUMMARY } from "@/lib/deletionRequest";
 import { getOrderTakingEnabled } from "@/lib/orderSettings";
 import { WebsiteImport } from "../WebsiteImport";
 import { EmbedSnippet } from "../EmbedSnippet";
@@ -28,15 +32,42 @@ export default async function PortalSettingsPage({ params }: PageProps) {
   if (!owner || !membership) redirect("/portal/login");
 
   const supabase = await createClient();
-  const [draft, active, history, agentSettings, orderTakingEnabled, { data: emailBusiness }, groundingSettings] = await Promise.all([
+  const [draft, active, history, orderTakingEnabled, { data: emailBusiness }, groundingSettings, brandColor, courier] = await Promise.all([
     getCurrentDraft(businessId),
     getActiveRelease(businessId),
     getPublishedHistory(businessId),
-    getAgentSettings(businessId),
     getOrderTakingEnabled(businessId),
     supabase.from("businesses").select("email_inbound_address, slug").eq("id", businessId).maybeSingle(),
     getGroundingSettings(supabase, businessId),
+    getBrandColor(businessId),
+    // Non-secret columns only; the encrypted webhook secret is never read into a page.
+    supabase
+      .from("business_logistics_accounts")
+      .select("id")
+      .eq("business_id", businessId)
+      .eq("provider", "shiip")
+      .eq("status", "active")
+      .maybeSingle(),
   ]);
+  // If this read fails (e.g. the migration isn't applied yet) the panel is
+  // hidden rather than offering a connection that can't be saved.
+  const courierAvailable = !courier.error;
+  const { data: deletionRequest } = await supabase
+    .from("activity_log")
+    .select("created_at")
+    .eq("business_id", businessId)
+    .eq("entity_type", "business")
+    .like("summary", `${DELETE_REQUEST_SUMMARY}%`)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const deletionRequestedOn = deletionRequest?.created_at
+    ? new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", day: "numeric", month: "short", year: "numeric" }).format(new Date(deletionRequest.created_at))
+    : null;
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "https";
+  const courierWebhookUrl = `${protocol}://${host}/api/webhooks/shiip/${businessId}`;
   const businessName = membership.name ?? "your business";
   const inboundAddress: string | null = emailBusiness?.email_inbound_address ?? null;
 
@@ -60,16 +91,25 @@ export default async function PortalSettingsPage({ params }: PageProps) {
         </div>
       )}
 
-      <AgentSettingsPanel
-        businessId={businessId}
-        initialEnabled={agentSettings.enabled}
-        initialProvider={agentSettings.provider}
-        canEdit={membership.role === "owner"}
-      />
-
       <OrderTakingPanel
         businessId={businessId}
         initialEnabled={orderTakingEnabled}
+        canEdit={membership.role === "owner"}
+      />
+
+      {courierAvailable && (
+        <CourierPanel
+          businessId={businessId}
+          connected={Boolean(courier.data)}
+          webhookUrl={courierWebhookUrl}
+          canEdit={membership.role === "owner"}
+        />
+      )}
+
+      <BrandColorPanel
+        businessId={businessId}
+        businessName={businessName}
+        initialColor={brandColor}
         canEdit={membership.role === "owner"}
       />
 
@@ -101,6 +141,7 @@ export default async function PortalSettingsPage({ params }: PageProps) {
 
       {/* Owners only. Staff never see the cancel option. */}
       {membership.role === "owner" && <CancelSubscriptionPanel businessId={businessId} businessName={businessName} />}
+      {membership.role === "owner" && <AccountDeletionPanel businessId={businessId} businessName={businessName} requestedOn={deletionRequestedOn} />}
     </div>
   );
 }

@@ -147,7 +147,19 @@ export default function SignupPage() {
         return;
       }
 
-      router.push("/portal/signup/complete");
+      // Email is confirmed server-side above, so the visitor should land signed in.
+      // signUp returns a session when Supabase's own "Confirm email" is off; when it
+      // is on, sign in explicitly so they never see a "now sign in again" step.
+      if (!data.session) {
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) {
+          router.push("/portal/login");
+          return;
+        }
+      }
+
+      // This page doesn't collect a business name, so the next step does.
+      router.push("/portal/signup/business-name");
       router.refresh();
     } catch (submitError) {
       setError(

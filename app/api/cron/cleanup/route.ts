@@ -3,6 +3,7 @@ import { isAuthorizedCron } from "@/lib/cron/auth";
 import { purgeInboundQueues } from "@/lib/cron/purgeInboundQueues";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { sendAlert, sweepAndAlert } from "@/lib/alerts";
+import { sendExpiryReminders } from "@/lib/billing/expiryReminders";
 
 // Daily retention job (see vercel.json). Safe to run concurrently or twice:
 // it only deletes rows past the cutoff, so there is no lock to manage.
@@ -20,7 +21,12 @@ export async function GET(request: NextRequest) {
       console.error("alert sweep failed:", error);
       return "failed" as const;
     });
-    return NextResponse.json({ ...result, alertSweep: sweep });
+    // Tell owners their plan is about to end. A failure here must never fail the cleanup.
+    const reminders = await sendExpiryReminders().catch((error) => {
+      console.error("expiry reminders failed:", error);
+      return "failed" as const;
+    });
+    return NextResponse.json({ ...result, alertSweep: sweep, expiryReminders: reminders });
   } catch (error) {
     console.error("cleanup cron failed:", error);
     await sendAlert(client, { key: "cron-cleanup-failed", subject: "Daily cleanup job failed", lines: [error instanceof Error ? error.message : "Unknown error"] });

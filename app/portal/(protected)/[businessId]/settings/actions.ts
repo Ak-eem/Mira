@@ -4,11 +4,14 @@ import { revalidatePath } from "next/cache";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
 import { CANCEL_CONFIRMATION_WORD } from "@/lib/cancelSubscription";
+import { DELETE_REQUEST_SUMMARY, DELETE_REQUEST_WORD } from "@/lib/deletionRequest";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { sendEmailWithResend } from "@/lib/email/resend";
 import { saveDraft, publishRelease } from "@/lib/promptReleases";
-import { updateAgentSettings } from "@/lib/agentSettings";
 import { updateOrderTakingEnabled } from "@/lib/orderSettings";
 import { updateGroundingSettings } from "@/lib/groundingSettings";
-import type { ProviderName } from "@/lib/ai/geminiFetch";
+import { updateBrandColor } from "@/lib/brandSettings";
+import { checkBrandColor } from "@/lib/brandColor";
 
 // Both actions require the caller to actually be linked to this business
 // (any role) -- getCurrentBusinessOwner() is a UX convenience, not the
@@ -65,30 +68,9 @@ export async function promotePromptRelease(businessId: string, releaseId: string
   return { error: null, release };
 }
 
-// Controls whether the inventory assistant (app/portal/.../inventory/)
-// is allowed to write anything for this business at all, and which LLM
-// provider handles it. Owner-only -- this is a strictly more powerful
-// toggle than publish/rollback (it's the on/off switch for a whole
-// write-capable feature, not one content change), so it gets at least
-// the same protection level.
-export async function saveAgentSettings(businessId: string, enabled: boolean, provider: ProviderName) {
-  const { owner, role } = await requireMembership(businessId);
-  if (!owner || !role) return { error: "Not authorized." };
-  if (role !== "owner") {
-    return { error: "Only the business owner can change this." };
-  }
-
-  const { error } = await updateAgentSettings(businessId, enabled, provider);
-  if (error) return { error };
-
-  revalidatePath(`/portal/${businessId}/settings`);
-  revalidatePath(`/portal/${businessId}/inventory`);
-  return { error: null };
-}
-
 // Turns AI order-taking on or off for this business. Owner-only, same
 // protection level as the inventory assistant toggle: it decides whether Mira
-// may start creating orders from chat at all. Off by default.
+// may start creating orders from chat at all. On by default (0059).
 export async function saveOrderTaking(businessId: string, enabled: boolean) {
   const { owner, role } = await requireMembership(businessId);
   if (!owner || !role) return { error: "Not authorized." };
@@ -97,6 +79,27 @@ export async function saveOrderTaking(businessId: string, enabled: boolean) {
   }
 
   const { error } = await updateOrderTakingEnabled(businessId, enabled);
+  if (error) return { error };
+
+  revalidatePath(`/portal/${businessId}/settings`);
+  return { error: null };
+}
+
+// Owner-only: the colour customers see on the chat page and website widget. Pass null
+// to go back to Mira's default. Validated here as well as in the database.
+export async function saveBrandColor(businessId: string, color: string | null) {
+  const { owner, role } = await requireMembership(businessId);
+  if (!owner || !role) return { error: "Not authorized." };
+  if (role !== "owner") return { error: "Only the business owner can change this." };
+
+  let value: string | null = null;
+  if (color !== null) {
+    const checked = checkBrandColor(color);
+    if (!checked.ok) return { error: checked.error };
+    value = checked.color;
+  }
+
+  const { error } = await updateBrandColor(businessId, value);
   if (error) return { error };
 
   revalidatePath(`/portal/${businessId}/settings`);
@@ -124,6 +127,68 @@ export async function cancelSubscription(businessId: string, confirmation: strin
   }
 
   revalidatePath(`/portal/${businessId}`, "layout");
+  return { error: null };
+}
+
+// Owner asks Mira's team to delete the account and its data. Recorded in the activity log
+// (visible to the admin on the business's settings page) and emailed to the operator;
+// the deletion itself is still carried out by a person. Asking twice is harmless.
+export async function requestAccountDeletion(
+  businessId: string,
+  confirmation: string,
+): Promise<{ error: string | null; alreadyRequested?: boolean }> {
+  const { owner, role } = await requireMembership(businessId);
+  if (!owner || role !== "owner") return { error: "Only the business owner can request deletion." };
+  if (confirmation.trim() !== DELETE_REQUEST_WORD) return { error: `Type ${DELETE_REQUEST_WORD} exactly to confirm.` };
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("activity_log")
+    .select("id")
+    .eq("business_id", businessId)
+    .eq("entity_type", "business")
+    .like("summary", `${DELETE_REQUEST_SUMMARY}%`)
+    .limit(1);
+  if (existing && existing.length > 0) return { error: null, alreadyRequested: true };
+
+  const businessName = owner.businesses.find((b) => b.id === businessId)?.name ?? "Unknown business";
+  const { error: logError } = await createServiceRoleClient().from("activity_log").insert({
+    business_id: businessId,
+    entity_type: "business",
+    entity_id: businessId,
+    action: "updated",
+    summary: `${DELETE_REQUEST_SUMMARY} by ${owner.email}`,
+    source: "portal_ui",
+  });
+  if (logError) {
+    console.error("Could not record deletion request:", logError);
+    return { error: "Could not send your request right now. Please try again, or contact support." };
+  }
+
+  // Best effort: the request is already recorded, so a mail problem must not undo it.
+  const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+  const to = process.env.CUSTOM_REQUEST_TO_EMAIL || process.env.CONTACT_TO_EMAIL;
+  try {
+    if (to) {
+      await sendEmailWithResend({
+        to,
+        replyTo: owner.email || undefined,
+        subject: `[Account deletion request] ${businessName}`,
+        html: `<p><b>Business:</b> ${esc(businessName)} (${esc(businessId)})</p><p><b>Requested by:</b> ${esc(owner.email)}</p><p>Confirm with the owner before deleting. Admin &gt; business &gt; Settings &gt; Delete business.</p>`,
+      });
+    }
+    if (owner.email) {
+      await sendEmailWithResend({
+        to: owner.email,
+        subject: `We received your request to delete ${businessName}`,
+        html: `<p>We received your request to delete <b>${esc(businessName)}</b> and its data from Mira.</p><p>Nothing has been deleted yet. We'll confirm with you at this email address first. Deletion is done by a person, so it is not instant.</p><p>If you did not make this request, reply to this email.</p>`,
+      });
+    }
+  } catch (error) {
+    console.error("Deletion request email failed:", error);
+  }
+
+  revalidatePath(`/portal/${businessId}/settings`);
   return { error: null };
 }
 
