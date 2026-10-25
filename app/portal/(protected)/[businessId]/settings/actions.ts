@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
 import { CANCEL_CONFIRMATION_WORD } from "@/lib/cancelSubscription";
+import { DELETE_REQUEST_SUMMARY, DELETE_REQUEST_WORD } from "@/lib/deletionRequest";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { sendEmailWithResend } from "@/lib/email/resend";
 import { saveDraft, publishRelease } from "@/lib/promptReleases";
 import { updateOrderTakingEnabled } from "@/lib/orderSettings";
 import { updateGroundingSettings } from "@/lib/groundingSettings";
@@ -124,6 +127,68 @@ export async function cancelSubscription(businessId: string, confirmation: strin
   }
 
   revalidatePath(`/portal/${businessId}`, "layout");
+  return { error: null };
+}
+
+// Owner asks Mira's team to delete the account and its data. Recorded in the activity log
+// (visible to the admin on the business's settings page) and emailed to the operator;
+// the deletion itself is still carried out by a person. Asking twice is harmless.
+export async function requestAccountDeletion(
+  businessId: string,
+  confirmation: string,
+): Promise<{ error: string | null; alreadyRequested?: boolean }> {
+  const { owner, role } = await requireMembership(businessId);
+  if (!owner || role !== "owner") return { error: "Only the business owner can request deletion." };
+  if (confirmation.trim() !== DELETE_REQUEST_WORD) return { error: `Type ${DELETE_REQUEST_WORD} exactly to confirm.` };
+
+  const supabase = await createClient();
+  const { data: existing } = await supabase
+    .from("activity_log")
+    .select("id")
+    .eq("business_id", businessId)
+    .eq("entity_type", "business")
+    .like("summary", `${DELETE_REQUEST_SUMMARY}%`)
+    .limit(1);
+  if (existing && existing.length > 0) return { error: null, alreadyRequested: true };
+
+  const businessName = owner.businesses.find((b) => b.id === businessId)?.name ?? "Unknown business";
+  const { error: logError } = await createServiceRoleClient().from("activity_log").insert({
+    business_id: businessId,
+    entity_type: "business",
+    entity_id: businessId,
+    action: "updated",
+    summary: `${DELETE_REQUEST_SUMMARY} by ${owner.email}`,
+    source: "portal_ui",
+  });
+  if (logError) {
+    console.error("Could not record deletion request:", logError);
+    return { error: "Could not send your request right now. Please try again, or contact support." };
+  }
+
+  // Best effort: the request is already recorded, so a mail problem must not undo it.
+  const esc = (v: string) => v.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+  const to = process.env.CUSTOM_REQUEST_TO_EMAIL || process.env.CONTACT_TO_EMAIL;
+  try {
+    if (to) {
+      await sendEmailWithResend({
+        to,
+        replyTo: owner.email || undefined,
+        subject: `[Account deletion request] ${businessName}`,
+        html: `<p><b>Business:</b> ${esc(businessName)} (${esc(businessId)})</p><p><b>Requested by:</b> ${esc(owner.email)}</p><p>Confirm with the owner before deleting. Admin &gt; business &gt; Settings &gt; Delete business.</p>`,
+      });
+    }
+    if (owner.email) {
+      await sendEmailWithResend({
+        to: owner.email,
+        subject: `We received your request to delete ${businessName}`,
+        html: `<p>We received your request to delete <b>${esc(businessName)}</b> and its data from Mira.</p><p>Nothing has been deleted yet. We'll confirm with you at this email address first. Deletion is done by a person, so it is not instant.</p><p>If you did not make this request, reply to this email.</p>`,
+      });
+    }
+  } catch (error) {
+    console.error("Deletion request email failed:", error);
+  }
+
+  revalidatePath(`/portal/${businessId}/settings`);
   return { error: null };
 }
 

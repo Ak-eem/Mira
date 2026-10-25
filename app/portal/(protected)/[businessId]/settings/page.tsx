@@ -12,6 +12,8 @@ import { getBrandColor } from "@/lib/brandSettings";
 import { GroundingPanel } from "./GroundingPanel";
 import { getGroundingSettings } from "@/lib/grounding/settings";
 import { CancelSubscriptionPanel } from "./CancelSubscriptionPanel";
+import { AccountDeletionPanel } from "./AccountDeletionPanel";
+import { DELETE_REQUEST_SUMMARY } from "@/lib/deletionRequest";
 import { getOrderTakingEnabled } from "@/lib/orderSettings";
 import { WebsiteImport } from "../WebsiteImport";
 import { EmbedSnippet } from "../EmbedSnippet";
@@ -50,6 +52,18 @@ export default async function PortalSettingsPage({ params }: PageProps) {
   // If this read fails (e.g. the migration isn't applied yet) the panel is
   // hidden rather than offering a connection that can't be saved.
   const courierAvailable = !courier.error;
+  const { data: deletionRequest } = await supabase
+    .from("activity_log")
+    .select("created_at")
+    .eq("business_id", businessId)
+    .eq("entity_type", "business")
+    .like("summary", `${DELETE_REQUEST_SUMMARY}%`)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  const deletionRequestedOn = deletionRequest?.created_at
+    ? new Intl.DateTimeFormat("en-GB", { timeZone: "Africa/Lagos", day: "numeric", month: "short", year: "numeric" }).format(new Date(deletionRequest.created_at))
+    : null;
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
   const protocol = requestHeaders.get("x-forwarded-proto") ?? "https";
@@ -127,6 +141,7 @@ export default async function PortalSettingsPage({ params }: PageProps) {
 
       {/* Owners only. Staff never see the cancel option. */}
       {membership.role === "owner" && <CancelSubscriptionPanel businessId={businessId} businessName={businessName} />}
+      {membership.role === "owner" && <AccountDeletionPanel businessId={businessId} businessName={businessName} requestedOn={deletionRequestedOn} />}
     </div>
   );
 }
