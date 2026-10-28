@@ -25,7 +25,7 @@ export default async function PoliciesPage({
         title="Policies"
         subtitle="Returns, delivery, payment and other rules Mira should follow."
         action={policies?.length ? (
-          <AddSheet label="Add policy">
+          <AddSheet fab label="Add policy">
             <NewPolicyForm businessId={businessId} />
           </AddSheet>
         ) : undefined}

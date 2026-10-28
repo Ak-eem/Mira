@@ -36,7 +36,7 @@ export default async function ProductsPage({
         title="Products"
         subtitle="What Mira tells customers about price, stock and availability."
         action={products?.length ? (
-          <AddSheet label="Add product">
+          <AddSheet fab label="Add product">
             <NewProductForm businessId={businessId} />
           </AddSheet>
         ) : undefined}

@@ -654,3 +654,27 @@ textarea.ui-field { min-height: 6rem; resize: vertical; }
   .ui-btn[aria-busy="true"]::before { animation-duration: 1.6s; }
   .ui-typing span { animation: none; }
 }
+
+/* Snackbar: a small confirmation at the bottom that offers Undo and fades away. */
+.ui-snack-wrap { position: fixed; inset-inline: 0; bottom: calc(var(--ui-bottom-nav, 0px) + 1rem + env(safe-area-inset-bottom, 0px)); z-index: 80; display: flex; justify-content: center; padding-inline: 1rem; pointer-events: none; }
+.ui-snack { pointer-events: auto; display: flex; width: 100%; max-width: 28rem; align-items: center; gap: 0.75rem; border-radius: 1rem; background: #0f1d17; padding: 0.75rem 0.875rem 0.75rem 1rem; color: #fff; box-shadow: 0 10px 30px rgb(8 23 15 / 0.35); animation: ui-snack-in 320ms var(--ui-ease) both; }
+.ui-snack-out { animation: ui-snack-out 220ms var(--ui-ease) both; }
+.ui-snack-action { flex-shrink: 0; min-height: 2.25rem; padding: 0.25rem 0.75rem; border-radius: 0.625rem; font-size: 0.9375rem; font-weight: 700; color: #6ee7b7; transition: background-color 160ms var(--ui-ease); }
+.ui-snack-action:hover { background: rgb(255 255 255 / 0.08); }
+@keyframes ui-snack-in { from { opacity: 0; transform: translateY(1rem) scale(0.98); } to { opacity: 1; transform: none; } }
+@keyframes ui-snack-out { to { opacity: 0; transform: translateY(0.5rem); } }
+
+/* Dialog: interrupts for something important or risky. Cancel is the calm default. */
+.ui-dialog { width: 100%; max-width: 22rem; margin-inline: 1rem; border-radius: 1.5rem; background: #fff; padding: 1.5rem; box-shadow: 0 20px 60px rgb(8 23 15 / 0.3); animation: ui-rise 300ms var(--ui-ease) both; }
+.ui-btn-destructive { background: #dc2626; color: #fff; }
+.ui-btn-destructive:hover:not(:disabled) { background: #b91c1c; }
+
+/* Floating action button: the one main action on a phone screen. */
+.ui-fab { position: fixed; right: 1.25rem; bottom: calc(var(--ui-bottom-nav, 0px) + 1.25rem + env(safe-area-inset-bottom, 0px)); z-index: 40; display: grid; width: 3.5rem; height: 3.5rem; place-items: center; border-radius: 9999px; background: var(--color-accent); color: #fff; font-size: 1.75rem; line-height: 1; box-shadow: 0 8px 24px rgb(15 42 34 / 0.35); transition: transform 160ms var(--ui-ease), box-shadow 160ms var(--ui-ease); }
+.ui-fab:active { transform: scale(0.94); }
+
+/* Sheet grabber (phones): a visible handle you can drag down to dismiss. */
+.ui-grabber { margin: -0.5rem auto 0.75rem; height: 1.25rem; width: 4rem; cursor: grab; touch-action: none; display: grid; place-items: center; }
+.ui-grabber::before { content: ""; width: 2.5rem; height: 0.3rem; border-radius: 9999px; background: var(--color-slate-300); }
+@media (min-width: 640px) { .ui-grabber { display: none; } }
+@media (prefers-reduced-motion: reduce) { .ui-snack, .ui-snack-out, .ui-dialog { animation: none; } }
