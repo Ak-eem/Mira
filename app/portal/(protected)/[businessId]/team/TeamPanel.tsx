@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
+import { useConfirm } from "@/components/ui/Feedback";
 
 type Member = { id: string; name: string; email: string; role: string; joinedAt: string };
 type Invite = { id: string; email: string; role: string; status: string; expiresAt: string };
@@ -25,6 +26,7 @@ async function readError(response: Response, fallback: string): Promise<string> 
 // last-owner protection, invite rate limits). This panel is only a screen over
 // them, so it can't grant anything those routes wouldn't.
 export function TeamPanel({ businessId }: { businessId: string }) {
+  const confirm = useConfirm();
   const [members, setMembers] = useState<Member[] | null>(null);
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -107,18 +109,20 @@ export function TeamPanel({ businessId }: { businessId: string }) {
     );
   }
 
-  function changeRole(member: Member) {
+  async function changeRole(member: Member) {
     const next = member.role === "owner" ? "staff" : "owner";
-    const question =
-      next === "owner"
-        ? `Make ${member.email} an owner? Owners can publish prompts, change AI settings and manage the team.`
-        : `Make ${member.email} staff? They'll lose owner access.`;
-    if (!window.confirm(question)) return;
+    const ok = await confirm({
+      title: next === "owner" ? `Make ${member.email} an owner?` : `Make ${member.email} staff?`,
+      description: next === "owner" ? "Owners can publish prompts, change AI settings and manage the team." : "They'll lose owner access.",
+      confirmLabel: next === "owner" ? "Make owner" : "Make staff",
+    });
+    if (!ok) return;
     void patchMember(member, { action: "role", role: next }, `${member.email} is now ${roleLabel(next).toLowerCase()}.`);
   }
 
-  function removeMember(member: Member) {
-    if (!window.confirm(`Remove ${member.email} from the team? They'll lose access immediately.`)) return;
+  async function removeMember(member: Member) {
+    const ok = await confirm({ title: `Remove ${member.email}?`, description: "They'll lose access immediately.", destructive: true, confirmLabel: "Remove" });
+    if (!ok) return;
     void patchMember(member, { action: "remove" }, `${member.email} was removed.`);
   }
 

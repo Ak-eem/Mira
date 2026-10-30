@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateClosure, deleteClosure } from "./actions";
 import { utcToZonedWallDateTime } from "@/lib/timezone";
+import { useConfirm, useSnackbar } from "@/components/ui/Feedback";
 
 type Closure = {
   id: string;
@@ -21,6 +22,8 @@ function toDateTimeInput(iso: string, timeZone: string): string {
 }
 
 export function ClosureList({ closures, businessTimezone }: { closures: Closure[]; businessTimezone: string }) {
+  const confirm = useConfirm();
+  const snack = useSnackbar();
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -55,8 +58,10 @@ export function ClosureList({ closures, businessTimezone }: { closures: Closure[
               </button>
               <button
                 onClick={async () => {
-                  if (!confirm("Delete this closure? This can't be undone.")) return;
+                  const ok = await confirm({ title: "Delete this closure?", description: "This can't be undone.", destructive: true, confirmLabel: "Delete" });
+                    if (!ok) return;
                   await deleteClosure(c.id);
+                  snack({ message: "Deleted" });
                   router.refresh();
                 }}
                 className="text-red-600 hover:underline"

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { connectCourier, disconnectCourier } from "./courier-actions";
+import { useConfirm } from "@/components/ui/Feedback";
 
 const PROVIDER = "shiip";
 
@@ -17,6 +18,7 @@ export function CourierPanel({
   webhookUrl: string;
   canEdit: boolean;
 }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const [secret, setSecret] = useState("");
   const [busy, setBusy] = useState(false);
@@ -48,13 +50,8 @@ export function CourierPanel({
   }
 
   async function handleDisconnect() {
-    if (
-      !window.confirm(
-        "Disconnect Shiip? Orders you've already linked will stop updating automatically until you reconnect.",
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({ title: "Disconnect Shiip?", description: "Orders you've already linked will stop updating automatically until you reconnect.", destructive: true, confirmLabel: "Disconnect" });
+    if (!ok) return;
     setBusy(true);
     setError(null);
     const result = await disconnectCourier(businessId, PROVIDER);

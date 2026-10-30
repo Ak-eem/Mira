@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateFaq, deleteFaq } from "./actions";
+import { useConfirm, useSnackbar } from "@/components/ui/Feedback";
 
 type Faq = { id: string; question: string; answer: string };
 
 export function FaqList({ faqs }: { faqs: Faq[] }) {
+  const confirm = useConfirm();
+  const snack = useSnackbar();
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -35,8 +38,10 @@ export function FaqList({ faqs }: { faqs: Faq[] }) {
               </button>
               <button
                 onClick={async () => {
-                  if (!confirm("Delete this FAQ? This can't be undone.")) return;
+                  const ok = await confirm({ title: "Delete this FAQ?", description: "This can't be undone.", destructive: true, confirmLabel: "Delete" });
+                    if (!ok) return;
                   await deleteFaq(f.id);
+                  snack({ message: "Deleted" });
                   router.refresh();
                 }}
                 className="ui-btn ui-btn-danger ui-btn-sm"

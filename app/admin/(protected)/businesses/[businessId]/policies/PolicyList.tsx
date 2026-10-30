@@ -3,10 +3,13 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updatePolicy, deletePolicy } from "./actions";
+import { useConfirm, useSnackbar } from "@/components/ui/Feedback";
 
 type Policy = { id: string; title: string; content: string };
 
 export function PolicyList({ policies }: { policies: Policy[] }) {
+  const confirm = useConfirm();
+  const snack = useSnackbar();
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -35,8 +38,10 @@ export function PolicyList({ policies }: { policies: Policy[] }) {
               </button>
               <button
                 onClick={async () => {
-                  if (!confirm(`Delete "${p.title}"? This can't be undone.`)) return;
+                  const ok = await confirm({ title: `Delete "${p.title}"?`, description: "This can't be undone.", destructive: true, confirmLabel: "Delete" });
+                    if (!ok) return;
                   await deletePolicy(p.id);
+                  snack({ message: "Deleted" });
                   router.refresh();
                 }}
                 className="ui-btn ui-btn-danger ui-btn-sm"
