@@ -45,13 +45,14 @@ export function paystackFee(amount: number): number {
   return Math.min(amount * PAYSTACK_RATE + PAYSTACK_FLAT, PAYSTACK_CAP)
 }
 
-/** Gross amount to charge so the merchant nets exactly `net` after Paystack's fee. */
+/** Gross amount to charge so the merchant nets exactly `net` after Paystack's fee.
+ * Paystack's 7.5% VAT treatment on its fee is unconfirmed; figures may be a few naira light, so reconcile against a real transaction from the dashboard.
+ */
 export function grossUp(net: number): number {
   if (net < PAYSTACK_FLAT_WAIVER_THRESHOLD) {
     return Math.ceil(net / (1 - PAYSTACK_RATE))
   }
-  // Add a one-NGN buffer to meet the requested conservative prepaid-tier total.
-  const candidate = Math.ceil((net + PAYSTACK_FLAT) / (1 - PAYSTACK_RATE)) + 1
+  const candidate = Math.ceil((net + PAYSTACK_FLAT) / (1 - PAYSTACK_RATE))
   if (paystackFee(candidate) >= PAYSTACK_CAP) {
     return net + PAYSTACK_CAP
   }
