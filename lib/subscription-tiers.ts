@@ -70,3 +70,31 @@ export function nextPaidUntil(currentPaidUntil: Date | null, months: number, now
   const base = currentPaidUntil && currentPaidUntil > now ? currentPaidUntil : now
   return addMonths(base, months)
 }
+
+export interface PaymentVerificationInput {
+  status: string
+  currency: string
+  amountKobo: number
+  months: number
+}
+
+export type PaymentVerificationResult =
+  | { ok: true; months: number; overpaidNaira: number }
+  | { ok: false; reason: 'not_successful' | 'wrong_currency' | 'unknown_tier' | 'underpaid'; shortfallNaira?: number }
+
+/**
+ * Paystack reports amounts in kobo (for example, ₦50,863 arrives as 5,086,300).
+ * Never extend `paid_until` unless verification succeeds: underpayments must not grant access.
+ * Successful overpayments grant the selected tier, and the returned excess should be recorded as credit for a possible refund.
+ */
+export function verifyPayment(input: PaymentVerificationInput): PaymentVerificationResult {
+  if (input.status !== 'success') return { ok: false, reason: 'not_successful' }
+  if (input.currency !== 'NGN') return { ok: false, reason: 'wrong_currency' }
+  const tier = SUBSCRIPTION_TIERS.find((t) => t.months === input.months)
+  if (!tier) return { ok: false, reason: 'unknown_tier' }
+  const paidNaira = input.amountKobo / 100
+  if (paidNaira < tier.total) {
+    return { ok: false, reason: 'underpaid', shortfallNaira: tier.total - paidNaira }
+  }
+  return { ok: true, months: tier.months, overpaidNaira: paidNaira - tier.total }
+}
