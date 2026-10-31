@@ -1,4 +1,5 @@
 @import 'tailwindcss';
+@import './dark-theme.css';
 
 /*
   Brand reskin: warm cream, deep ink green, one marigold accent.

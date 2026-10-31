@@ -3,6 +3,8 @@ import { redirect } from "next/navigation";
 import { getRequestUser } from "@/lib/supabase/request";
 import { Logo } from "@/components/site/ui";
 import { HeaderAccount } from "./HeaderAccount";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeScript } from "@/components/ThemeScript";
 
 // This layout only guards authentication. Business ownership is handled by the
 // page below so authenticated users without a linked business get a useful
@@ -19,7 +21,9 @@ export default async function PortalLayout({
   }
 
   return (
-    <div className="mira-wash min-h-screen">
+    <ThemeProvider>
+      <ThemeScript />
+      <div className="mira-wash min-h-screen">
       <header className="glass-panel-strong sticky top-0 z-10">
         <div className="flex w-full items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
           <DashboardLink scope="portal" className="flex items-center gap-2 text-ink">
@@ -30,6 +34,7 @@ export default async function PortalLayout({
         </div>
       </header>
       <main>{children}</main>
-    </div>
+      </div>
+    </ThemeProvider>
   );
 }

@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EmailForwardingGuide } from "@/components/EmailForwardingGuide";
 import { getCurrentDraft, getActiveRelease, getPublishedHistory } from "@/lib/promptReleases";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { SegmentedLinks } from "@/components/ui/Segmented";
 import { PromptEditor } from "./PromptEditor";
 import { OrderTakingPanel } from "./OrderTakingPanel";
@@ -81,6 +82,7 @@ export default async function PortalSettingsPage({ params, searchParams }: PageP
     { key: "info", label: "Business info", href: `${base}?tab=info` },
     { key: "widget", label: "Website chat", href: `${base}?tab=widget` },
     { key: "behaviour", label: "How Mira behaves", href: `${base}?tab=behaviour` },
+    { key: "appearance", label: "Appearance", href: `${base}?tab=appearance` },
     ...(isOwner ? [{ key: "plan", label: "Plan", href: `${base}?tab=plan` }] : []),
   ];
   const tab = tabs.some((t) => t.key === requestedTab) ? (requestedTab as string) : "info";
@@ -129,6 +131,8 @@ export default async function PortalSettingsPage({ params, searchParams }: PageP
             <PromptEditor businessId={businessId} initialDraft={draft} active={active} history={history} canPublish={isOwner} />
           </>
         )}
+
+        {tab === "appearance" && <ThemeToggle />}
 
         {/* Owners only. Staff never see the cancel option. */}
         {tab === "plan" && isOwner && (
