@@ -69,7 +69,7 @@ export function PortalSidebar({
       label: "Sell",
       items: [
         { href: `${base}/orders`, label: "Orders", icon: ShoppingBag },
-        { href: `${base}/inventory`, label: "Inventory assistant", icon: Package },
+        { href: `${base}/inventory`, label: "Inventory", icon: Package },
       ],
     },
     {
@@ -79,7 +79,7 @@ export function PortalSidebar({
         { href: `${base}/services`, label: "Services", icon: Briefcase, ownerOnly: true },
         { href: `${base}/faqs`, label: "FAQs", icon: HelpCircle, ownerOnly: true },
         { href: `${base}/policies`, label: "Policies", icon: ScrollText, ownerOnly: true },
-        { href: `${base}/hours`, label: "Opening hours", icon: Clock, ownerOnly: true },
+        { href: `${base}/hours`, label: "Hours", icon: Clock, ownerOnly: true },
       ],
     },
     {
@@ -87,7 +87,7 @@ export function PortalSidebar({
       items: [
         { href: `${base}/nudges`, label: "Nudges", icon: Bell },
         { href: `${base}/review`, label: "Review", icon: ClipboardCheck },
-        { href: `${base}/requests`, label: "Custom request", icon: Sparkles },
+        { href: `${base}/requests`, label: "Requests", icon: Sparkles },
       ],
     },
     {

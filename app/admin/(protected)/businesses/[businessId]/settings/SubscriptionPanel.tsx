@@ -117,7 +117,7 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
             disabled={saving}
             className="ui-btn ui-btn-primary"
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? "Saving…" : "Save plan"}
           </button>
           {savedNote && <span className="text-xs text-emerald-600">{savedNote}</span>}
         </div>

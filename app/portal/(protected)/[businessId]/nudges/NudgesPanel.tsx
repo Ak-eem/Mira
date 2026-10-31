@@ -93,7 +93,7 @@ function RuleCard({ businessId, rule }: { businessId: string; rule: Rule }) {
             disabled={saving}
             className="ui-btn ui-btn-primary ui-btn-sm" aria-busy={saving}
           >
-            {saving ? "Saving…" : "Save"}
+            {saving ? "Saving…" : "Save rule"}
           </button>
           {savedAt && <span className="text-sm font-medium text-emerald-700" role="status">&#10003; Saved</span>}
         </div>

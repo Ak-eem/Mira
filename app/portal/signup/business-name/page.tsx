@@ -79,7 +79,7 @@ export default function BusinessNamePage() {
             disabled={submitting}
             className="w-full rounded-2xl bg-accent px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-cyan-200/70 transition hover:bg-accent-dark disabled:opacity-50"
           >
-            {submitting ? "Setting up…" : "Continue"}
+            {submitting ? "Setting up…" : "Create my dashboard"}
           </button>
         </form>
       </div>

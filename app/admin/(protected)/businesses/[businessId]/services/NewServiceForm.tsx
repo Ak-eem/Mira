@@ -1,12 +1,14 @@
 "use client";
 
 import { useSheetClose } from "@/components/ui/Sheet";
+import { useSnackbar } from "@/components/ui/Feedback";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createService } from "./actions";
 
 export function NewServiceForm({ businessId }: { businessId: string }) {
   const closeSheet = useSheetClose();
+  const snack = useSnackbar();
   const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -37,6 +39,7 @@ export function NewServiceForm({ businessId }: { businessId: string }) {
     setIsAvailable(true);
     setAvailabilityNote("");
     setSubmitting(false);
+    snack({ message: "Service added" });
     closeSheet();
     router.refresh();
   }

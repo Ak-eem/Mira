@@ -145,7 +145,7 @@ function EditPromotionRow({
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
         <button onClick={handleSave} disabled={saving} className="ui-btn ui-btn-primary ui-btn-sm">
-          {saving ? "Saving…" : "Save"}
+          {saving ? "Saving…" : "Save changes"}
         </button>
         <button onClick={onCancel} className="ui-btn ui-btn-secondary ui-btn-sm">
           Cancel

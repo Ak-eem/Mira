@@ -1,12 +1,14 @@
 "use client";
 
 import { useSheetClose } from "@/components/ui/Sheet";
+import { useSnackbar } from "@/components/ui/Feedback";
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createProduct, uploadProductImage } from "./actions";
 
 export function NewProductForm({ businessId }: { businessId: string }) {
   const closeSheet = useSheetClose();
+  const snack = useSnackbar();
   const router = useRouter();
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -57,6 +59,7 @@ export function NewProductForm({ businessId }: { businessId: string }) {
     setImageFile(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
     setSubmitting(false);
+    snack({ message: "Product added" });
     closeSheet();
     router.refresh();
   }

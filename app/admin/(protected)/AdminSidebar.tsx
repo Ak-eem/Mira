@@ -8,9 +8,9 @@ import { isRouteGroupActive } from "@/lib/adminRoutes";
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/businesses", label: "Businesses" },
-  { href: "/admin/analytics", label: "Mira Analytics" },
+  { href: "/admin/analytics", label: "Analytics" },
   { href: "/admin/activity", label: "Activity" },
-  { href: "/admin/queue", label: "Message queue" },
+  { href: "/admin/queue", label: "Messages" },
   { href: "/admin/settings", label: "Settings" },
 ];
 
