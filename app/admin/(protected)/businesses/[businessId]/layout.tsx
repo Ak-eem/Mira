@@ -42,12 +42,12 @@ export default async function AdminBusinessLayout({
         allBusinesses={allBusinesses ?? [{ id: businessId, name: business.name }]}
       />
       <div className="min-w-0 flex-1">
-        <nav aria-label="Breadcrumb" className="mb-4 flex items-center gap-1 text-sm text-slate-500">
-          <Link href="/admin" className="hover:text-accent">Mira Admin</Link>
+        <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-sm text-slate-500">
+          <Link href="/admin" className="whitespace-nowrap hover:text-accent">Mira Admin</Link>
           <span aria-hidden="true">/</span>
-          <Link href="/admin/businesses" className="hover:text-accent">Businesses</Link>
+          <Link href="/admin/businesses" className="whitespace-nowrap hover:text-accent">Businesses</Link>
           <span aria-hidden="true">/</span>
-          <span className="font-medium text-slate-700">{business.name}</span>
+          <span className="min-w-0 break-words font-medium text-slate-700">{business.name}</span>
         </nav>
         <div
           className={`mb-5 flex items-center justify-between rounded-lg border px-4 py-2 text-sm ${

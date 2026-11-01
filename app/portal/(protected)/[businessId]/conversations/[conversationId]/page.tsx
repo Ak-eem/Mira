@@ -153,7 +153,7 @@ export default async function PortalConversationThreadPage({
 
       {!conversation.needs_human && !isClaimed && <div className="mb-6" />}
 
-      <div className="space-y-3 ui-card">
+      <div className="ui-card min-w-0 space-y-3 [overflow-wrap:anywhere]">
         {messages?.map((m) => {
           const snapshot = m.context_snapshot as MessageContextSnapshot | null;
 
@@ -175,10 +175,10 @@ export default async function PortalConversationThreadPage({
               <span
                 className={
                   m.role === "customer"
-                    ? "inline-block max-w-[85%] rounded-2xl bg-accent px-3.5 py-2 text-sm text-white"
+                    ? "inline-block max-w-[85%] whitespace-pre-wrap rounded-2xl bg-accent px-3.5 py-2 text-left text-sm text-white"
                     : isOperatorReply
-                      ? "inline-block max-w-[85%] rounded-2xl bg-marigold/25 px-3.5 py-2 text-sm text-slate-900 ring-1 ring-marigold/50"
-                      : "inline-block max-w-[85%] rounded-2xl bg-white px-3.5 py-2 text-sm text-slate-900 ring-1 ring-slate-900/10"
+                      ? "inline-block max-w-[85%] whitespace-pre-wrap rounded-2xl bg-marigold/25 px-3.5 py-2 text-left text-sm text-slate-900 ring-1 ring-marigold/50"
+                      : "inline-block max-w-[85%] whitespace-pre-wrap rounded-2xl bg-white px-3.5 py-2 text-left text-sm text-slate-900 ring-1 ring-slate-900/10"
                 }
               >
                 {linkifyContent(m.content)}

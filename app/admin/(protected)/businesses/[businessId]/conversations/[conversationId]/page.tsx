@@ -100,7 +100,7 @@ export default async function ConversationThreadPage({
         {isClaimed && ` ${conversation.claimed_by} is handling it.`}
       </p>
 
-      <div className="space-y-3">
+      <div className="min-w-0 space-y-3 [overflow-wrap:anywhere]">
         {messages?.map((m) => {
           const snapshot = m.context_snapshot as MessageContextSnapshot | null;
 
@@ -122,10 +122,10 @@ export default async function ConversationThreadPage({
               <span
                 className={
                   m.role === "customer"
-                    ? "inline-block max-w-[85%] rounded-lg bg-accent px-3 py-2 text-sm text-white"
+                    ? "inline-block max-w-[85%] whitespace-pre-wrap rounded-lg bg-accent px-3 py-2 text-left text-sm text-white"
                     : isOperatorReply
-                      ? "inline-block max-w-[85%] rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-sm"
-                      : "inline-block max-w-[85%] rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm"
+                      ? "inline-block max-w-[85%] whitespace-pre-wrap rounded-lg border border-sky-200 bg-sky-50 px-3 py-2 text-left text-sm"
+                      : "inline-block max-w-[85%] whitespace-pre-wrap rounded-lg border border-slate-200 bg-white px-3 py-2 text-left text-sm"
                 }
               >
                 {linkifyContent(m.content)}

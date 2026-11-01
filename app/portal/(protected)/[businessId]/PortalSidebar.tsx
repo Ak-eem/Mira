@@ -146,10 +146,10 @@ export function PortalSidebar({
                         onClick={() => setOpen(false)}
                         aria-current={active ? "page" : undefined}
                         className={`flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[15px] transition-colors duration-200 ${
-                          active ? "bg-accent/10 font-semibold text-accent" : "text-ink-2 hover:bg-slate-900/5 hover:text-ink"
+                          active ? "bg-ink font-semibold text-white shadow-soft" : "text-ink-2 hover:bg-slate-900/5 hover:text-ink"
                         }`}
                       >
-                        <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? "text-accent" : "text-muted"}`} aria-hidden="true" />
+                        <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? "text-marigold" : "text-muted"}`} aria-hidden="true" />
                         <span className="flex-1 truncate">{item.label}</span>
                         {item.badge ? (
                           <span className="rounded-full bg-marigold px-2 py-0.5 text-[11px] font-semibold text-ink">{item.badge}</span>

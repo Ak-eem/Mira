@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { EmailForwardingGuide } from "@/components/EmailForwardingGuide";
 import { getCurrentDraft, getActiveRelease, getPublishedHistory } from "@/lib/promptReleases";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { SegmentedLinks } from "@/components/ui/Segmented";
 import { PromptEditor } from "./PromptEditor";
 import { OrderTakingPanel } from "./OrderTakingPanel";
@@ -81,6 +82,7 @@ export default async function PortalSettingsPage({ params, searchParams }: PageP
     { key: "info", label: "Business info", href: `${base}?tab=info` },
     { key: "widget", label: "Website chat", href: `${base}?tab=widget` },
     { key: "behaviour", label: "How Mira behaves", href: `${base}?tab=behaviour` },
+    { key: "appearance", label: "Appearance", href: `${base}?tab=appearance` },
     ...(isOwner ? [{ key: "plan", label: "Plan", href: `${base}?tab=plan` }] : []),
   ];
   const tab = tabs.some((t) => t.key === requestedTab) ? (requestedTab as string) : "info";
@@ -89,7 +91,7 @@ export default async function PortalSettingsPage({ params, searchParams }: PageP
     <div className="max-w-2xl">
       <PageHeader title="Settings" subtitle="Everything that changes what Mira says and how it behaves. Publishing a new version is the only thing that changes what customers see." />
 
-      <div className="mb-6 overflow-x-auto pb-1">
+      <div className="mb-6 ui-scroll-x pb-1">
         <SegmentedLinks label="Settings sections" current={tab} options={tabs} />
       </div>
 
@@ -129,6 +131,8 @@ export default async function PortalSettingsPage({ params, searchParams }: PageP
             <PromptEditor businessId={businessId} initialDraft={draft} active={active} history={history} canPublish={isOwner} />
           </>
         )}
+
+        {tab === "appearance" && <ThemeToggle />}
 
         {/* Owners only. Staff never see the cancel option. */}
         {tab === "plan" && isOwner && (

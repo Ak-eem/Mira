@@ -1,5 +1,6 @@
 import { setupChecklist } from "@/lib/admin/setupChecklist";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 export const metadata = { title: "Settings" };
 export const dynamic = "force-dynamic";
@@ -12,6 +13,7 @@ export default function AdminSettingsPage() {
       <div>
         <PageHeader title="Settings" subtitle={<>What is configured on this deployment. Only whether each setting is present is shown, never its value. Change them in Vercel &gt; Settings &gt; Environment Variables, then redeploy. Per-business settings (profile, subscription, owners) are in each business&apos;s own Settings page.</>} />
       </div>
+      <ThemeToggle />
       <p className={`rounded-xl border px-4 py-3 text-sm ${missing === 0 ? "border-emerald-200 bg-emerald-50/70 text-emerald-800" : "border-amber-200 bg-amber-50/70 text-amber-800"}`} role="status">
         {missing === 0 ? "Everything below is set." : `${missing} setting${missing === 1 ? "" : "s"} need attention.`}
       </p>

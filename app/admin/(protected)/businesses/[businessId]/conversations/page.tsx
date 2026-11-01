@@ -49,14 +49,14 @@ export default async function ConversationsPage({
             <li key={c.id}>
             <Link
               href={`/admin/businesses/${businessId}/conversations/${c.id}`}
-              className="flex items-center justify-between rounded-sm border border-slate-200 bg-white p-3 hover:border-accent"
+              className="flex flex-col gap-1.5 rounded-sm border border-slate-200 bg-white p-3 hover:border-accent sm:flex-row sm:items-center sm:justify-between sm:gap-3"
             >
-              <span className="flex items-center gap-2">
+              <span className="flex min-w-0 flex-wrap items-center gap-2">
                 {isUnread && (
                   <span className="h-2 w-2 shrink-0 rounded-full bg-accent" title="Unread" aria-label="Unread" />
                 )}
                 {c.claimed_by ? (
-                  <span className="rounded-sm bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
+                  <span className="max-w-full break-all rounded-sm bg-sky-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sky-700">
                     {c.claimed_by}
                   </span>
                 ) : (
@@ -72,7 +72,7 @@ export default async function ConversationsPage({
                   {c.channel === "whatsapp" ? "WhatsApp" : "Web"}
                 </span>
               </span>
-              <span className="text-sm text-slate-500">{new Date(c.last_message_at).toLocaleString()}</span>
+              <span className="shrink-0 text-sm text-slate-500">{new Date(c.last_message_at).toLocaleString()}</span>
             </Link>
             </li>
           );

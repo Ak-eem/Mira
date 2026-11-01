@@ -122,7 +122,51 @@ export function DataTable({
             </label>
           </div>
 
-          <div className="mt-3 overflow-x-auto">
+          {/* Phones: one stacked card per row, so no column is hidden behind a sideways scroll. */}
+          <ul className="mt-3 divide-y divide-line border-t border-line sm:hidden">
+            {visible.map((row) => {
+              const [primary, ...rest] = columns;
+              const statusColumn = rest.find((c) => c.kind === "status");
+              const details = rest.filter((c) => c !== statusColumn);
+              const body = (
+                <>
+                  <span className="flex items-start justify-between gap-3">
+                    <span className="min-w-0 flex-1 [&_.truncate]:whitespace-normal [&_.truncate]:break-words">
+                      <Cell column={primary} row={row} />
+                    </span>
+                    {statusColumn && (
+                      <span className="shrink-0">
+                        <Cell column={statusColumn} row={row} />
+                      </span>
+                    )}
+                  </span>
+                  {details.length > 0 && (
+                    <span className="mt-1.5 flex flex-wrap gap-x-5 gap-y-1 pl-11 text-sm [&_.truncate]:whitespace-normal [&_.truncate]:break-words">
+                      {details.map((column) => (
+                        <span key={column.key} className="flex min-w-0 max-w-full gap-1.5">
+                          <span className="shrink-0 text-xs leading-5 text-muted">{column.header}</span>
+                          <Cell column={column} row={row} />
+                        </span>
+                      ))}
+                    </span>
+                  )}
+                </>
+              );
+              return (
+                <li key={row.id}>
+                  {row.href ? (
+                    <Link href={row.href} className="block px-5 py-3 transition active:bg-mist/60">
+                      {body}
+                    </Link>
+                  ) : (
+                    <div className="px-5 py-3">{body}</div>
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+
+          <div className="mt-3 hidden overflow-x-auto sm:block">
             <table className="w-full min-w-[420px] text-left text-sm">
               <thead>
                 <tr className="border-y border-line text-xs text-muted">
@@ -189,8 +233,8 @@ export function DataTable({
                 ))}
               </tbody>
             </table>
-            {visible.length === 0 && <p className="px-5 py-4 text-sm text-muted">Nothing matches &ldquo;{query}&rdquo;.</p>}
           </div>
+          {visible.length === 0 && <p className="px-5 py-4 text-sm text-muted">Nothing matches &ldquo;{query}&rdquo;.</p>}
         </>
       )}
     </section>

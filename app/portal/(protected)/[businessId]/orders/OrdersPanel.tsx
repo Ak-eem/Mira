@@ -135,7 +135,7 @@ function NewOrderForm({
           onChange={(e) => setSelectedConversation(e.target.value)}
         >
           <option value="">
-            {recentConversations.length > 0 ? "-- pick a recent chat, or enter a phone number below --" : "No recent chats yet"}
+            {recentConversations.length > 0 ? "Pick a recent chat…" : "No recent chats yet"}
           </option>
           {recentConversations.map((c) => (
             <option key={c.identifier} value={c.identifier}>
@@ -150,7 +150,7 @@ function NewOrderForm({
         {!selectedConversation && (
           <input
             className="mt-2 w-full ui-field font-mono"
-            placeholder="or enter a WhatsApp number, e.g. 2348012345678"
+            placeholder="or enter a WhatsApp number"
             value={customerIdentifier}
             onChange={(e) => setCustomerIdentifier(e.target.value)}
           />
@@ -160,21 +160,21 @@ function NewOrderForm({
       <div className="space-y-2">
         <label className="block text-xs font-medium text-slate-600">Items</label>
         {items.map((item, i) => (
-          <div key={i} className="flex gap-2">
+          <div key={i} className="grid grid-cols-2 gap-2 sm:grid-cols-[2fr_1fr_1fr]">
             <input
-              className="w-1/2 ui-field"
+              className="ui-field col-span-2 sm:col-span-1"
               placeholder="Item name"
               value={item.name}
               onChange={(e) => updateItem(i, "name", e.target.value)}
             />
             <input
-              className="w-1/4 ui-field"
+              className="ui-field min-w-0"
               placeholder="Qty"
               value={item.quantity}
               onChange={(e) => updateItem(i, "quantity", e.target.value)}
             />
             <input
-              className="w-1/4 ui-field"
+              className="ui-field min-w-0"
               placeholder="Unit price"
               value={item.unitPrice}
               onChange={(e) => updateItem(i, "unitPrice", e.target.value)}
@@ -184,7 +184,7 @@ function NewOrderForm({
         <button
           type="button"
           onClick={() => setItems((prev) => [...prev, { name: "", quantity: "1", unitPrice: "" }])}
-          className="text-xs text-accent hover:underline"
+          className="inline-flex min-h-9 items-center text-sm text-accent hover:underline"
         >
           + Add item
         </button>

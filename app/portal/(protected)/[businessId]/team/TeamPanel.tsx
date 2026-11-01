@@ -270,7 +270,7 @@ export function TeamPanel({ businessId }: { businessId: string }) {
         <p className="text-sm text-slate-500">
           They&apos;ll get an email with a link to join as staff. You can make them an owner afterwards.
         </p>
-        <form onSubmit={handleInvite} className="flex gap-2">
+        <form onSubmit={handleInvite} className="flex flex-col gap-2 sm:flex-row">
           <input
             type="email"
             required

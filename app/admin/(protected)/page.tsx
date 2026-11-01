@@ -48,16 +48,16 @@ export default async function AdminDashboardPage() {
       <div>
         <PageHeader title="Dashboard" subtitle="How Mira is doing across every business." />
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-          <div className="glass-panel rounded-xl p-5">
-            <p className="text-3xl font-semibold tracking-tight text-slate-900">{businessesError ? "-" : businesses?.length ?? 0}</p>
+          <div className="glass-panel rounded-2xl p-5">
+            <p className="text-3xl font-semibold tracking-tight text-ink">{businessesError ? "-" : businesses?.length ?? 0}</p>
             <p className="mt-1 text-sm text-slate-500">Businesses</p>
           </div>
-          <div className="glass-panel rounded-xl p-5">
-            <p className="text-3xl font-semibold tracking-tight text-sky-700">{subscriptionsError ? "-" : counts.onTrial}</p>
+          <div className="glass-panel rounded-2xl p-5">
+            <p className="text-3xl font-semibold tracking-tight text-ink-2">{subscriptionsError ? "-" : counts.onTrial}</p>
             <p className="mt-1 text-sm text-slate-500">On trial</p>
           </div>
-          <div className="glass-panel rounded-xl p-5">
-            <p className="text-3xl font-semibold tracking-tight text-emerald-700">{subscriptionsError ? "-" : counts.active}</p>
+          <div className="glass-panel rounded-2xl p-5">
+            <p className="text-3xl font-semibold tracking-tight text-accent">{subscriptionsError ? "-" : counts.active}</p>
             <p className="mt-1 text-sm text-slate-500">Active plan</p>
           </div>
           <div className={`rounded-xl p-5 transition ${counts.needsPayment > 0 ? "border border-amber-300/50 bg-amber-50/70 backdrop-blur-md" : "glass-panel"}`}>
@@ -80,7 +80,7 @@ export default async function AdminDashboardPage() {
       <div className="glass-panel rounded-xl p-5">
         <p className="mb-3 font-medium text-slate-900">Quick actions</p>
         <div className="flex flex-wrap gap-2">
-          <Link href="/admin/businesses/new" className="glass-hover rounded-lg bg-accent px-3 py-1.5 text-sm font-medium text-white">
+          <Link href="/admin/businesses/new" className="glass-hover rounded-full bg-ink px-4 py-1.5 text-sm font-medium text-white">
             + New business
           </Link>
           <Link href="/admin/businesses" className="glass-hover rounded-lg px-3 py-1.5 text-sm font-medium text-slate-700">
