@@ -36,12 +36,12 @@ export function NewClosureForm({ businessId }: { businessId: string }) {
     <form onSubmit={handleSubmit} className="space-y-3 rounded-lg border border-slate-200 bg-white p-4">
       <h2 className="text-sm font-semibold">Add a closure</h2>
 
-      <div className="flex gap-2">
-        <div className="flex-1">
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="min-w-0 flex-1">
           <label className="block text-xs text-slate-500">From</label>
           <input type="datetime-local" className="w-full ui-field" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} required />
         </div>
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <label className="block text-xs text-slate-500">Until</label>
           <input type="datetime-local" className="w-full ui-field" value={endsAt} onChange={(e) => setEndsAt(e.target.value)} required />
         </div>

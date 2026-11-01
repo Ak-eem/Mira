@@ -13,7 +13,7 @@ export function AdminSignOutButton() {
   }
 
   return (
-    <button type="button" onClick={handleSignOut} className="glass-hover rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700">
+    <button type="button" onClick={handleSignOut} className="glass-hover shrink-0 whitespace-nowrap rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700">
       Sign out
     </button>
   );

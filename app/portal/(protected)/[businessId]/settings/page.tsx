@@ -91,7 +91,7 @@ export default async function PortalSettingsPage({ params, searchParams }: PageP
     <div className="max-w-2xl">
       <PageHeader title="Settings" subtitle="Everything that changes what Mira says and how it behaves. Publishing a new version is the only thing that changes what customers see." />
 
-      <div className="mb-6 overflow-x-auto pb-1">
+      <div className="mb-6 ui-scroll-x pb-1">
         <SegmentedLinks label="Settings sections" current={tab} options={tabs} />
       </div>
 

@@ -34,13 +34,13 @@ export function ServiceList({ services, currency }: { services: Service[]; curre
           />
         ) : (
           <li key={s.id} className="ui-row flex-col items-stretch gap-1">
-            <div className="flex items-center justify-between">
-              <span className="font-medium">{s.name}</span>
-              <span className="font-mono text-sm text-slate-500">
-                {s.price != null ? `${currency} ${s.price}` : "Price on request"}
+            <div className="flex items-start justify-between gap-3">
+              <span className="min-w-0 break-words font-medium">{s.name}</span>
+              <span className="shrink-0 font-mono text-sm tabular-nums text-slate-500">
+                {s.price != null ? `${currency} ${Number(s.price).toLocaleString("en-NG")}` : "Price on request"}
               </span>
             </div>
-            {s.description && <p className="mt-1 text-sm text-slate-500">{s.description}</p>}
+            {s.description && <p className="mt-1 break-words text-sm text-slate-500">{s.description}</p>}
             {!s.is_available && (
               <p className="mt-1 text-xs text-amber-600">
                 Unavailable{s.availability_note ? ` — ${s.availability_note}` : ""}

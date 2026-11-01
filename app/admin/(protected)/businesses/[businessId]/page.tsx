@@ -113,16 +113,16 @@ export default async function BusinessDetailPage({
 
   return (
     <div>
-      <div className="mb-2 mt-2 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-semibold">{business.name}</h1>
-          <p className="font-mono text-sm text-slate-500">
+      <div className="mb-2 mt-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+        <div className="min-w-0">
+          <h1 className="break-words text-xl font-semibold">{business.name}</h1>
+          <p className="break-all font-mono text-sm text-slate-500">
             /chat/{business.slug} · {business.currency} · {business.timezone}
           </p>
         </div>
 
-        <div className="flex flex-col items-end gap-2">
-          <div className="flex flex-col items-end gap-1">
+        <div className="flex shrink-0 flex-col gap-2 sm:items-end">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:flex-col sm:items-end sm:gap-1">
             <span className={`text-xs font-medium ${statusStyles[miraStatus]}`}>
               {statusLabels[miraStatus]}
             </span>

@@ -29,12 +29,12 @@ export default async function AdminLayout({
     <ThemeProvider>
       <ThemeScript />
       <div className="mira-wash min-h-screen">
-      <header className="glass-panel-strong sticky top-0 z-10 flex items-center justify-between gap-3 px-6 py-3">
+      <header className="glass-panel-strong sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-4">
-          <DashboardLink scope="admin" className="font-semibold text-slate-900">
+          <DashboardLink scope="admin" className="whitespace-nowrap font-semibold text-slate-900">
             Mira <span className="font-normal text-accent">Admin</span>
           </DashboardLink>
-          <span className="truncate text-sm text-slate-500">{admin.email}</span>
+          <span className="hidden truncate text-sm text-slate-500 sm:inline">{admin.email}</span>
         </div>
         <AdminSignOutButton />
       </header>

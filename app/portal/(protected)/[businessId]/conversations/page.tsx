@@ -86,7 +86,7 @@ export default async function PortalConversationsPage({
     <div>
       <PageHeader title="Conversations" subtitle="Everything customers have asked, across your website and WhatsApp." />
 
-      <div className="mb-5 overflow-x-auto pb-1">
+      <div className="mb-5 ui-scroll-x pb-1">
         <SegmentedLinks label="Conversation filters" current={filter} options={filterOptions} />
       </div>
 
@@ -103,18 +103,19 @@ export default async function PortalConversationsPage({
         <ul className="ui-group ui-enter">
           {conversations.map((conversation) => (
             <li key={conversation.id} className="ui-row flex-wrap justify-between gap-y-2">
-              <Link href={`${basePath}/${conversation.id}`} className="flex min-w-0 flex-1 items-center justify-between gap-4 py-0.5">
-                <span className="flex min-w-0 items-center gap-2.5">
-                  {conversation.is_unread && <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-accent" title="Unread" aria-label="Unread" />}
-                  <span className="min-w-0">
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span className="text-[15px] font-medium text-slate-900">{customerLabel(conversation.session_token)}</span>
-                      {conversation.needs_human && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Needs you</span>}
-                    </span>
-                    <span className={`ui-hint block ${conversation.channel === "whatsapp" ? "!text-emerald-700" : ""}`}>{conversation.channel === "whatsapp" ? "WhatsApp" : "Website"}</span>
+              <Link href={`${basePath}/${conversation.id}`} className="flex min-w-[min(100%,14rem)] flex-1 items-center gap-3 py-0.5">
+                <span className={`h-2.5 w-2.5 shrink-0 rounded-full ${conversation.is_unread ? "bg-accent" : "bg-transparent"}`} {...(conversation.is_unread ? { title: "Unread", role: "img", "aria-label": "Unread" } : { "aria-hidden": true })} />
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="break-words text-[15px] font-medium text-slate-900">{customerLabel(conversation.session_token)}</span>
+                    {conversation.needs_human && <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-semibold text-amber-800">Needs you</span>}
+                  </span>
+                  <span className="ui-hint block">
+                    <span className={conversation.channel === "whatsapp" ? "!text-emerald-700" : ""}>{conversation.channel === "whatsapp" ? "WhatsApp" : "Website"}</span>
+                    <span className="sm:hidden"> · {formatDateTime(conversation.last_message_at)}</span>
                   </span>
                 </span>
-                <span className="shrink-0 text-sm text-slate-500">{formatDateTime(conversation.last_message_at)}</span>
+                <span className="hidden shrink-0 text-sm text-slate-500 sm:block">{formatDateTime(conversation.last_message_at)}</span>
               </Link>
 
               <AssignmentControls

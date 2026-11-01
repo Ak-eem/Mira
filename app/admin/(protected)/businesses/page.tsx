@@ -89,20 +89,20 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
               <Link
                 key={b.id}
                 href={`/admin/businesses/${b.id}`}
-                className="ui-row justify-between"
+                className="ui-row flex-wrap justify-between gap-y-2"
               >
-                <div>
+                <div className="min-w-0 flex-1 basis-48 break-words">
                   <p className="font-medium text-slate-900">{b.name}</p>
                   <p className="text-sm text-slate-500">/chat/{b.slug}</p>
                 </div>
-                <span className="flex items-center gap-2">
+                <span className="flex flex-wrap items-center gap-2">
                   {flaggedCount > 0 && (
-                    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                    <span className="whitespace-nowrap rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
                       🚩 {flaggedCount}
                     </span>
                   )}
                   <span
-                    className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                    className={`whitespace-nowrap rounded-full border px-2 py-0.5 text-[11px] font-medium ${
                       sub ? STATUS_STYLES[sub.status] : "border-slate-200 bg-slate-100 text-slate-500"
                     }`}
                   >

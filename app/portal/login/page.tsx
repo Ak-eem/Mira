@@ -57,7 +57,7 @@ export default function PortalLoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12 text-slate-900">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-canvas px-4 py-12 text-slate-900">
       <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(165,243,252,0.4),transparent_42%)]" />
       <div className="relative w-full max-w-sm">
         <h1 className="mb-8 text-center text-2xl font-semibold tracking-tight text-slate-900">

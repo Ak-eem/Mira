@@ -81,12 +81,12 @@ export function AssignmentControls({
   }
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
       <span
         className={
           displayedClaimedBy
-            ? "rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent"
-            : "rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
+            ? "max-w-full break-all rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent"
+            : "max-w-full break-all rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600"
         }
         aria-label={
           displayedClaimedBy

@@ -45,11 +45,11 @@ export function ProductList({ products, currency }: { products: Product[]; curre
               </div>
             )}
             <div className="min-w-0 flex-1">
-              <div className="flex items-center justify-between">
-                <span className="font-medium">{p.name}</span>
-                <span className="font-mono text-sm text-slate-500">{currency} {p.price}</span>
+              <div className="flex items-start justify-between gap-3">
+                <span className="min-w-0 break-words font-medium">{p.name}</span>
+                <span className="shrink-0 font-mono text-sm tabular-nums text-slate-500">{currency} {Number(p.price).toLocaleString("en-NG")}</span>
               </div>
-              {p.description && <p className="mt-1 text-sm text-slate-500">{p.description}</p>}
+              {p.description && <p className="mt-1 break-words text-sm text-slate-500">{p.description}</p>}
               <p className="mt-1 text-xs text-slate-500">
                 {p.stock_quantity != null ? `${p.stock_quantity} in stock` : "Stock not tracked"}
               </p>

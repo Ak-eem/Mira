@@ -188,7 +188,10 @@
 :root[data-theme="dark"] .ui-btn-primary { color: var(--color-on-accent); }
 :root[data-theme="dark"] .ui-btn-danger { background: rgb(240 138 115 / 0.14); color: #f4a493; }
 :root[data-theme="dark"] .ui-btn-danger:hover:not(:disabled) { background: rgb(240 138 115 / 0.24); }
-:root[data-theme="dark"] .ui-segmented-thumb { background: var(--color-slate-300); box-shadow: 0 1px 3px rgb(0 0 0 / 0.5); }
+:root[data-theme="dark"] .ui-segmented { --ui-thumb: var(--color-slate-300); }
+:root[data-theme="dark"] .ui-segmented-thumb,
+:root[data-theme="dark"] .ui-segment[aria-checked="true"],
+:root[data-theme="dark"] .ui-segment[aria-current="page"] { box-shadow: 0 1px 3px rgb(0 0 0 / 0.5); }
 :root[data-theme="dark"] .ui-sheet { background: var(--color-slate-100); }
 
 /* Tailwind's bg-white is also text-white, so it can't be remapped through the
