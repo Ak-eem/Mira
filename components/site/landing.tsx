@@ -63,18 +63,22 @@ export function Nav() {
           </div>
         </div>
       </GlassSurface>
-      {open && (
-        <div className="glass absolute top-16 right-3 left-3 flex flex-col gap-1 rounded-[24px] p-2 shadow-float md:hidden">
-          {NAV.map(([l, h]) => (
-            <a key={h} href={h} onClick={() => setOpen(false)} className="rounded-[16px] px-4 py-3 text-[15px] hover:bg-mist">
-              {l}
-            </a>
-          ))}
-          <Button href="/signup" size="lg" className="mt-1 !transition-none active:!scale-100">
-            Start free trial
-          </Button>
-        </div>
-      )}
+      <div
+        className={[
+          'glass absolute top-16 right-3 left-3 flex flex-col gap-1 rounded-[24px] p-2 shadow-float transition-all duration-300 ease-out md:hidden',
+          open ? 'translate-y-0 opacity-100' : 'pointer-events-none -translate-y-2 opacity-0',
+        ].join(' ')}
+        aria-hidden={!open}
+      >
+        {NAV.map(([l, h]) => (
+          <a key={h} href={h} onClick={() => setOpen(false)} className="rounded-[16px] px-4 py-3 text-[15px] transition-colors duration-200 hover:bg-mist">
+            {l}
+          </a>
+        ))}
+        <Button href="/signup" size="lg" className="mt-1 !transition-none active:!scale-100">
+          Start free trial
+        </Button>
+      </div>
     </header>
   )
 }
