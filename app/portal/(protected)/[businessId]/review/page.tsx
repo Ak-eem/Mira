@@ -105,6 +105,28 @@ export default async function PortalReviewPage({ params }: PageProps) {
       });
   }
 
+  // A thumbs-down reply can carry a grounding verdict the list above didn't
+  // pick up: a "medium" while the review level is "low", or one that fell
+  // outside the flagged query's limit. Look those up directly so a customer's
+  // reason is never shown without the grounding signals for the same reply.
+  const unassessed = Array.from(items.values()).filter((item) => item.verdict === null).map((item) => item.messageId);
+  if (unassessed.length > 0) {
+    const { data: assessments } = await supabase
+      .from("message_assessments")
+      .select("message_id, verdict, signals, question")
+      .eq("business_id", businessId)
+      .in("message_id", unassessed);
+    for (const row of assessments ?? []) {
+      const item = items.get(row.message_id);
+      if (!item) continue;
+      if (row.verdict === "low" || row.verdict === "medium") {
+        item.verdict = row.verdict;
+        item.signals = (row.signals ?? []) as GroundingSignal[];
+      }
+      if (!item.question && row.question) item.question = row.question;
+    }
+  }
+
   const ids = Array.from(items.keys());
 
   // Anything your team already reviewed drops off the list.

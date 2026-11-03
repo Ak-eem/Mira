@@ -67,6 +67,22 @@ check("covered payment method -> high", run("You can pay by bank transfer.").ver
 check("uncovered payment method -> medium", run("You can pay with mobile money.").verdict === "medium");
 check("another uncovered payment method -> medium", run("We also accept cash on delivery.").verdict === "medium");
 
+// ---- how the verdict is decided (thresholds)
+check("wrong price + uncovered claim -> low (hard beats soft)", run("Red dress is ₦9,999 and you get a full refund.").verdict === "low");
+check("correct price + uncovered claim -> medium", run("Red dress is ₦15,000, with a refund option.").verdict === "medium");
+check("correct price + covered claim -> high", run("Red dress is ₦15,000 and we deliver within Lagos.").verdict === "high");
+check("an unsupported claim alone never reaches low", run("All dresses come with a one-year warranty.").verdict !== "low");
+check("a long reply cannot hide a wrong price past the signal cap", (() => {
+  const emails = Array.from({ length: 12 }, (_, i) => `staff${i}@adas.com`);
+  const r = assessGrounding({ ...base, knowledge: `${knowledge}\n${emails.join(" ")}`, reply: `${emails.join(" ")} The Red Ankara Dress is ₦9,999.` });
+  return r.verdict === "low" && r.signals.length <= 12 && r.signals.some((s) => s.type === "price" && !s.supported);
+})());
+check("capped list keeps unsupported signals ahead of supported ones", (() => {
+  const emails = Array.from({ length: 14 }, (_, i) => `staff${i}@adas.com`);
+  const r = assessGrounding({ ...base, knowledge: `${knowledge}\n${emails.join(" ")}`, reply: `${emails.join(" ")} Call 0803 999 1111.` });
+  return r.signals.length === 12 && r.signals[0].supported === false;
+})());
+
 // ---- fallback + unchecked
 check("fallback sentence -> low", run("I don't have that information for Ada's Store yet. I'd recommend contacting them directly to confirm.").verdict === "low");
 check("plain chat with no checkable facts -> unchecked", run("Sure, happy to help! Which dress are you interested in?").verdict === "unchecked");
