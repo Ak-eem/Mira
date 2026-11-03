@@ -256,12 +256,21 @@ export function assessGrounding(input: GroundingInput): GroundingResult {
     if (rule.reply.test(assertive)) add({ type: "claim", value: rule.label, supported: rule.known.test(knownLower) });
   }
 
-  const limited = signals.slice(0, MAX_SIGNALS);
-  if (limited.length === 0) return { verdict: "unchecked", signals: [] };
+  if (signals.length === 0) return { verdict: "unchecked", signals: [] };
 
-  const hardUnsupported = limited.filter((s) => s.type !== "claim" && !s.supported).length;
-  const softUnsupported = limited.filter((s) => s.type === "claim" && !s.supported).length;
+  // The verdict is decided from EVERY signal found. The cap below only limits
+  // what is stored and shown: capping first would let a wrong price that sits
+  // past the 12th signal (a long catalogue reply) come back as "high".
+  const hardUnsupported = signals.filter((s) => s.type !== "claim" && !s.supported).length;
+  const softUnsupported = signals.filter((s) => s.type === "claim" && !s.supported).length;
   const verdict: GroundingVerdict = hardUnsupported > 0 ? "low" : softUnsupported > 0 ? "medium" : "high";
+
+  // When trimming, keep the unsupported signals first so the ones that caused
+  // the verdict are always the ones the owner gets to see.
+  const limited =
+    signals.length <= MAX_SIGNALS
+      ? signals
+      : [...signals.filter((s) => !s.supported), ...signals.filter((s) => s.supported)].slice(0, MAX_SIGNALS);
   return { verdict, signals: limited };
 }
 
