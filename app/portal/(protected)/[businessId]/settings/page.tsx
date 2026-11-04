@@ -11,7 +11,7 @@ import { PromptEditor } from "./PromptEditor";
 import { OrderTakingPanel } from "./OrderTakingPanel";
 import { CourierPanel } from "./CourierPanel";
 import { BrandColorPanel } from "./BrandColorPanel";
-import { getBrandColor } from "@/lib/brandSettings";
+import { getChatColors } from "@/lib/brandSettings";
 import { GroundingPanel } from "./GroundingPanel";
 import { getGroundingSettings } from "@/lib/grounding/settings";
 import { CancelSubscriptionPanel } from "./CancelSubscriptionPanel";
@@ -37,14 +37,14 @@ export default async function PortalSettingsPage({ params, searchParams }: PageP
   if (!owner || !membership) redirect("/portal/login");
 
   const supabase = await createClient();
-  const [draft, active, history, orderTakingEnabled, { data: emailBusiness }, groundingSettings, brandColor, courier] = await Promise.all([
+  const [draft, active, history, orderTakingEnabled, { data: emailBusiness }, groundingSettings, chatColors, courier] = await Promise.all([
     getCurrentDraft(businessId),
     getActiveRelease(businessId),
     getPublishedHistory(businessId),
     getOrderTakingEnabled(businessId),
     supabase.from("businesses").select("email_inbound_address, slug").eq("id", businessId).maybeSingle(),
     getGroundingSettings(supabase, businessId),
-    getBrandColor(businessId),
+    getChatColors(businessId),
     // Non-secret columns only; the encrypted webhook secret is never read into a page.
     supabase
       .from("business_logistics_accounts")
@@ -119,7 +119,7 @@ export default async function PortalSettingsPage({ params, searchParams }: PageP
                 <EmbedSnippet slug={emailBusiness.slug} businessName={businessName} />
               </div>
             )}
-            <BrandColorPanel businessId={businessId} businessName={businessName} initialColor={brandColor} canEdit={isOwner} />
+            <BrandColorPanel businessId={businessId} businessName={businessName} initialBrand={chatColors.brandColor} initialBackground={chatColors.backgroundColor} canEdit={isOwner} />
           </>
         )}
 

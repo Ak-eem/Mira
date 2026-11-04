@@ -2,112 +2,176 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { brandTheme, checkBrandColor, DEFAULT_BRAND_COLOR, parseBrandColor } from "@/lib/brandColor";
-import { saveBrandColor } from "./actions";
+import {
+  checkChatColors,
+  chatThemeVars,
+  DEFAULT_BRAND_COLOR,
+  DEFAULT_CHAT_BACKGROUND,
+  parseBrandColor,
+} from "@/lib/brandColor";
+import { saveChatColors } from "./actions";
+
+function ColorField({
+  label,
+  hint,
+  text,
+  setText,
+  fallback,
+  disabled,
+}: {
+  label: string;
+  hint: string;
+  text: string;
+  setText: (value: string) => void;
+  fallback: string;
+  disabled: boolean;
+}) {
+  const parsed = parseBrandColor(text);
+  return (
+    <div>
+      <p className="text-sm font-medium">{label}</p>
+      <p className="text-xs text-slate-500">{hint}</p>
+      <div className="mt-2 flex flex-wrap items-center gap-3">
+        <input
+          type="color"
+          aria-label={`Pick the ${label.toLowerCase()}`}
+          value={parsed ?? fallback}
+          disabled={disabled}
+          onChange={(e) => setText(e.target.value)}
+          className="h-11 w-14 cursor-pointer rounded-xl border border-slate-200 bg-white p-1 disabled:cursor-not-allowed"
+        />
+        <input
+          type="text"
+          aria-label={`${label} hex code`}
+          value={text}
+          placeholder="Default"
+          disabled={disabled}
+          onChange={(e) => setText(e.target.value)}
+          maxLength={7}
+          spellCheck={false}
+          className="w-28 ui-field font-mono uppercase focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+        />
+        {text !== "" && !disabled && (
+          <button type="button" onClick={() => setText("")} className="text-xs font-medium text-slate-500 underline-offset-2 hover:underline">
+            Use Mira&apos;s default
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 export function BrandColorPanel({
   businessId,
   businessName,
-  initialColor,
+  initialBrand,
+  initialBackground,
   canEdit,
 }: {
   businessId: string;
   businessName: string;
-  initialColor: string | null;
+  initialBrand: string | null;
+  initialBackground: string | null;
   canEdit: boolean;
 }) {
   const router = useRouter();
-  const [saved, setSaved] = useState<string | null>(initialColor);
-  const [text, setText] = useState(initialColor ?? DEFAULT_BRAND_COLOR);
+  const [saved, setSaved] = useState({ brand: initialBrand, background: initialBackground });
+  // An empty field means "Mira's default".
+  const [brandText, setBrandText] = useState(initialBrand ?? "");
+  const [backgroundText, setBackgroundText] = useState(initialBackground ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
 
-  const parsed = parseBrandColor(text);
-  const check = checkBrandColor(text);
-  // The preview follows what's typed whenever it's a usable colour, so owners see the
-  // result before saving. An unusable colour keeps showing the last good one.
-  const previewColor = check.ok ? check.color : (saved ?? DEFAULT_BRAND_COLOR);
-  const theme = brandTheme(previewColor);
-  const dirty = (check.ok ? check.color : null) !== (saved ?? DEFAULT_BRAND_COLOR) && !(saved === null && parsed === DEFAULT_BRAND_COLOR);
+  const check = checkChatColors({ brand: brandText, background: backgroundText });
+  const dirty = check.ok && (check.brand !== saved.brand || check.background !== saved.background);
 
-  async function persist(next: string | null) {
+  // The preview follows what's typed whenever the pair is usable; otherwise it keeps
+  // showing the last saved look. It always sets a background (the default cream when none
+  // is chosen), so it matches the real chat whichever theme the portal itself is in.
+  const shown = check.ok ? { brand: check.brand, background: check.background } : saved;
+  const vars = chatThemeVars(shown.brand ?? DEFAULT_BRAND_COLOR, shown.background ?? DEFAULT_CHAT_BACKGROUND) ?? {};
+  const pageBg = vars["--mira-wash"];
+  const surface = vars["--mira-surface-strong"];
+  const line = vars["--mira-line"];
+
+  async function save() {
+    if (!check.ok) return;
     setBusy(true);
     setError(null);
     setNote(null);
-    const result = await saveBrandColor(businessId, next);
+    const result = await saveChatColors(businessId, { brand: check.brand, background: check.background });
     setBusy(false);
     if (result.error) {
       setError(result.error);
       return;
     }
-    setSaved(next);
-    setText(next ?? DEFAULT_BRAND_COLOR);
-    setNote(next ? "Saved. Your chat now uses this colour." : "Back to Mira's default colour.");
+    setSaved({ brand: check.brand, background: check.background });
+    setNote("Saved. Your chat now uses these colours.");
     router.refresh();
   }
 
   return (
-    <section className="ui-card space-y-4">
+    <section className="ui-card space-y-5">
       <div>
-        <p className="ui-section-label !ml-0">Brand colour</p>
+        <p className="ui-section-label !ml-0">Chat colours</p>
         <h2 className="mt-1 text-lg font-semibold">Make the chat match your brand</h2>
         <p className="mt-1 text-sm text-slate-500">
-          Pick the main colour of your business. It colours the buttons and your customers&apos; messages in the
-          chat page and on your website widget. Text colour adjusts itself so it stays easy to read.
+          Pick your brand colour and, if your website has a minimal look, the background to match it. Both apply to
+          the chat page and your website widget. Text colours adjust themselves so everything stays easy to read.
         </p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-3">
-        <input
-          type="color"
-          aria-label="Pick a colour"
-          value={parsed ?? previewColor}
-          disabled={!canEdit}
-          onChange={(e) => {
-            setText(e.target.value);
+      <div className="grid gap-5 sm:grid-cols-2">
+        <ColorField
+          label="Brand colour"
+          hint="Buttons and your customers' messages."
+          text={brandText}
+          setText={(v) => {
+            setBrandText(v);
             setNote(null);
           }}
-          className="h-11 w-14 cursor-pointer rounded-xl border border-slate-200 bg-white p-1 disabled:cursor-not-allowed"
-        />
-        <input
-          type="text"
-          aria-label="Colour hex code"
-          value={text}
+          fallback={DEFAULT_BRAND_COLOR}
           disabled={!canEdit}
-          onChange={(e) => {
-            setText(e.target.value);
+        />
+        <ColorField
+          label="Background"
+          hint="The chat page behind the messages."
+          text={backgroundText}
+          setText={(v) => {
+            setBackgroundText(v);
             setNote(null);
           }}
-          maxLength={7}
-          spellCheck={false}
-          className="w-28 ui-field font-mono uppercase focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+          fallback={DEFAULT_CHAT_BACKGROUND}
+          disabled={!canEdit}
         />
-        {!check.ok && text.trim() !== "" && <p className="text-xs text-red-600">{check.error}</p>}
       </div>
 
-      {/* Live preview: a customer's message, Mira's reply and the send button. */}
-      <div className="max-w-sm space-y-2 rounded-2xl bg-slate-100/70 p-4" aria-label="Preview">
+      {!check.ok && (brandText.trim() !== "" || backgroundText.trim() !== "") && (
+        <p className="text-sm text-red-600" role="alert">
+          {check.error}
+        </p>
+      )}
+
+      {/* Live preview. Inline styles on purpose: the portal's own dark theme must not bleed in. */}
+      <div
+        className="max-w-sm space-y-2 rounded-2xl p-4"
+        aria-label="Preview"
+        style={{ ...(vars as React.CSSProperties), background: pageBg }}
+      >
         <p className="text-xs text-slate-500">Preview · {businessName}</p>
         <div className="flex justify-end">
-          <span
-            className="inline-block max-w-[85%] rounded-lg px-3 py-2 text-sm"
-            style={{ background: theme.accent, color: theme.onAccent }}
-          >
-            Do you deliver to Lekki?
-          </span>
+          <span className="inline-block max-w-[85%] rounded-lg bg-accent px-3 py-2 text-sm text-on-accent">Do you deliver to Lekki?</span>
         </div>
         <div>
-          <span className="inline-block max-w-[85%] rounded-2xl bg-white px-3.5 py-2 text-sm text-slate-700 ring-1 ring-slate-900/10">
+          <span
+            className="inline-block max-w-[85%] rounded-lg px-3 py-2 text-sm text-slate-700"
+            style={{ background: surface, border: `1px solid ${line}` }}
+          >
             Yes! Delivery to Lekki is ₦2,000.
           </span>
         </div>
-        <span
-          className="inline-block rounded-sm px-3 py-1.5 text-xs font-medium"
-          style={{ background: theme.accent, color: theme.onAccent }}
-        >
-          Send
-        </span>
+        <span className="inline-block rounded-sm bg-accent px-3 py-1.5 text-xs font-medium text-on-accent">Send</span>
       </div>
 
       {!canEdit && <p className="text-xs text-slate-500">Only the business owner can change this.</p>}
@@ -116,26 +180,9 @@ export function BrandColorPanel({
       <p className="text-xs text-slate-500">Changes can take up to a minute to reach live chats.</p>
 
       {canEdit && (
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => check.ok && persist(check.color)}
-            disabled={busy || !check.ok || !dirty}
-            className="ui-btn ui-btn-primary"
-          >
-            {busy ? "Saving…" : "Save colour"}
-          </button>
-          {saved !== null && (
-            <button
-              type="button"
-              onClick={() => persist(null)}
-              disabled={busy}
-              className="ui-btn ui-btn-secondary"
-            >
-              Use Mira&apos;s default
-            </button>
-          )}
-        </div>
+        <button type="button" onClick={save} disabled={busy || !dirty} className="ui-btn ui-btn-primary">
+          {busy ? "Saving…" : "Save colours"}
+        </button>
       )}
     </section>
   );

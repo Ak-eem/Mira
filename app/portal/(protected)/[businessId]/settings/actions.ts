@@ -10,8 +10,8 @@ import { sendEmailWithResend } from "@/lib/email/resend";
 import { saveDraft, publishRelease } from "@/lib/promptReleases";
 import { updateOrderTakingEnabled } from "@/lib/orderSettings";
 import { updateGroundingSettings } from "@/lib/groundingSettings";
-import { updateBrandColor } from "@/lib/brandSettings";
-import { checkBrandColor } from "@/lib/brandColor";
+import { updateChatColors } from "@/lib/brandSettings";
+import { checkChatColors } from "@/lib/brandColor";
 
 // Both actions require the caller to actually be linked to this business
 // (any role) -- getCurrentBusinessOwner() is a UX convenience, not the
@@ -85,21 +85,18 @@ export async function saveOrderTaking(businessId: string, enabled: boolean) {
   return { error: null };
 }
 
-// Owner-only: the colour customers see on the chat page and website widget. Pass null
-// to go back to Mira's default. Validated here as well as in the database.
-export async function saveBrandColor(businessId: string, color: string | null) {
+// Owner-only: the colours customers see on the chat page and website widget (brand colour
+// and page background). Empty or null for either means Mira's default. Validated here as
+// well as in the database.
+export async function saveChatColors(businessId: string, colors: { brand: string | null; background: string | null }) {
   const { owner, role } = await requireMembership(businessId);
   if (!owner || !role) return { error: "Not authorized." };
   if (role !== "owner") return { error: "Only the business owner can change this." };
 
-  let value: string | null = null;
-  if (color !== null) {
-    const checked = checkBrandColor(color);
-    if (!checked.ok) return { error: checked.error };
-    value = checked.color;
-  }
+  const checked = checkChatColors(colors);
+  if (!checked.ok) return { error: checked.error };
 
-  const { error } = await updateBrandColor(businessId, value);
+  const { error } = await updateChatColors(businessId, { brandColor: checked.brand, backgroundColor: checked.background });
   if (error) return { error };
 
   revalidatePath(`/portal/${businessId}/settings`);

@@ -97,8 +97,13 @@ export default async function ChatPage({
 
   // Best effort and separate from the main lookup: a missing column (migration not
   // applied yet) or any error just means the default colour, never a broken chat.
-  const { data: brand } = await supabase.from("businesses").select("brand_color").eq("id", business.id).maybeSingle();
+  // Two separate queries so a column that doesn't exist yet only costs its own colour.
+  const [{ data: brand }, { data: background }] = await Promise.all([
+    supabase.from("businesses").select("brand_color").eq("id", business.id).maybeSingle(),
+    supabase.from("businesses").select("background_color").eq("id", business.id).maybeSingle(),
+  ]);
   const brandColor = parseBrandColor(brand?.brand_color);
+  const backgroundColor = parseBrandColor(background?.background_color);
 
   return (
     <ChatWindow
@@ -107,6 +112,7 @@ export default async function ChatPage({
       openNow={openNow}
       embedMode={embedMode}
       brandColor={brandColor}
+      backgroundColor={backgroundColor}
     />
   );
 }

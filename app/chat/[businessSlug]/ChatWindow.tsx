@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
-import { brandTheme } from "@/lib/brandColor";
+import { chatThemeVars } from "@/lib/brandColor";
 import { BusinessNotFound } from "./BusinessNotFound";
 import { Nunito } from "next/font/google";
 import { linkifyContent } from "@/lib/linkify";
@@ -114,6 +114,7 @@ export function ChatWindow({
   openNow,
   embedMode = false,
   brandColor = null,
+  backgroundColor = null,
 }: {
   businessSlug: string;
   businessName: string;
@@ -122,6 +123,9 @@ export function ChatWindow({
   // Owner's brand colour (#rrggbb) or null for Mira's default. Applied as CSS variables on
   // the chat's root, so every accent-coloured element picks it up.
   brandColor?: string | null;
+  // Owner's page background (#rrggbb) or null for Mira's default cream. Also re-derives the
+  // text greys, borders and card surfaces so light and dark backgrounds both stay readable.
+  backgroundColor?: string | null;
 }) {
   const [visitorId] = useState(() => {
     const storageKey = `mira_visitor_${businessSlug}`;
@@ -614,14 +618,7 @@ export function ChatWindow({
     );
   }
 
-  const theme = brandColor ? brandTheme(brandColor) : null;
-  const brandStyle = theme
-    ? ({
-        "--color-accent": theme.accent,
-        "--color-accent-dark": theme.accentDark,
-        "--color-on-accent": theme.onAccent,
-      } as React.CSSProperties)
-    : undefined;
+  const brandStyle = chatThemeVars(brandColor, backgroundColor) as React.CSSProperties | undefined;
 
   return (
     <div
