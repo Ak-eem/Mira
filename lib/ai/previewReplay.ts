@@ -112,16 +112,6 @@ export async function selectPreviewTurns(
   const candidates = assistantRows.filter((row) => isReplayable(row.context_snapshot));
   if (candidates.length === 0) return [];
 
-  const conversationIds = Array.from(new Set(candidates.map((row) => row.conversation_id)));
-  const { data: customerRows } = await supabase
-    .from("messages")
-    .select("conversation_id, content, created_at")
-    .eq("business_id", businessId)
-    .eq("role", "customer")
-    .in("conversation_id", conversationIds)
-    .order("created_at", { ascending: true })
-    .limit(1500);
-
   const candidateIds = candidates.map((row) => row.id);
   const [{ data: weak }, { data: thumbsDown }] = await Promise.all([
     supabase.from("message_assessments").select("message_id").in("message_id", candidateIds).in("verdict", ["low", "medium"]),
@@ -129,31 +119,61 @@ export async function selectPreviewTurns(
   ]);
   const flaggedIds = new Set([...(weak ?? []), ...(thumbsDown ?? [])].map((row) => row.message_id));
 
-  const turns: PreviewTurn[] = [];
-  for (const row of candidates) {
-    const before = (customerRows ?? []).filter((m) => m.conversation_id === row.conversation_id && m.created_at < row.created_at);
-    const question = before.length > 0 ? before[before.length - 1].content : null;
-    if (!question || bypassesModel(question)) continue;
-    turns.push({
-      assistantMessageId: row.id,
-      conversationId: row.conversation_id,
-      createdAt: row.created_at,
-      question,
-      flagged: flaggedIds.has(row.id),
-    });
-  }
+  // Replies that already looked wrong first, then the newest (the query above is newest-first).
+  const ordered = [...candidates.filter((row) => flaggedIds.has(row.id)), ...candidates.filter((row) => !flaggedIds.has(row.id))];
 
-  const ordered = [...turns.filter((t) => t.flagged), ...turns.filter((t) => !t.flagged)];
+  // Each reply's question is looked up on its own (the customer message right before it), never
+  // from one bulk fetch of the conversations' messages: a bulk fetch has to be cut off somewhere,
+  // and on a busy business whatever it cuts off is the NEWEST messages, so recent replies lost
+  // their question or got an older one. Questions are resolved in small waves, in priority order,
+  // so only about as many lookups run as it takes to fill `limit` turns.
   const perConversation = new Map<string, number>();
   const picked: PreviewTurn[] = [];
-  for (const turn of ordered) {
-    const used = perConversation.get(turn.conversationId) ?? 0;
-    if (used >= 2) continue;
-    perConversation.set(turn.conversationId, used + 1);
-    picked.push(turn);
-    if (picked.length >= limit) break;
+  let next = 0;
+  while (picked.length < limit && next < ordered.length) {
+    const wave: typeof ordered = [];
+    while (next < ordered.length && wave.length < limit - picked.length) {
+      const row = ordered[next++];
+      if ((perConversation.get(row.conversation_id) ?? 0) < 2) wave.push(row);
+    }
+    const questions = await Promise.all(wave.map((row) => precedingCustomerMessage(supabase, businessId, row)));
+    for (let i = 0; i < wave.length && picked.length < limit; i += 1) {
+      const row = wave[i];
+      const question = questions[i];
+      if (!question || bypassesModel(question)) continue;
+      const used = perConversation.get(row.conversation_id) ?? 0;
+      if (used >= 2) continue;
+      perConversation.set(row.conversation_id, used + 1);
+      picked.push({
+        assistantMessageId: row.id,
+        conversationId: row.conversation_id,
+        createdAt: row.created_at,
+        question,
+        flagged: flaggedIds.has(row.id),
+      });
+    }
   }
   return picked;
+}
+
+// The customer message immediately before an assistant reply in the same conversation. One row,
+// so the answer doesn't depend on how many messages the conversation or the business has.
+async function precedingCustomerMessage(
+  supabase: SupabaseClient,
+  businessId: string,
+  reply: { conversation_id: string; created_at: string },
+): Promise<string | null> {
+  const { data, error } = await supabase
+    .from("messages")
+    .select("content")
+    .eq("business_id", businessId)
+    .eq("conversation_id", reply.conversation_id)
+    .eq("role", "customer")
+    .lt("created_at", reply.created_at)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  if (error || !data || data.length === 0) return null;
+  return typeof data[0].content === "string" ? data[0].content : null;
 }
 
 /**
