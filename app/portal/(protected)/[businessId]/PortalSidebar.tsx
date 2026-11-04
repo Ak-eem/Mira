@@ -15,6 +15,7 @@ import {
   ScrollText,
   LayoutDashboard,
   Menu,
+  MessageCircleQuestion,
   MessageSquare,
   Package,
   Settings,
@@ -90,6 +91,7 @@ export function PortalSidebar({
       label: "Grow",
       items: [
         { href: `${base}/nudges`, label: "Nudges", icon: Bell },
+        { href: `${base}/ask`, label: "Ask your data", icon: MessageCircleQuestion, ownerOnly: true },
         { href: `${base}/review`, label: "Review", icon: ClipboardCheck },
         { href: `${base}/requests`, label: "Custom request", icon: Sparkles },
       ],

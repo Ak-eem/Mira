@@ -24,6 +24,28 @@ const GROQ_MODEL = "openai/gpt-oss-120b";
 
 export type ProviderName = "gemini" | "groq";
 
+// Optional per-call overrides. Everything defaults to the constants above, so existing callers are unchanged.
+export type FetchOptions = {
+  // Absolute time (ms since epoch) after which no further attempt is started, and the
+  // current one is cut short, so a caller can promise an overall time limit.
+  deadlineAt?: number;
+  timeoutMs?: number;
+  groqModel?: string;
+  geminiModel?: string;
+};
+
+const MIN_ATTEMPT_MS = 2_000;
+
+function geminiUrl(model: string): string {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`;
+}
+
+function attemptTimeout(options?: FetchOptions): number {
+  const base = options?.timeoutMs ?? TIMEOUT_MS;
+  if (options?.deadlineAt === undefined) return base;
+  return Math.max(1_000, Math.min(base, options.deadlineAt - Date.now()));
+}
+
 export type JsonFetchMetadata = {
   provider: ProviderName;
   fallbackFrom: ProviderName | null;
@@ -75,20 +97,56 @@ function buildGroqPayload(body: unknown): Record<string, unknown> {
   const systemInstruction = isRecord(payload.system_instruction)
     ? payload.system_instruction
     : undefined;
-  const messages: Array<{
-    role: "system" | "user" | "assistant";
-    content: string;
-  }> = [];
+  type GroqToolCall = { id: string; type: "function"; function: { name: string; arguments: string } };
+  const messages: Array<
+    | { role: "system" | "user"; content: string }
+    | { role: "assistant"; content: string | null; tool_calls?: GroqToolCall[] }
+    | { role: "tool"; tool_call_id: string; content: string }
+  > = [];
 
   const systemText = extractTextFromParts(
     isRecord(systemInstruction) ? systemInstruction.parts : undefined,
   );
   if (systemText) messages.push({ role: "system", content: systemText });
 
+  // Tool turns. Gemini-shaped history has no call ids, but Groq (OpenAI format)
+  // requires every tool result to name the call it answers, so ids are minted
+  // here when a model turn's functionCall parts are converted, and handed out to
+  // the following functionResponse parts (matched by name, then by order).
+  const pendingCalls: Array<{ id: string; name: string }> = [];
+  let callCounter = 0;
+
   for (const entry of contents) {
     if (!isRecord(entry)) continue;
     const role = entry.role === "model" ? "assistant" : "user";
+    const parts = Array.isArray(entry.parts) ? entry.parts : [];
     const text = extractTextFromParts(entry.parts);
+
+    const calls = parts.flatMap((part) => (isRecord(part) && isRecord(part.functionCall) ? [part.functionCall] : []));
+    if (role === "assistant" && calls.length > 0) {
+      const toolCalls: GroqToolCall[] = calls.map((call) => {
+        const id = `call_${(callCounter += 1)}`;
+        const name = typeof call.name === "string" ? call.name : "";
+        pendingCalls.push({ id, name });
+        return { id, type: "function", function: { name, arguments: JSON.stringify(isRecord(call.args) ? call.args : {}) } };
+      });
+      messages.push({ role: "assistant", content: text || null, tool_calls: toolCalls });
+      continue;
+    }
+
+    const results = parts.flatMap((part) => (isRecord(part) && isRecord(part.functionResponse) ? [part.functionResponse] : []));
+    if (results.length > 0) {
+      for (const result of results) {
+        const name = typeof result.name === "string" ? result.name : "";
+        const at = pendingCalls.findIndex((call) => call.name === name);
+        const [matched] = at >= 0 ? pendingCalls.splice(at, 1) : pendingCalls.splice(0, 1);
+        if (!matched) continue;
+        messages.push({ role: "tool", tool_call_id: matched.id, content: JSON.stringify(result.response ?? {}) });
+      }
+      if (text) messages.push({ role: "user", content: text });
+      continue;
+    }
+
     if (text) messages.push({ role, content: text });
   }
 
@@ -135,7 +193,10 @@ function buildGroqPayload(body: unknown): Record<string, unknown> {
 
     if (convertedTools.length > 0) {
       groqPayload.tools = convertedTools;
-      groqPayload.tool_choice = "auto";
+      // Gemini-style tool_config mode NONE ("answer in text, no more tool calls") maps to tool_choice "none".
+      const toolConfig = isRecord(payload.tool_config) ? payload.tool_config : undefined;
+      const calling = isRecord(toolConfig?.function_calling_config) ? toolConfig.function_calling_config : undefined;
+      groqPayload.tool_choice = calling?.mode === "NONE" ? "none" : "auto";
     }
   }
 
@@ -212,12 +273,13 @@ function getTokenUsage(data: unknown): { inputTokens: number | null; outputToken
 async function attemptGemini(
   apiKey: string,
   body: unknown,
+  options?: FetchOptions,
 ): Promise<AttemptResult> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), attemptTimeout(options));
 
   try {
-    const response = await fetch(GEMINI_API_URL, {
+    const response = await fetch(options?.geminiModel ? geminiUrl(options.geminiModel) : GEMINI_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -268,18 +330,21 @@ async function attemptGemini(
 async function attemptGroq(
   apiKey: string,
   body: unknown,
+  options?: FetchOptions,
 ): Promise<AttemptResult> {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), attemptTimeout(options));
 
   try {
+    const groqPayload = buildGroqPayload(body);
+    if (options?.groqModel) groqPayload.model = options.groqModel;
     const response = await fetch(GROQ_API_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${apiKey}`,
       },
-      body: JSON.stringify(buildGroqPayload(body)),
+      body: JSON.stringify(groqPayload),
       signal: controller.signal,
     });
 
@@ -333,10 +398,11 @@ async function attemptProvider(
   provider: ProviderName,
   apiKey: string,
   body: unknown,
+  options?: FetchOptions,
 ): Promise<AttemptResult> {
   return provider === "groq"
-    ? attemptGroq(apiKey, body)
-    : attemptGemini(apiKey, body);
+    ? attemptGroq(apiKey, body, options)
+    : attemptGemini(apiKey, body, options);
 }
 
 function extractGeminiStreamText(data: unknown): string {
@@ -550,6 +616,7 @@ export async function geminiFetchJsonWithMetadata(
   apiKey: string,
   body: unknown,
   preferredProvider?: ProviderName,
+  options?: FetchOptions,
 ): Promise<{ data: unknown; metadata: JsonFetchMetadata }> {
   const startedAt = Date.now();
   const primary: ProviderName =
@@ -565,13 +632,15 @@ export async function geminiFetchJsonWithMetadata(
   }
 
   const tried: string[] = [];
-  const first = await attemptProvider(primary, primaryKey, body);
+  const first = await attemptProvider(primary, primaryKey, body, options);
   if (first.ok) return { data: first.data, metadata: { provider: first.provider, fallbackFrom: null, latencyMs: Date.now() - startedAt, ...getTokenUsage(first.data) } };
   tried.push(describeAttempt(first));
   if (!first.retryable) throw failureFrom(first, tried);
 
+  // With a deadline, don't start a retry that can't finish in time.
+  if (options?.deadlineAt !== undefined && options.deadlineAt - Date.now() < MIN_ATTEMPT_MS + RETRY_DELAY_MS) throw failureFrom(first, tried);
   await waitForRetry();
-  const second = await attemptProvider(primary, primaryKey, body);
+  const second = await attemptProvider(primary, primaryKey, body, options);
   if (second.ok) return { data: second.data, metadata: { provider: second.provider, fallbackFrom: null, latencyMs: Date.now() - startedAt, ...getTokenUsage(second.data) } };
   tried.push(describeAttempt(second));
   if (!second.retryable) throw failureFrom(second, tried);
@@ -582,9 +651,10 @@ export async function geminiFetchJsonWithMetadata(
       ? process.env.GROQ_API_KEY?.trim()
       : process.env.LLM_API_KEY?.trim() || apiKey.trim();
 
+  if (options?.deadlineAt !== undefined && options.deadlineAt - Date.now() < MIN_ATTEMPT_MS) throw failureFrom(second, tried);
   if (fallbackKey) {
     console.warn(`${primary} request failed; trying ${fallback} fallback.`);
-    const fallbackResult = await attemptProvider(fallback, fallbackKey, body);
+    const fallbackResult = await attemptProvider(fallback, fallbackKey, body, options);
     if (fallbackResult.ok) return { data: fallbackResult.data, metadata: { provider: fallbackResult.provider, fallbackFrom: primary, latencyMs: Date.now() - startedAt, ...getTokenUsage(fallbackResult.data) } };
     tried.push(describeAttempt(fallbackResult));
     throw failureFrom(fallbackResult, tried);

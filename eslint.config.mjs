@@ -39,6 +39,25 @@ export default defineConfig([
     },
   },
   {
+    // "Ask your data" reads the owner's data with the signed-in user's own client. Only api.ts (the status and
+    // rate-limit gates) may touch the service-role client, and it never reads business data with it.
+    files: ["lib/ask/**/*.ts"],
+    ignores: ["lib/ask/api.ts", "lib/ask/*.test.ts"],
+    rules: {
+      "no-restricted-imports": [
+        "error",
+        {
+          patterns: [
+            {
+              group: ["@/lib/supabase/service-role"],
+              message: "Ask-your-data lookups must run under the signed-in user's own row-level security, never the service-role client.",
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ["app/api/**/prompt-preview/**/*.ts", "lib/ai/promptPreviewApi.ts"],
     rules: {
       "no-restricted-imports": [
