@@ -25,16 +25,17 @@ export function Nav() {
       <GlassSurface
         width="100%"
         height="auto"
-        borderRadius={50}
+        borderRadius={28}
         backgroundOpacity={0.1}
         brightness={50}
         opacity={0.93}
-        displace={0.5}
-        distortionScale={-180}
+        blur={4}
+        displace={0.6}
+        distortionScale={-30}
         redOffset={0}
-        greenOffset={10}
-        blueOffset={20}
-        mixBlendMode="screen"
+        greenOffset={4}
+        blueOffset={8}
+        mixBlendMode="difference"
         className="flex h-14 w-full items-center justify-between rounded-pill pr-2 pl-5"
       >
         <div className="flex h-full w-full items-center justify-between md:grid md:grid-cols-[1fr_auto_1fr]">
