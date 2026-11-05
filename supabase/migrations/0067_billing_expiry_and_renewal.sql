@@ -66,14 +66,16 @@ from public.business_subscriptions
 where reference is not null
 on conflict (reference) do nothing;
 
-drop function if exists public.activate_paystack_subscription(uuid, uuid, text, integer, timestamptz, integer, text);
+-- The app computes the new expiry (lib/billing/periodEnd.ts stacks early renewals) and passes it in as
+-- p_expires_at, so the function keeps the 0049 signature. Drop the legacy 0044 overload (no owner check).
+drop function if exists public.activate_paystack_subscription(uuid, text, integer, timestamptz, integer, text);
 
 create or replace function public.activate_paystack_subscription(
   p_business_id uuid,
   p_user_id uuid,
   p_reference text,
   p_amount integer,
-  p_duration_days integer,
+  p_expires_at timestamptz,
   p_expected_amount_kobo integer,
   p_plan text default 'base'
 )
@@ -93,8 +95,8 @@ begin
      or p_amount is null
      or p_expected_amount_kobo is null
      or p_amount <> p_expected_amount_kobo
-     or p_duration_days is null
-     or p_duration_days <= 0
+     or p_expires_at is null
+     or p_expires_at <= now()
      or p_plan is distinct from 'base' then
     raise exception 'invalid Paystack activation input';
   end if;
@@ -134,8 +136,7 @@ begin
     business_id, plan, status, reference, amount, paid_at, expires_at, updated_at
   )
   values (
-    p_business_id, p_plan, 'active', normalized_reference, p_amount, now(),
-    now() + make_interval(days => p_duration_days), now()
+    p_business_id, p_plan, 'active', normalized_reference, p_amount, now(), p_expires_at, now()
   )
   on conflict (business_id) do update
   set plan = excluded.plan,
@@ -143,20 +144,13 @@ begin
       reference = excluded.reference,
       amount = excluded.amount,
       paid_at = excluded.paid_at,
-      expires_at = greatest(
-        now(),
-        case
-          when business_subscriptions.status = 'active'
-            then coalesce(business_subscriptions.expires_at, now())
-          else now()
-        end
-      ) + make_interval(days => p_duration_days),
+      expires_at = excluded.expires_at,
       updated_at = now();
 end;
 $$;
 
-revoke all on function public.activate_paystack_subscription(uuid, uuid, text, integer, integer, integer, text) from public, anon, authenticated;
-grant execute on function public.activate_paystack_subscription(uuid, uuid, text, integer, integer, integer, text) to service_role;
+revoke all on function public.activate_paystack_subscription(uuid, uuid, text, integer, timestamptz, integer, text) from public, anon, authenticated;
+grant execute on function public.activate_paystack_subscription(uuid, uuid, text, integer, timestamptz, integer, text) to service_role;
 
 create or replace function public.revoke_paystack_subscription(p_reference text, p_refund_amount integer default null)
 returns void
