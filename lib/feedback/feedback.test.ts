@@ -10,7 +10,7 @@ function check(label: string, pass: boolean) {
 }
 
 const id = "3f2b8a40-5c1d-4e6f-9a7b-0c1d2e3f4a5b";
-const base = { messageId: id, businessSlug: "ada-store", visitorId: "v-1" };
+const base = { messageId: id, businessSlug: "ada-store", visitorId: "3f2b8c1e-9a4d-4e7b-8d21-5c6a7b9e0f12" };
 
 check("plain thumbs-up parses", (() => { const r = parseCustomerFeedback({ ...base, rating: "up" }); return r.ok && r.value.reason === null; })());
 check("plain thumbs-down parses", (() => { const r = parseCustomerFeedback({ ...base, rating: "down" }); return r.ok && r.value.reason === null; })());
@@ -25,3 +25,4 @@ check("bad rating is rejected", !parseCustomerFeedback({ ...base, rating: "meh" 
 check("non-object body is rejected", !parseCustomerFeedback(null).ok && !parseCustomerFeedback("x").ok);
 check("isFeedbackReason accepts all five codes", ["incorrect", "incomplete", "irrelevant", "outdated", "unclear"].every(isFeedbackReason));
 check("isFeedbackReason rejects others", !isFeedbackReason("rude") && !isFeedbackReason(5) && !isFeedbackReason(undefined));
+check("a guessable visitorId is rejected (it is the ownership credential)", !parseCustomerFeedback({ ...base, visitorId: "v-1", rating: "up" }).ok);

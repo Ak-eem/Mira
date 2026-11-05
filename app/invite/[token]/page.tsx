@@ -43,6 +43,8 @@ function actionMessage(error?: string) {
   switch (error) {
     case "mismatch":
       return "This invite is for a different email address. Sign in with the invited account to accept it.";
+    case "email_unverified":
+      return "Verify your email address first, then accept this invite.";
     case "accepted":
       return "This invite has already been accepted.";
     case "expired":
@@ -95,9 +97,11 @@ async function acceptInvite(formData: FormData) {
 
   // Next.js redirect() throws a control-flow signal. Keep these redirects outside
   // the fetch catch block so a successful acceptance is not reported as a failure.
-  if (response.status >= 300 && response.status < 400) redirect("/inbox");
+  if (response.status >= 300 && response.status < 400) redirect("/portal");
   if (response.status === 403) {
-    redirect(`/invite/${encodeURIComponent(token)}?error=mismatch`);
+    const payload = (await response.json().catch(() => null)) as { code?: string } | null;
+    const error = payload?.code === "email_unverified" ? "email_unverified" : "mismatch";
+    redirect(`/invite/${encodeURIComponent(token)}?error=${error}`);
   }
   if (response.status === 409) {
     redirect(`/invite/${encodeURIComponent(token)}?error=accepted`);

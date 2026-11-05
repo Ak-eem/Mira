@@ -117,7 +117,7 @@ export async function interpretCommand(businessId: string, instruction: string):
     case "update_service_price": {
       const itemName = String(parsed.args.item_name ?? "");
       const newPrice = Number(parsed.args.new_price);
-      if (Number.isNaN(newPrice)) {
+      if (!Number.isFinite(newPrice) || newPrice < 0) {
         return { kind: "info", message: "I couldn't tell what the new price should be." };
       }
 

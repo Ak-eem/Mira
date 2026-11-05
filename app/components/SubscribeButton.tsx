@@ -3,9 +3,9 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 
-type Props = { plan: 'base'; businessName: string; email: string };
+type Props = { plan: 'base'; businessId?: string; businessName: string; email: string };
 
-export default function SubscribeButton({ plan, businessName, email }: Props) {
+export default function SubscribeButton({ plan, businessId, businessName, email }: Props) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const reference = searchParams.get('reference') ?? searchParams.get('trxref');
@@ -37,7 +37,7 @@ export default function SubscribeButton({ plan, businessName, email }: Props) {
   async function startCheckout() {
     setLoading(true); setStatus('Starting secure checkout…');
     try {
-      const response = await fetch('/api/paystack/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, plan, business_name: businessName }) });
+      const response = await fetch('/api/paystack/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, plan, business_id: businessId, business_name: businessName }) });
       const result = await response.json() as { authorization_url?: string; error?: string };
       if (!response.ok || !result.authorization_url) throw new Error(result.error ?? 'Unable to start checkout');
       window.location.assign(result.authorization_url);

@@ -25,6 +25,13 @@ export type WhatsappItem = { id: string; from: string; text: string; phoneId: st
  * On failure the row is marked failed and the error is rethrown.
  */
 export async function processWhatsappQueued(client: Client, queued: QueueRow, item: WhatsappItem): Promise<void> {
+  // Voice notes, images, reactions etc. arrive with no text; there is nothing for the AI
+  // to answer, so close the row instead of processing an empty message.
+  if (!item.text.trim()) {
+    await markInboundDone(client, queued.id);
+    return;
+  }
+
   const business = await client
     .from("businesses")
     .select("id")

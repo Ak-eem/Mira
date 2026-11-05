@@ -1,6 +1,6 @@
 import { nextPeriodEnd } from '@/lib/billing/periodEnd';
 import { NextResponse } from 'next/server';
-import { getPlanConfig, verifyPaystackTransaction } from '@/lib/paystack';
+import { getPlanConfig, quotedAmountKobo, verifyPaystackTransaction } from '@/lib/paystack';
 import { createClient } from '@/lib/supabase/server';
 import { createServiceRoleClient } from '@/lib/supabase/service-role';
 
@@ -46,13 +46,14 @@ export async function GET(request: Request) {
   // only honor a real quoted price, never let the client pick an arbitrary one.
   let config;
   try { config = getPlanConfig('base', metadata.promo); } catch { return NextResponse.json({ error: 'Invalid plan configuration' }, { status: 400 }); }
-  if (data.amount !== config.amountKobo) return NextResponse.json({ error: 'Payment amount does not match plan' }, { status: 400 });
+  const expectedKobo = quotedAmountKobo(metadata as Record<string, unknown>, config.amountKobo);
+  if (data.amount !== expectedKobo) return NextResponse.json({ error: 'Payment amount does not match plan' }, { status: 400 });
 
   // Paying early adds the new period to the end of the current one instead of replacing it.
   const serviceRole = createServiceRoleClient();
   const { data: current } = await serviceRole.from('business_subscriptions').select('status, expires_at').eq('business_id', metadata.business_id).maybeSingle();
   const expiresAt = nextPeriodEnd({ now: Date.now(), status: current?.status ?? null, expiresAt: current?.expires_at ?? null, durationDays: config.durationDays });
-  const { error: rpcError } = await serviceRole.rpc('activate_paystack_subscription', { p_business_id: metadata.business_id, p_user_id: user.id, p_reference: reference, p_amount: data.amount, p_expires_at: expiresAt, p_expected_amount_kobo: config.amountKobo, p_plan: 'base' });
+  const { error: rpcError } = await serviceRole.rpc('activate_paystack_subscription', { p_business_id: metadata.business_id, p_user_id: user.id, p_reference: reference, p_amount: data.amount, p_expires_at: expiresAt, p_expected_amount_kobo: expectedKobo, p_plan: 'base' });
   if (rpcError) { console.error('Subscription activation RPC failed', rpcError); return NextResponse.json({ error: 'Subscription activation failed' }, { status: 500 }); }
   return NextResponse.json({ success: true, status, terminal: true });
 }

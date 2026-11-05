@@ -73,6 +73,10 @@ export async function POST(request: Request) {
     return errorResponse("Team invite is no longer valid", 410, "expired");
   }
 
+  if (!user.email_confirmed_at) {
+    return errorResponse("Verify your email address before accepting a team invite", 403, "email_unverified");
+  }
+
   const authenticatedEmail = user.email?.trim().toLowerCase() ?? "";
   const inviteEmail = invite.email.trim().toLowerCase();
   if (!authenticatedEmail || authenticatedEmail !== inviteEmail) {
@@ -96,31 +100,9 @@ export async function POST(request: Request) {
     return errorResponse("Business is not active", 410, "business_inactive");
   }
 
-  // Never overwrite an existing membership: an upsert here would demote an
-  // owner who happens to accept an invite addressed to their own email down
-  // to staff (and could strand a business with no owner). Only add the row
-  // if this user isn't already on the team.
-  const { data: existingMember, error: existingError } = await service
-    .from("business_owners")
-    .select("id")
-    .eq("business_id", invite.business_id)
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (existingError) {
-    return errorResponse("Unable to add team member", 500);
-  }
-
-  if (!existingMember) {
-    const { error: ownerError } = await service.from("business_owners").insert({
-      business_id: invite.business_id,
-      user_id: user.id,
-      role: "staff",
-    });
-    if (ownerError && ownerError.code !== "23505") {
-      return errorResponse("Unable to add team member", 500);
-    }
-  }
-
+  // Claim the invite FIRST (atomic pending -> accepted), then grant access, so
+  // a lost race can never leave someone added to the business without a
+  // valid invite. If granting access fails, the invite is put back.
   const acceptedAt = now.toISOString();
   const {
     data: acceptedInvite,
@@ -145,5 +127,39 @@ export async function POST(request: Request) {
     return errorResponse("Team invite has already been accepted", 409);
   }
 
-  return NextResponse.redirect(new URL("/inbox", request.url));
+  const releaseInvite = () =>
+    service
+      .from("team_invites")
+      .update({ status: "pending", accepted_by: null, accepted_at: null })
+      .eq("id", invite.id)
+      .eq("status", "accepted");
+
+  // Never overwrite an existing membership: an upsert here would demote an
+  // owner who happens to accept an invite addressed to their own email down
+  // to staff (and could strand a business with no owner). Only add the row
+  // if this user isn't already on the team.
+  const { data: existingMember, error: existingError } = await service
+    .from("business_owners")
+    .select("id")
+    .eq("business_id", invite.business_id)
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (existingError) {
+    await releaseInvite();
+    return errorResponse("Unable to add team member", 500);
+  }
+
+  if (!existingMember) {
+    const { error: ownerError } = await service.from("business_owners").insert({
+      business_id: invite.business_id,
+      user_id: user.id,
+      role: "staff",
+    });
+    if (ownerError && ownerError.code !== "23505") {
+      await releaseInvite();
+      return errorResponse("Unable to add team member", 500);
+    }
+  }
+
+  return NextResponse.redirect(new URL("/portal", request.url), 303);
 }

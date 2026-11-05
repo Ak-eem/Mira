@@ -1,4 +1,5 @@
 import { isFeedbackReason, type FeedbackReason } from "@/lib/feedback/reasons";
+import { parseVisitorId } from "@/lib/chat/visitor";
 
 export type CustomerFeedbackInput = {
   messageId: string;
@@ -24,7 +25,7 @@ export function parseCustomerFeedback(body: unknown): ParsedFeedback {
 
   const messageId = typeof input.messageId === "string" ? input.messageId.trim() : "";
   const businessSlug = typeof input.businessSlug === "string" ? input.businessSlug.trim() : "";
-  const visitorId = typeof input.visitorId === "string" ? input.visitorId.trim() : "";
+  const visitorId = parseVisitorId(input.visitorId) ?? "";
 
   if (!UUID_REGEX.test(messageId) || !businessSlug || !visitorId) {
     return { ok: false, error: "messageId, businessSlug and visitorId are required." };

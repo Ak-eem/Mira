@@ -7,6 +7,7 @@ import { CHAT_RATE_LIMIT_PER_MINUTE, checkRateLimit, getRequestIp } from "@/lib/
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { isCancelled, isLocked } from "@/lib/plans";
 import { businessNotFoundResponse } from "@/lib/chat/businessNotFound";
+import { parseVisitorId } from "@/lib/chat/visitor";
 
 // Public, unauthenticated landing-page widgets get a tighter per-IP cap on top of
 // the normal limits. "mira" is the "Mira for Mira" widget on the homepage.
@@ -20,7 +21,11 @@ export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Body | null;
   const slug = typeof body?.businessSlug === "string" ? body.businessSlug.trim() : "";
   const message = typeof body?.message === "string" ? body.message.trim() : "";
-  const visitor = typeof body?.visitorId === "string" ? body.visitorId.trim() : "";
+  const rawVisitor = typeof body?.visitorId === "string" ? body.visitorId.trim() : "";
+  const visitor = parseVisitorId(rawVisitor) ?? "";
+  if (rawVisitor && !visitor) {
+    return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
+  }
   if (!slug || !message) {
     return NextResponse.json({ error: "businessSlug and message are required." }, { status: 400 });
   }
