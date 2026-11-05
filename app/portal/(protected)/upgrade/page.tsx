@@ -67,7 +67,7 @@ export default async function PortalUpgradePage({
       <div className="rounded-xl bg-slate-100/70 mt-6 p-4 text-left text-sm text-slate-600">{copy.hint}</div>
       <div className="mt-4">
         <Suspense fallback={null}>
-          <SubscribeButton plan="base" businessName={business.name} email={user.email ?? ""} />
+          <SubscribeButton plan="base" businessId={business.id} businessName={business.name} email={user.email ?? ""} />
         </Suspense>
       </div>
       <Link href="/portal" className="mt-6 inline-flex ui-field font-medium text-slate-700">Back to businesses</Link>

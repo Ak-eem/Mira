@@ -20,7 +20,7 @@ export async function createService(input: {
   if (!name) return { error: "Name is required." };
 
   const price = input.price.trim() === "" ? null : Number(input.price);
-  if (price !== null && Number.isNaN(price)) return { error: "Price must be a number." };
+  if (price !== null && (!Number.isFinite(price) || price < 0)) return { error: "Price must be a number that is zero or more." };
 
   const supabase = await createClient();
   const { data: created, error } = await supabase
@@ -65,7 +65,7 @@ export async function updateService(input: {
   if (!name) return { error: "Name is required." };
 
   const price = input.price.trim() === "" ? null : Number(input.price);
-  if (price !== null && Number.isNaN(price)) return { error: "Price must be a number." };
+  if (price !== null && (!Number.isFinite(price) || price < 0)) return { error: "Price must be a number that is zero or more." };
 
   const supabase = await createClient();
 

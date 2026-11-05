@@ -8,6 +8,7 @@ import type { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { markInboundDone, markInboundFailed, markInboundSent, saveInboundReply, type QueueRow } from "@/lib/email/inboundQueue";
 import { extractReplyText } from "@/lib/email/parseInbound";
 import { sendEmailReply } from "@/lib/email/sendReply";
+import { hasAutomatedHeaders, isAutomatedSenderAddress } from "@/lib/email/autoReply";
 
 export const MAX_EMAIL_MESSAGE_LENGTH = 4000;
 type Client = ReturnType<typeof createServiceRoleClient>;
@@ -94,6 +95,13 @@ export async function processEmailQueued(client: Client, queued: Pick<QueueRow, 
     return;
   }
 
+  // Bounces, out-of-office replies, mailing lists and our own address never get an AI
+  // reply: it would trigger another automatic response and loop.
+  if (isAutomatedSenderAddress(sender, [toAddress, process.env.RESEND_FROM_EMAIL?.match(/<([^>]+)>/)?.[1] ?? process.env.RESEND_FROM_EMAIL ?? ""])) {
+    await markInboundDone(client, queued.id);
+    return;
+  }
+
   const business = await client
     .from("businesses")
     .select("id,is_active,email_responses_enabled")
@@ -123,6 +131,10 @@ export async function processEmailQueued(client: Client, queued: Pick<QueueRow, 
     const resend = new Resend(apiKey);
     const received = await resend.emails.receiving.get(args.emailId);
     if (received.error || !received.data) throw received.error ?? new Error("Could not retrieve received email.");
+    if (hasAutomatedHeaders(received.data.headers)) {
+      await markInboundDone(client, queued.id);
+      return;
+    }
     const body = extractReplyText(received.data.text ?? "", received.data.html ?? undefined);
     if (!body) {
       await markInboundDone(client, queued.id);

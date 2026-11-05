@@ -5,6 +5,9 @@ import { scrapeBusinessWebsite } from "@/lib/ai/scrapeBusiness";
 import { mirrorProductImage } from "@/lib/scrape/mirrorProductImage";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { isBusinessSwitchedOff } from "@/lib/chat/businessStatus";
+import { checkRateLimit } from "@/lib/rateLimit";
 
 async function authorize(businessId: string) {
   const owner = await getCurrentBusinessOwner();
@@ -23,6 +26,15 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 export async function POST(request: NextRequest, { params }: { params: Promise<{ businessId: string }> }) {
   const { businessId } = await params;
   if (!(await authorize(businessId))) return NextResponse.json({ error: "Not authorized." }, { status: 403 });
+  // A scrape crawls a site and calls the AI, so it is gated like every other paid action:
+  // switched-off (expired / cancelled) businesses can't run it, and it is rate limited.
+  const serviceClient = createServiceRoleClient();
+  if (await isBusinessSwitchedOff(serviceClient, businessId)) {
+    return NextResponse.json({ error: "Your plan is not active. Subscribe to import from a website." }, { status: 402 });
+  }
+  if (!(await checkRateLimit(serviceClient, `scrape:${businessId}`, 10)).allowed) {
+    return NextResponse.json({ error: "Too many imports. Try again in a minute." }, { status: 429 });
+  }
   const body = await request.json().catch(() => null);
   if (typeof body?.websiteUrl !== "string" || body.websiteUrl.trim().length > 2_000) {
     return NextResponse.json({ error: "Enter a valid website URL." }, { status: 400 });

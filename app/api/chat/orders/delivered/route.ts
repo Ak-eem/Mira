@@ -3,6 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { checkRateLimit, getRequestIp } from "@/lib/rateLimit";
 import { isLocked } from "@/lib/plans";
 import { transitionOrderStatus } from "@/lib/orders/transition";
+import { parseVisitorId } from "@/lib/chat/visitor";
 
 export const runtime = "nodejs";
 
@@ -18,14 +19,11 @@ const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12
 export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => null)) as Body | null;
   const slug = typeof body?.businessSlug === "string" ? body.businessSlug.trim() : "";
-  const visitor = typeof body?.visitorId === "string" ? body.visitorId.trim() : "";
+  const visitor = parseVisitorId(body?.visitorId) ?? "";
   const orderId = typeof body?.orderId === "string" ? body.orderId.trim() : "";
   if (!slug || !visitor || !UUID_REGEX.test(orderId)) {
     return NextResponse.json({ error: "businessSlug, visitorId and a valid orderId are required." }, { status: 400 });
   }
-if (!/^([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}|\d{13}-[a-z0-9]+)$/i.test(visitor)) {
-return NextResponse.json({ error: "invalid visitor" }, { status: 400 });
-}
   const client = createServiceRoleClient();
   const ip = getRequestIp(request);
   const limits = await Promise.all([
