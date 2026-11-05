@@ -4,7 +4,7 @@
 //  * Every lookup takes an AskContext built on the server: the signed-in user's own (RLS) Supabase client, the
 //    business id, and that business's timezone. NO tool parameter names a business, so the model has no way to
 //    point a lookup somewhere else; the id is closed over, not passed.
-//  * Reads go through `ask_*` database functions that run as SECURITY INVOKER (migration 0067), so even a bug
+//  * Reads go through `ask_*` database functions that run as SECURITY INVOKER (migration 0068), so even a bug
 //    here could only ever return rows the signed-in user is already allowed to see.
 //  * Nothing in this folder may import the service-role client (enforced by lint and by ask.test.ts).
 //

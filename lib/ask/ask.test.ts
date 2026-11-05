@@ -199,7 +199,7 @@ async function main() {
   check("tools.ts reads tables only to look up the business itself, everything else is an ask_* function", [...toolsSource.matchAll(/\.from\("([a-z_]+)"\)/g)].every((m) => m[1] === "businesses"));
   check("every database function call carries the server-side business id", /p_business_id: ctx\.businessId/.test(toolsSource) && /ask_data_bounds", \{ p_business_id: businessId \}/.test(toolsSource));
   check("rpc() is only ever called through the scoped helper (plus the bounds lookup)", [...toolsSource.matchAll(/supabase\.rpc\(/g)].length === 2);
-  const migration = readFileSync("supabase/migrations/0067_ask_your_data.sql", "utf8");
+  const migration = readFileSync("supabase/migrations/0068_ask_your_data.sql", "utf8");
   check("every function in the migration is SECURITY INVOKER (never definer)", !/security definer/i.test(migration) && (migration.match(/security invoker/gi) ?? []).length >= 7);
   check("the migration revokes the functions from anon", /revoke all on function %s from public, anon/.test(migration));
 
