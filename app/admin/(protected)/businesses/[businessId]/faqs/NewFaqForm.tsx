@@ -1,12 +1,14 @@
 "use client";
 
 import { useSheetClose } from "@/components/ui/Sheet";
+import { useSnackbar } from "@/components/ui/Feedback";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createFaq } from "./actions";
 
 export function NewFaqForm({ businessId }: { businessId: string }) {
   const closeSheet = useSheetClose();
+  const snack = useSnackbar();
   const router = useRouter();
   const [question, setQuestion] = useState("");
   const [answer, setAnswer] = useState("");
@@ -29,6 +31,7 @@ export function NewFaqForm({ businessId }: { businessId: string }) {
     setQuestion("");
     setAnswer("");
     setSubmitting(false);
+    snack({ message: "FAQ added" });
     closeSheet();
     router.refresh();
   }

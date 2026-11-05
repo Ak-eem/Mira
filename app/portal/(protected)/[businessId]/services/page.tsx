@@ -36,7 +36,7 @@ export default async function ServicesPage({
         title="Services"
         subtitle="The services you offer and their prices."
         action={services?.length ? (
-          <AddSheet label="Add service">
+          <AddSheet fab label="Add service">
             <NewServiceForm businessId={businessId} />
           </AddSheet>
         ) : undefined}

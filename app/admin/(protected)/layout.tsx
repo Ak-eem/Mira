@@ -5,6 +5,7 @@ import { AdminSidebar } from "./AdminSidebar";
 import { AdminSignOutButton } from "./AdminSignOutButton";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeScript } from "@/components/ThemeScript";
+import { FeedbackProvider } from "@/components/ui/Feedback";
 
 // Per-page titles: each page exports { title: "Businesses" } and the tab reads "Businesses | Mira Admin".
 export const metadata = { title: { default: "Admin | Mira", template: "%s | Mira Admin" } };
@@ -28,6 +29,7 @@ export default async function AdminLayout({
   return (
     <ThemeProvider>
       <ThemeScript />
+      <FeedbackProvider>
       <div className="mira-wash min-h-screen">
       <header className="glass-panel-strong sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-4">
@@ -43,6 +45,7 @@ export default async function AdminLayout({
         <main className="min-w-0 flex-1">{children}</main>
       </div>
       </div>
+      </FeedbackProvider>
     </ThemeProvider>
   );
 }

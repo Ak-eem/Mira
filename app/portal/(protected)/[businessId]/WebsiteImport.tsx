@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { summarizeDraft } from "@/lib/scrape/summarizeDraft";
 import { computeSelection, toggleAllUnticked, confirmLabel } from "@/lib/scrape/selection";
+import { useConfirm } from "@/components/ui/Feedback";
 
 type Draft = { id: string; kind: string; source_url: string; payload: Record<string, unknown>; status: "pending" | "approved" | "rejected" };
 type ReviewSummary = { approved: number; rejected: number; failed: number; imagesFailed: number };
@@ -27,6 +28,7 @@ export function WebsiteImport({
   embedded?: boolean;
   onReviewed?: (summary: ReviewSummary) => void;
 }) {
+  const askConfirm = useConfirm();
   const [websiteUrl, setWebsiteUrl] = useState("");
   const [drafts, setDrafts] = useState<Draft[]>([]);
   const [loading, setLoading] = useState(false);
@@ -98,7 +100,10 @@ export function WebsiteImport({
   }
 
   async function confirm() {
-    if (selectedIds.length === 0 && !window.confirm(`Discard all ${discardIds.length} suggestions? Nothing will be added.`)) return;
+    if (selectedIds.length === 0) {
+      const ok = await askConfirm({ title: `Discard all ${discardIds.length} suggestions?`, description: "Nothing will be added.", destructive: true, confirmLabel: "Discard" });
+      if (!ok) return;
+    }
     setConfirming(true);
     setMessage(null);
     const response = await fetch(`/api/portal/businesses/${businessId}/scrape/review`, {

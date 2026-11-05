@@ -25,7 +25,7 @@ export default async function FaqsPage({
         title="FAQs"
         subtitle="Questions customers ask often, with the answers Mira should give."
         action={faqs?.length ? (
-          <AddSheet label="Add FAQ">
+          <AddSheet fab label="Add FAQ">
             <NewFaqForm businessId={businessId} />
           </AddSheet>
         ) : undefined}
