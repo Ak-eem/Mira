@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateService, deleteService } from "./actions";
+import { useConfirm, useSnackbar } from "@/components/ui/Feedback";
 
 type Service = {
   id: string;
@@ -14,6 +15,8 @@ type Service = {
 };
 
 export function ServiceList({ services, currency }: { services: Service[]; currency: string }) {
+  const confirm = useConfirm();
+  const snack = useSnackbar();
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -52,8 +55,10 @@ export function ServiceList({ services, currency }: { services: Service[]; curre
               </button>
               <button
                 onClick={async () => {
-                  if (!confirm(`Delete "${s.name}"? This can't be undone.`)) return;
+                  const ok = await confirm({ title: `Delete "${s.name}"?`, description: "This can't be undone.", destructive: true, confirmLabel: "Delete" });
+                    if (!ok) return;
                   await deleteService(s.id);
+                  snack({ message: "Deleted" });
                   router.refresh();
                 }}
                 className="ui-btn ui-btn-danger ui-btn-sm"
@@ -114,7 +119,7 @@ function EditServiceRow({
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
         <button onClick={handleSave} disabled={saving} className="ui-btn ui-btn-primary ui-btn-sm">
-          {saving ? "Saving…" : "Save"}
+          {saving ? "Saving…" : "Save changes"}
         </button>
         <button onClick={onCancel} className="ui-btn ui-btn-secondary ui-btn-sm">
           Cancel

@@ -212,7 +212,7 @@ function NewOrderForm({
         disabled={submitting}
         className="ui-btn ui-btn-primary"
       >
-        {submitting ? "Saving…" : "Log order"}
+        {submitting ? "Adding…" : "Add order"}
       </button>
     </form>
   );

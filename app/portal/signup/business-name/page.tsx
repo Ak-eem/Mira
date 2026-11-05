@@ -79,7 +79,7 @@ export default function BusinessNamePage() {
             disabled={submitting}
             className="ui-btn ui-btn-primary w-full"
           >
-            {submitting ? "Setting up…" : "Continue"}
+            {submitting ? "Setting up…" : "Create my dashboard"}
           </button>
         </form>
       </div>

@@ -1,12 +1,14 @@
 "use client";
 
 import { useSheetClose } from "@/components/ui/Sheet";
+import { useSnackbar } from "@/components/ui/Feedback";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPolicy } from "./actions";
 
 export function NewPolicyForm({ businessId }: { businessId: string }) {
   const closeSheet = useSheetClose();
+  const snack = useSnackbar();
   const router = useRouter();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -29,6 +31,7 @@ export function NewPolicyForm({ businessId }: { businessId: string }) {
     setTitle("");
     setContent("");
     setSubmitting(false);
+    snack({ message: "Policy added" });
     closeSheet();
     router.refresh();
   }

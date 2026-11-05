@@ -5,6 +5,7 @@ import { Logo } from "@/components/site/ui";
 import { HeaderAccount } from "./HeaderAccount";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ThemeScript } from "@/components/ThemeScript";
+import { FeedbackProvider } from "@/components/ui/Feedback";
 
 // This layout only guards authentication. Business ownership is handled by the
 // page below so authenticated users without a linked business get a useful
@@ -23,6 +24,7 @@ export default async function PortalLayout({
   return (
     <ThemeProvider>
       <ThemeScript />
+      <FeedbackProvider>
       <div className="mira-wash min-h-screen">
       <header className="glass-panel-strong sticky top-0 z-10">
         <div className="flex w-full items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
@@ -35,6 +37,7 @@ export default async function PortalLayout({
       </header>
       <main>{children}</main>
       </div>
+      </FeedbackProvider>
     </ThemeProvider>
   );
 }

@@ -73,7 +73,7 @@ export function PortalSidebar({
       label: "Sell",
       items: [
         { href: `${base}/orders`, label: "Orders", icon: ShoppingBag },
-        { href: `${base}/inventory`, label: "Inventory assistant", icon: Package },
+        { href: `${base}/inventory`, label: "Inventory", icon: Package },
       ],
     },
     {
@@ -93,7 +93,7 @@ export function PortalSidebar({
         { href: `${base}/nudges`, label: "Nudges", icon: Bell },
         { href: `${base}/ask`, label: "Ask your data", icon: MessageCircleQuestion, ownerOnly: true },
         { href: `${base}/review`, label: "Review", icon: ClipboardCheck },
-        { href: `${base}/requests`, label: "Custom request", icon: Sparkles },
+        { href: `${base}/requests`, label: "Requests", icon: Sparkles },
       ],
     },
     {

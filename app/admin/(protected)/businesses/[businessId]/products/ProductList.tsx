@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { updateProduct, deleteProduct, uploadProductImage, removeProductImage } from "./actions";
+import { useConfirm, useSnackbar } from "@/components/ui/Feedback";
 
 type Product = {
   id: string;
@@ -16,6 +17,8 @@ type Product = {
 };
 
 export function ProductList({ products, currency }: { products: Product[]; currency: string }) {
+  const confirm = useConfirm();
+  const snack = useSnackbar();
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
 
@@ -64,8 +67,10 @@ export function ProductList({ products, currency }: { products: Product[]; curre
                 </button>
                 <button
                   onClick={async () => {
-                    if (!confirm(`Delete "${p.name}"? This can't be undone.`)) return;
+                    const ok = await confirm({ title: `Delete "${p.name}"?`, description: "This can't be undone.", destructive: true, confirmLabel: "Delete" });
+                    if (!ok) return;
                     await deleteProduct(p.id);
+                    snack({ message: "Deleted" });
                     router.refresh();
                   }}
                   className="ui-btn ui-btn-danger ui-btn-sm"
@@ -190,7 +195,7 @@ function EditProductRow({
       {error && <p className="text-xs text-red-600">{error}</p>}
       <div className="flex gap-2">
         <button onClick={handleSave} disabled={saving} className="ui-btn ui-btn-primary ui-btn-sm">
-          {saving ? "Saving…" : "Save"}
+          {saving ? "Saving…" : "Save changes"}
         </button>
         <button onClick={onCancel} className="ui-btn ui-btn-secondary ui-btn-sm">
           Cancel

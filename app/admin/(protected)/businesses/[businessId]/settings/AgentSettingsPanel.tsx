@@ -75,7 +75,7 @@ export function AgentSettingsPanel({
         disabled={saving}
         className="ui-btn ui-btn-primary"
       >
-        {saving ? "Saving…" : "Save"}
+        {saving ? "Saving…" : "Save settings"}
       </button>
     </section>
   );
