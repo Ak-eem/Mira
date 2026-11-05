@@ -108,6 +108,11 @@ export function PromptPreview({
             if (response.status === 429) {
               stopRef.current = true;
               setMessage("You've run a lot of previews recently. Please try again a little later.");
+            } else if (response.status === 402) {
+              // The business is switched off: every remaining turn would be refused too.
+              stopRef.current = true;
+              const refusal = (await response.json().catch(() => null)) as { error?: string } | null;
+              setMessage(refusal?.error ?? "Your assistant is switched off, so previews are paused.");
             } else if (!response.ok) {
               setFailed((n) => n + 1);
             } else {
