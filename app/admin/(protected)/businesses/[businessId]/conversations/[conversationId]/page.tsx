@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { linkifyContent } from "@/lib/linkify";
+import { safeTimeZone } from "@/lib/ask/range";
 import { LiveRefresh } from "./LiveRefresh";
 
 type MessageContextSnapshot = {
@@ -17,6 +18,8 @@ export default async function ConversationThreadPage({
 }) {
   const { businessId, conversationId } = await params;
   const supabase = await createClient();
+  const { data: business } = await supabase.from("businesses").select("timezone").eq("id", businessId).maybeSingle();
+  const timeZone = safeTimeZone(business?.timezone);
 
   // Defense in depth: re-check the conversation actually belongs to this
   // business, even though the URL already implies it -- same discipline
@@ -147,7 +150,7 @@ export default async function ConversationThreadPage({
 
               <p className="mt-0.5 text-xs text-slate-500">
                 {isOperatorReply && <span className="mr-2 font-medium text-sky-600">Team reply</span>}
-                {new Date(m.created_at).toLocaleTimeString()}
+                {new Date(m.created_at).toLocaleTimeString(undefined, { timeZone })}
                 {customerFeedbackByMessage.get(m.id)?.rating === "up" && <span className="ml-2 text-emerald-600">👍 helpful</span>}
                 {customerFeedbackByMessage.get(m.id)?.rating === "down" && (
                   <span className="ml-2 text-red-500">
