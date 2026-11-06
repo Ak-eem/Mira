@@ -4,6 +4,9 @@ import { createClient } from "@/lib/supabase/server";
 import { listPreviewTurns, runPreviewTurn } from "@/lib/ai/promptPreviewApi";
 
 export const runtime = "nodejs";
+// A preview run makes two AI calls at once; each can take ~31 s in the worst case (three attempts of 10 s),
+// so state the ceiling instead of relying on the platform default.
+export const maxDuration = 60;
 
 // Any team member who can save a draft can preview it.
 async function authorize(businessId: string) {

@@ -175,6 +175,11 @@ async function behaviourChecks() {
   check("a business that is switched on still previews normally", on.status === 200 && calls.replay === 1 && calls.rateLimit === 1);
 }
 
+for (const route of ["app/api/admin/businesses/[businessId]/prompt-preview/route.ts", "app/api/portal/businesses/[businessId]/prompt-preview/route.ts"]) {
+  const duration = /export const maxDuration = (\d+);/.exec(readFileSync(route, "utf8"));
+  check(`${route.split("/")[2]} preview route states a duration long enough for two parallel AI calls`, Boolean(duration) && Number(duration![1]) >= 45);
+}
+
 check("promptPreviewApi uses the shared isBusinessSwitchedOff gate", /from "@\/lib\/chat\/businessStatus"/.test(readFileSync("lib/ai/promptPreviewApi.ts", "utf8")) && /isBusinessSwitchedOff/.test(readFileSync("lib/ai/promptPreviewApi.ts", "utf8")));
 
 behaviourChecks().catch((error) => {
