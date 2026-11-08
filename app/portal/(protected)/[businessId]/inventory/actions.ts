@@ -6,6 +6,7 @@ import { buildBusinessContext } from "@/lib/ai/buildContext";
 import { parseCommand, INVENTORY_COMMAND_NAMES } from "@/lib/ai/parseCommand";
 import { applyProductUpdate, applyProductCreate } from "@/lib/products";
 import { getAgentSettings } from "@/lib/agentSettings";
+import { checkInventoryAssistantAllowed } from "@/lib/ai/inventoryCommandGate";
 
 export type CommandResult =
   | { kind: "confirm"; action: string; summary: string; payload: Record<string, unknown> }
@@ -49,6 +50,10 @@ export async function interpretInventoryCommand(businessId: string, instruction:
   }
 
   if (!instruction.trim()) return { kind: "error", message: "Say what you'd like to change." };
+
+  // Everything below can cost an AI call, so the same gates as every other channel come first.
+  const allowed = await checkInventoryAssistantAllowed(businessId);
+  if (!allowed.ok) return { kind: "error", message: allowed.message };
 
   const context = await buildBusinessContext(businessId);
 
