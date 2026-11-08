@@ -79,5 +79,3 @@ You also need to apply the SQL files in `supabase/migrations/` to your Supabase 
 ## License
 
 No open-source license has been declared yet. Unless a license is added to this repository, all rights are reserved by the copyright holder.
-
-> **UNVERIFIED:** `design-integration` is UNVERIFIED; no build/lint/test run; local validation required before merge.
