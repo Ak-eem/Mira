@@ -41,5 +41,5 @@ check("monthly bars use the business's month too: 23:30 UTC on 30 Nov is already
 const source = readFileSync("lib/analytics/queries.ts", "utf8");
 check("queries.ts no longer builds ranges from the server clock (setHours / setDate)", !/\.setHours\(|\.setDate\(/.test(source));
 check("every date label in queries.ts names a timezone", ![...source.matchAll(/toLocaleDateString\(undefined, \{[^}]*\}/g)].some((m) => !/timeZone/.test(m[0])));
-check("the snapshot reports which timezone it used", /timeZone,\n\s+from: fromIso/.test(source));
+check("the snapshot reports which timezone it used", /timeZone,\r?\n\s+from: fromIso/.test(source));
 if (failures) { console.error(`${failures} check(s) failed`); process.exit(1); }
