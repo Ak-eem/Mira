@@ -19,9 +19,27 @@ class FakeEl {
   className = "";
   innerHTML = "";
   textContent = "";
-  classList = { add() {}, remove() {} };
-  setAttribute() {}
-  addEventListener() {}
+  attributes: Record<string, string> = {};
+  listeners: Record<string, () => void> = {};
+  shadowRoot: FakeEl | null = null;
+  classes = new Set<string>();
+  classList = {
+    add: (...names: string[]) => names.forEach((name) => this.classes.add(name)),
+    remove: (...names: string[]) => names.forEach((name) => this.classes.delete(name)),
+    toggle: (name: string, force?: boolean) => {
+      const add = force ?? !this.classes.has(name);
+      if (add) this.classes.add(name);
+      else this.classes.delete(name);
+      return add;
+    },
+    contains: (name: string) => this.classes.has(name),
+  };
+  setAttribute(name: string, value: string) {
+    this.attributes[name] = value;
+  }
+  addEventListener(type: string, listener: () => void) {
+    this.listeners[type] = listener;
+  }
   appendChild(child: FakeEl) {
     child.parentNode = this;
     this.children.push(child);
@@ -33,7 +51,8 @@ class FakeEl {
     return child;
   }
   attachShadow() {
-    return new FakeEl();
+    this.shadowRoot = new FakeEl();
+    return this.shadowRoot;
   }
 }
 
@@ -146,11 +165,34 @@ async function run() {
   // The chat iframe can ask the script to remove the widget -- but only Mira's own origin can.
   const live = runEmbed(answer(true));
   await tick();
+  const host = live.body.children[0];
+  const panel = host.shadowRoot?.children[1];
+  const bubble = host.shadowRoot?.children[2];
+  const controls = panel?.children[0];
+  const controlButtons = controls?.children[1]?.children ?? [];
+  const [expandButton, minimizeButton] = controlButtons;
+  (live.window.MiraChat as { open: () => void }).open();
+  check(bubble?.attributes["aria-hidden"] === "true", "opening the panel hides the launcher from view and assistive technology");
+  expandButton?.listeners.click?.();
+  check(panel?.classList.contains("mira-expanded") === true, "the expand control enlarges the widget panel");
+  check(expandButton?.attributes["aria-label"] === "Restore chat size", "the expand control announces its restore action");
+  expandButton?.listeners.click?.();
+  check(panel?.classList.contains("mira-expanded") === false, "the expand control restores the compact panel");
+  minimizeButton?.listeners.click?.();
+  check(
+    panel?.classList.contains("mira-open") === false &&
+      bubble?.attributes["aria-expanded"] === "false" &&
+      bubble?.attributes["aria-hidden"] === "false",
+    "the minimize control closes the panel and updates the launcher state",
+  );
+
   const onMessage = live.listeners.message[0];
   onMessage({ origin: "https://evil.example", data: { type: "mira:unavailable" } });
   check(live.body.children.length === 1, "a message from another origin is ignored");
   onMessage({ origin: MIRA, data: { type: "something-else" } });
   check(live.body.children.length === 1, "an unrelated message from Mira is ignored");
+  onMessage({ origin: MIRA, data: { type: "mira:close" } });
+  check(live.body.children.length === 1, "mira:close closes the panel without removing the widget");
   onMessage({ origin: MIRA, data: { type: "mira:unavailable" } });
   check(live.body.children.length === 0, "mira:unavailable from Mira removes the widget from the site");
 }

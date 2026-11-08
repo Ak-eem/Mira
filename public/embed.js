@@ -44,12 +44,12 @@
   var offsetX = pxAttr("data-offset-x", 20);
   var offsetY = pxAttr("data-offset-y", 20);
   var panelBottom = offsetY + 68; // the panel opens just above the button
-  // Leave at least 88px free above the panel so it never covers the host page's sticky header (and its cart icon).
-  var panelHeightCss = "min(600px, calc(100vh - " + (panelBottom + 88) + "px))";
+  var panelHeightCss = "min(640px, calc(100vh - " + (panelBottom + 24) + "px))";
   var origin = new URL(scriptEl.src, window.location.href).origin;
   var chatUrl = origin + "/chat/" + encodeURIComponent(businessSlug) + "?embed=1";
 
   var isOpen = false;
+  var isExpanded = false;
   var iframeLoaded = false;
 
   var host = document.createElement("div");
@@ -74,37 +74,56 @@
     "  width: 56px; height: 56px; border-radius: 999px; border: none; cursor: pointer;",
     "  background: var(--mira-bg); color: var(--mira-fg); box-shadow: 0 6px 20px rgba(0,0,0,0.25);",
     "  display: flex; align-items: center; justify-content: center;",
-    "  transition: transform 0.15s ease;",
+    "  transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;",
     "}",
+    ".mira-panel.mira-open ~ .mira-bubble { opacity: 0; visibility: hidden; pointer-events: none; }",
     ".mira-bubble:hover { transform: scale(1.06); }",
     ".mira-bubble:focus-visible { outline: 2px solid white; outline-offset: 2px; }",
     ".mira-bubble svg { width: 26px; height: 26px; }",
     ".mira-panel {",
     "  position: fixed; bottom: " + panelBottom + "px; " + side + ": " + offsetX + "px; z-index: 2147483000;",
     "  width: 380px; max-width: calc(100vw - 24px); height: " + panelHeightCss + "; min-height: 280px;",
-    "  background: white; border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.25);",
+    "  background: rgba(255,255,255,0.82); border-radius: 16px; box-shadow: 0 10px 40px rgba(0,0,0,0.25);",
     "  display: flex; flex-direction: column; overflow: hidden;",
     "  opacity: 0; transform: translateY(12px) scale(0.98); pointer-events: none;",
-    "  transition: opacity 0.18s ease, transform 0.18s ease;",
+    "  transition: opacity 0.18s ease, transform 0.18s ease,",
+    "    width 0.52s cubic-bezier(0.34, 1.56, 0.64, 1), height 0.52s cubic-bezier(0.34, 1.56, 0.64, 1),",
+    "    top 0.52s cubic-bezier(0.34, 1.56, 0.64, 1), right 0.52s cubic-bezier(0.34, 1.56, 0.64, 1),",
+    "    bottom 0.52s cubic-bezier(0.34, 1.56, 0.64, 1), left 0.52s cubic-bezier(0.34, 1.56, 0.64, 1);",
     "}",
     ".mira-panel.mira-open { opacity: 1; transform: translateY(0) scale(1); pointer-events: auto; }",
-    ".mira-panel-header {",
-    "  display: flex; align-items: center; justify-content: space-between;",
-    "  padding: 12px 14px; background: var(--mira-bg); color: var(--mira-fg);",
-    "  font: 600 14px/1.3 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;",
-    "  flex-shrink: 0;",
+    ".mira-panel.mira-expanded {",
+    "  width: min(920px, calc(100vw - 48px)); height: min(780px, calc(100vh - 48px));",
+    "  bottom: 24px; " + side + ": 24px;",
     "}",
-    ".mira-panel-close {",
-    "  background: transparent; border: none; color: inherit; cursor: pointer;",
-    "  width: 28px; height: 28px; border-radius: 6px; display: flex; align-items: center; justify-content: center;",
+    ".mira-panel-controls {",
+    "  display: flex; align-items: center; justify-content: space-between; gap: 8px;",
+    "  min-height: 48px; padding: 8px 12px 0; flex: 0 0 auto;",
     "}",
-    ".mira-panel-close:hover { background: rgba(255,255,255,0.15); }",
-    ".mira-panel iframe { flex: 1; border: none; width: 100%; height: 100%; }",
+    ".mira-panel-brand { display: flex; align-items: center; gap: 8px; color: #475569;",
+    "  font: 600 13px/1 -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }",
+    ".mira-panel-brand-mark { display: grid; width: 28px; height: 28px; place-items: center;",
+    "  border-radius: 999px; background: color-mix(in srgb, var(--mira-bg) 12%, white); color: var(--mira-bg); }",
+    ".mira-panel-brand-mark svg { width: 15px; height: 15px; }",
+    ".mira-panel-control {",
+    "  display: flex; align-items: center; justify-content: center;",
+    "  width: 36px; height: 36px; border: 1px solid rgba(15, 23, 42, .06); border-radius: 999px;",
+    "  background: white; color: #475569; box-shadow: 0 2px 8px rgba(15, 23, 42, .08); cursor: pointer;",
+    "}",
+    ".mira-panel-control-group { display: flex; align-items: center; gap: 8px; }",
+    ".mira-panel-control:hover { background: #f8fafc; color: #0f172a; }",
+    ".mira-panel-control:focus-visible { outline: 2px solid var(--mira-bg); outline-offset: 2px; }",
+    ".mira-panel-control svg { width: 16px; height: 16px; }",
+    ".mira-panel iframe { flex: 1; border: none; width: 100%; height: 100%; background: transparent; }",
     "@media (max-width: 480px) {",
     "  .mira-panel {",
     "    right: 12px; left: 12px; bottom: " + panelBottom + "px; width: auto; max-width: none;",
     "    height: " + panelHeightCss + ";",
     "  }",
+    "  .mira-panel.mira-expanded {",
+    "    right: 8px; bottom: 8px; left: 8px; width: auto; height: calc(100vh - 16px); max-width: none;",
+    "  }",
+    "  .mira-panel-controls { min-height: 44px; padding-top: 6px; }",
     "}",
     "@media (prefers-reduced-motion: reduce) {",
     "  .mira-bubble, .mira-panel { transition: none; }",
@@ -115,6 +134,7 @@
   bubble.type = "button";
   bubble.className = "mira-bubble";
   bubble.setAttribute("aria-label", title);
+  bubble.setAttribute("aria-hidden", "false");
   bubble.innerHTML =
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
     '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' +
@@ -125,23 +145,42 @@
   panel.setAttribute("role", "dialog");
   panel.setAttribute("aria-label", title);
 
-  var header = document.createElement("div");
-  header.className = "mira-panel-header";
+  var controls = document.createElement("div");
+  controls.className = "mira-panel-controls";
 
-  var headerTitle = document.createElement("span");
-  headerTitle.textContent = title;
+  var brand = document.createElement("div");
+  brand.className = "mira-panel-brand";
+  brand.innerHTML =
+    '<span class="mira-panel-brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z"/></svg></span><span>Mira assistant</span>';
 
-  var closeBtn = document.createElement("button");
-  closeBtn.type = "button";
-  closeBtn.className = "mira-panel-close";
-  closeBtn.setAttribute("aria-label", "Close chat");
-  closeBtn.innerHTML =
-    '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>';
-  closeBtn.addEventListener("click", close);
+  var expandBtn = document.createElement("button");
+  expandBtn.type = "button";
+  expandBtn.className = "mira-panel-control";
+  expandBtn.setAttribute("aria-label", "Expand chat");
+  expandBtn.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m13-5h3a2 2 0 0 1 2 2v3M3 16v3a2 2 0 0 0 2 2h3m13-5v3a2 2 0 0 1-2 2h-3"/></svg>';
+  expandBtn.addEventListener("click", function () {
+    isExpanded = !isExpanded;
+    panel.classList.toggle("mira-expanded", isExpanded);
+    expandBtn.setAttribute("aria-label", isExpanded ? "Restore chat size" : "Expand chat");
+    expandBtn.setAttribute("aria-pressed", isExpanded ? "true" : "false");
+  });
 
-  header.appendChild(headerTitle);
-  header.appendChild(closeBtn);
-  panel.appendChild(header);
+  var minimizeBtn = document.createElement("button");
+  minimizeBtn.type = "button";
+  minimizeBtn.className = "mira-panel-control";
+  minimizeBtn.setAttribute("aria-label", "Minimize chat");
+  minimizeBtn.innerHTML =
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M5 12h14"/></svg>';
+  minimizeBtn.addEventListener("click", close);
+
+  var controlButtons = document.createElement("div");
+  controlButtons.className = "mira-panel-control-group";
+  controlButtons.appendChild(expandBtn);
+  controlButtons.appendChild(minimizeBtn);
+  controls.appendChild(brand);
+  controls.appendChild(controlButtons);
+  panel.appendChild(controls);
 
   shadow.appendChild(style);
   shadow.appendChild(panel);
@@ -167,6 +206,7 @@
     isOpen = true;
     panel.classList.add("mira-open");
     bubble.setAttribute("aria-expanded", "true");
+    bubble.setAttribute("aria-hidden", "true");
   }
 
   function close() {
@@ -174,6 +214,7 @@
     isOpen = false;
     panel.classList.remove("mira-open");
     bubble.setAttribute("aria-expanded", "false");
+    bubble.setAttribute("aria-hidden", "false");
   }
 
   function toggle() {
@@ -197,6 +238,10 @@
   // is trusted, and the iframe is the only thing that can send this.
   window.addEventListener("message", function (event) {
     if (event.origin !== origin) return;
+    if (event.data && event.data.type === "mira:close") {
+      close();
+      return;
+    }
     if (event.data && event.data.type === "mira:unavailable") removeWidget();
   });
 

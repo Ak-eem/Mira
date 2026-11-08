@@ -202,6 +202,19 @@ export function ChatWindow({
       return false;
     }
   });
+
+  useEffect(() => {
+    if (!embedMode) return;
+    const body = document.body;
+    const previousBackgroundColor = body.style.backgroundColor;
+    const previousBackgroundImage = body.style.backgroundImage;
+    body.style.backgroundColor = "transparent";
+    body.style.backgroundImage = "none";
+    return () => {
+      body.style.backgroundColor = previousBackgroundColor;
+      body.style.backgroundImage = previousBackgroundImage;
+    };
+  }, [embedMode]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -404,9 +417,8 @@ export function ChatWindow({
     }
   }
 
-  async function handleSend(e: React.FormEvent) {
-    e.preventDefault();
-    const text = input.trim();
+  async function sendMessage(message: string) {
+    const text = message.trim();
     if (!text || sending) return;
 
     setMessages((prev) => [...prev, { role: "customer", content: text }]);
@@ -547,6 +559,11 @@ export function ChatWindow({
     }
   }
 
+  async function handleSend(e: React.FormEvent) {
+    e.preventDefault();
+    await sendMessage(input);
+  }
+
       const messagesWithUniqueImages = useMemo(() => {
         const seenImageUrls = new Set<string>();
         return messages.map((message) => {
@@ -627,43 +644,51 @@ export function ChatWindow({
   }
 
   const brandStyle = chatThemeVars(brandColor, backgroundColor) as React.CSSProperties | undefined;
+  const showChatHeader = !embedMode || openNow !== null || messages.length > 0;
+  const embeddedSuggestions = [
+    "Show me your products",
+    "Shipping information",
+    "What are your hours?",
+  ];
 
   return (
     <div
       className={`${embedMode ? "flex h-dvh flex-col" : "flex min-h-screen flex-col"} mira-wash ${nunito.className}`}
-      style={brandStyle}
+      style={{ ...brandStyle, ...(embedMode ? { background: "transparent" } : {}) }}
     >
-      <header
-        className={
-          embedMode
-            ? "glass-panel-strong flex items-center justify-between gap-2 px-3 py-2"
-            : "glass-panel-strong flex items-center justify-between px-4 py-3"
-        }
-      >
-        {!embedMode && <span className="font-semibold">{businessName}</span>}
-        <div className="flex items-center gap-2">
-          {openNow !== null && (
-            <span
-              className={
-                openNow
-                  ? "text-xs font-medium text-emerald-600"
-                  : "text-xs font-medium text-slate-400"
-              }
-            >
-              {openNow ? "● Open now" : "Closed"}
-            </span>
-          )}
-          {messages.length > 0 && !conversationEnded && !showEndConfirm && (
-            <button
-              type="button"
-              onClick={() => setShowEndConfirm(true)}
-              className="text-xs font-medium text-slate-400 hover:text-slate-600"
-            >
-              End chat
-            </button>
-          )}
-        </div>
-      </header>
+      {showChatHeader && (
+        <header
+          className={
+            embedMode
+              ? "flex items-center justify-between gap-2 px-4 py-2"
+              : "glass-panel-strong flex items-center justify-between px-4 py-3"
+          }
+        >
+          {!embedMode && <span className="font-semibold">{businessName}</span>}
+          <div className="flex items-center gap-2">
+            {openNow !== null && (
+              <span
+                className={
+                  openNow
+                    ? "text-xs font-medium text-emerald-600"
+                    : "text-xs font-medium text-slate-400"
+                }
+              >
+                {openNow ? "● Open now" : "Closed"}
+              </span>
+            )}
+            {messages.length > 0 && !conversationEnded && !showEndConfirm && (
+              <button
+                type="button"
+                onClick={() => setShowEndConfirm(true)}
+                className="text-xs font-medium text-slate-400 hover:text-slate-600"
+              >
+                End chat
+              </button>
+            )}
+          </div>
+        </header>
+      )}
 
       {showEndConfirm && (
         <div className="glass-panel-strong flex items-center justify-between gap-3 px-4 py-2 text-xs">
@@ -756,11 +781,36 @@ export function ChatWindow({
 
       <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
-          <div className="text-left">
-            <span className="glass-panel inline-block max-w-[85%] rounded-lg px-3 py-2 text-sm">
-              Hi! 👋 Ask me anything about {businessName} — hours, prices, what we
-              offer, and more.
-            </span>
+          <div className={embedMode ? "flex h-full flex-col justify-center gap-5 pb-8" : "text-left"}>
+            {embedMode && (
+              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-6 w-6">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z" />
+                </svg>
+              </div>
+            )}
+            <div className={embedMode ? "text-center" : "text-left"}>
+              {embedMode && <h2 className="mb-2 text-xl font-semibold text-slate-900">How can we help?</h2>}
+              <span className={`${embedMode ? "inline-block max-w-sm text-slate-600" : "glass-panel inline-block max-w-[85%]"} rounded-xl px-4 py-3 text-sm`}>
+                Hi! 👋 Ask me anything about {businessName} — hours, prices, what we
+                offer, and more.
+              </span>
+            </div>
+            {embedMode && (
+              <div className="mx-auto flex max-w-lg flex-wrap justify-center gap-2" aria-label="Suggested questions">
+                {embeddedSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    type="button"
+                    disabled={sending}
+                    onClick={() => void sendMessage(suggestion)}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:border-accent/40 hover:bg-slate-50 disabled:opacity-50"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
         )}
         {messagesWithUniqueImages.map((m, i) =>
@@ -776,31 +826,34 @@ export function ChatWindow({
             className={`message-enter ${m.role === "customer" ? "text-right" : "text-left"}`}
           >
             {m.role === "assistant" ? (
-              <div className="glass-panel inline-block max-w-[85%] rounded-lg px-3 py-2 text-sm">
+              <div
+                className={`${embedMode ? "inline-block max-w-[85%] rounded-2xl bg-white/65 px-4 py-3 text-sm shadow-sm backdrop-blur-md" : "glass-panel inline-block max-w-[85%] rounded-lg px-3 py-2 text-sm"}`}
+              >
                 {renderAssistantContent(m.content)}
               </div>
             ) : (
-              <span className="inline-block max-w-[85%] rounded-lg bg-accent px-3 py-2 text-sm text-on-accent shadow-[0_8px_20px_-12px_rgba(15,118,110,0.6)]">
+              <span className={`${embedMode ? "border border-white/35 shadow-[0_8px_20px_-12px_rgba(15,42,34,0.6)]" : "shadow-[0_8px_20px_-12px_rgba(15,118,110,0.6)]"} inline-block max-w-[85%] rounded-lg bg-accent px-3 py-2 text-sm text-on-accent`}>
                 {linkifyContent(m.content)}
               </span>
             )}
 
             {m.role === "assistant" && m.productImages && m.productImages.length > 0 && (
-              <div className="mt-2 flex flex-wrap gap-2">
+              <div className="mt-3 flex max-w-full gap-3 overflow-x-auto pb-2">
                 {m.productImages.map((p) => (
                   <button
                     key={p.imageUrl}
                     type="button"
                     onClick={() => setExpandedImage({ url: p.imageUrl, name: p.name })}
-                    className="glass-hover rounded-md"
+                    className="glass-hover w-36 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm"
                     aria-label={`Expand image of ${p.name}`}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={p.imageUrl}
                       alt={p.name}
-                      className="h-20 w-20 cursor-zoom-in rounded-md border border-slate-200 object-cover"
+                      className="h-24 w-full cursor-zoom-in object-cover"
                     />
+                    <span className="block truncate px-2.5 py-2 text-xs font-medium text-slate-700">{p.name}</span>
                   </button>
                 ))}
               </div>
@@ -815,7 +868,7 @@ export function ChatWindow({
                   className={
                     m.feedback === "up"
                       ? "rounded-sm p-1 text-emerald-600"
-                      : "rounded-sm p-1 text-slate-300 hover:text-slate-500"
+                      : `rounded-sm p-1 ${embedMode ? "text-slate-900 hover:text-black" : "text-slate-300 hover:text-slate-500"}`
                   }
                 >
                   <ThumbIcon direction="up" filled={m.feedback === "up"} />
@@ -827,7 +880,7 @@ export function ChatWindow({
                   className={
                     m.feedback === "down"
                       ? "rounded-sm p-1 text-red-500"
-                      : "rounded-sm p-1 text-slate-300 hover:text-slate-500"
+                      : `rounded-sm p-1 ${embedMode ? "text-slate-900 hover:text-black" : "text-slate-300 hover:text-slate-500"}`
                   }
                 >
                   <ThumbIcon direction="down" filled={m.feedback === "down"} />
@@ -918,24 +971,46 @@ export function ChatWindow({
       ) : (
         <form
           onSubmit={handleSend}
-          className="glass-panel-strong flex gap-2 px-4 py-3"
+          className={embedMode ? "flex w-full px-4 py-3" : "glass-panel-strong flex gap-2 px-4 py-3"}
         >
-          <input
-            className="flex-1 rounded-sm border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask a question…"
-          />
-          <button
-            type="submit"
-            disabled={sending || !input.trim()}
-            className="glass-hover rounded-sm bg-accent px-4 py-2 text-sm font-medium text-on-accent hover:bg-accent-dark disabled:opacity-50"
-          >
-            Send
-          </button>
+          {embedMode ? (
+            <div className="flex w-full min-w-0 items-center rounded-full border border-slate-200 bg-white px-2 py-1 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+              <input
+                className="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm focus:border-transparent focus:outline-hidden focus:ring-0"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask a question…"
+              />
+              <button
+                type="submit"
+                disabled={sending || !input.trim()}
+                className="shrink-0 rounded-full bg-accent px-5 py-2 text-sm font-medium text-on-accent transition-colors hover:bg-accent-dark disabled:opacity-50"
+              >
+                Send
+              </button>
+            </div>
+          ) : (
+            <>
+              <input
+                className="min-w-0 flex-1 rounded-sm border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Ask a question…"
+              />
+              <button
+                type="submit"
+                disabled={sending || !input.trim()}
+                className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-on-accent transition-colors hover:bg-accent-dark disabled:opacity-50"
+              >
+                Send
+              </button>
+            </>
+          )}
         </form>
       )}
-      <div className="glass-panel-strong border-t-0 pb-2 pt-1.5 text-center text-[11px] text-slate-400">
+      <div
+        className={`${embedMode ? "" : "glass-panel-strong"} pb-2 pt-1.5 text-center text-[11px] text-slate-400`}
+      >
         Powered by <span className="font-medium text-slate-500">Mira AI</span>
       </div>
 
