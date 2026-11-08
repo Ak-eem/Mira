@@ -21,7 +21,7 @@ for (const name of NOT_CSS_PROPERTIES) {
 }
 
 check("the panel does not add a branded title header above the chat", !/mira-panel-header|headerTitle/.test(source));
-check("the widget shell has a translucent background", /background: rgba\(255,255,255,0\.82\)/.test(source));
+check("the widget shell has a blurred translucent background", /background: rgba\(255,255,255,0\.86\); -webkit-backdrop-filter: blur\(16px\) saturate\(1\.2\); backdrop-filter: blur\(16px\) saturate\(1\.2\)/.test(source));
 check("the embedded iframe background stays transparent", /\.mira-panel iframe \{[^}]*background: transparent;/.test(source));
 check("panel resizing uses a spring easing", /width 0\.52s cubic-bezier\(0\.34, 1\.56, 0\.64, 1\), height 0\.52s cubic-bezier\(0\.34, 1\.56, 0\.64, 1\)/.test(source));
 check("mobile expansion animates its edges and height", /right: 8px; bottom: 8px; left: 8px; width: auto; height: calc\(100vh - 16px\)/.test(source));

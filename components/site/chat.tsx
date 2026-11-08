@@ -189,7 +189,7 @@ function ProductCard({ p, onOpen }: { p: Product; onOpen: (p: Product) => void }
   )
 }
 
-export function Bubble({ m, products, onOpen }: { m: ChatMessage; products: Product[]; onOpen: (p: Product) => void }) {
+export function Bubble({ m, products, onOpen, widget = false }: { m: ChatMessage; products: Product[]; onOpen: (p: Product) => void; widget?: boolean }) {
   const mine = m.from === 'customer'
   const cards = (m.products ?? []).map((id) => products.find((p) => p.id === id)).filter(Boolean) as Product[]
   return (
@@ -197,7 +197,15 @@ export function Bubble({ m, products, onOpen }: { m: ChatMessage; products: Prod
       <div
         className={cx(
           'max-w-[85%] whitespace-pre-line rounded-[18px] px-3.5 py-2.5 text-[14px] leading-snug',
-          mine ? 'rounded-br-md bg-ink text-white' : m.from === 'owner' ? 'rounded-bl-md bg-lime text-ink' : 'rounded-bl-md bg-mist text-ink',
+          mine
+            ? widget
+              ? 'rounded-br-md border border-white/35 bg-ink text-white shadow-[0_8px_20px_-12px_rgb(15_42_34/0.6)]'
+              : 'rounded-br-md bg-ink text-white'
+            : m.from === 'owner'
+              ? 'rounded-bl-md bg-lime text-ink'
+              : widget
+                ? 'rounded-bl-md bg-white/70 text-ink shadow-sm backdrop-blur-md'
+                : 'rounded-bl-md bg-mist text-ink',
         )}
       >
         {m.text}
@@ -242,7 +250,19 @@ function Preview({ p, onClose }: { p: Product; onClose: () => void }) {
  * The conversation surface shared by the hero demo and the floating widget:
  * thread, typing indicator, suggestions, error state and composer.
  */
-export function ChatPanel({ chat, compact = false, onClose }: { chat: ReturnType<typeof useChat>; compact?: boolean; onClose?: () => void }) {
+export function ChatPanel({
+  chat,
+  compact = false,
+  onClose,
+  onExpand,
+  expanded = false,
+}: {
+  chat: ReturnType<typeof useChat>
+  compact?: boolean
+  onClose?: () => void
+  onExpand?: () => void
+  expanded?: boolean
+}) {
   const { messages, typing, failed, send, retry, products } = chat
   const [text, setText] = useState('')
   const [preview, setPreview] = useState<Product | null>(null)
@@ -257,30 +277,52 @@ export function ChatPanel({ chat, compact = false, onClose }: { chat: ReturnType
     send(t)
     setText('')
   }
-  const fresh = messages.length === 1
+  const firstMessageIsGreeting = messages[0]?.id === 'hello'
+  const fresh = messages.length === 1 && firstMessageIsGreeting
+  const showWelcome = Boolean(onClose) && fresh
 
   return (
     <div className="relative flex h-full min-h-0 flex-col">
-      <header className="flex items-center gap-3 border-b border-line/80 px-4 py-3">
-        <span className="grid size-9 place-items-center rounded-full bg-ink text-white">
-          <Logo wordmark={false} className="scale-75 text-white" />
-        </span>
-        <div className="min-w-0 flex-1">
+      <header className={cx('flex items-center', onClose ? 'min-h-12 justify-between gap-2 px-3 pt-1.5' : 'gap-3 border-b border-line/80 px-4 py-3')}>
+        <div className="flex min-w-0 items-center gap-2">
+          <span className={cx('grid place-items-center rounded-full', onClose ? 'size-7 bg-ink/5 text-ink' : 'size-9 bg-ink text-white')}>
+            {onClose ? <Icon name="chat" size={15} /> : <Logo wordmark={false} className="scale-75 text-white" />}
+          </span>
+          <div className="min-w-0">
           <p className="truncate text-[14px] font-medium">{BUSINESS_NAME} assistant</p>
-          <p className="flex items-center gap-1.5 text-xs text-muted">
-            <span className="size-1.5 rounded-full bg-lime-3" /> Online · replies instantly
-          </p>
+            {!onClose && (
+              <p className="flex items-center gap-1.5 text-xs text-muted">
+                <span className="size-1.5 rounded-full bg-lime-3" /> Online · replies instantly
+              </p>
+            )}
+          </div>
         </div>
-        {onClose && (
-          <button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-full transition-colors hover:bg-mist" aria-label="Close chat">
-            <Icon name="x" size={16} />
-          </button>
+        {onClose && onExpand && (
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onExpand} aria-label={expanded ? 'Restore chat size' : 'Expand chat'} aria-pressed={expanded} className="grid size-9 place-items-center rounded-full border border-line/50 bg-white text-ink-2 shadow-soft transition-colors hover:bg-mist">
+              <Icon name={expanded ? 'compress' : 'expand'} size={16} />
+            </button>
+            <button type="button" onClick={onClose} className="grid size-9 place-items-center rounded-full border border-line/50 bg-white text-ink-2 shadow-soft transition-colors hover:bg-mist" aria-label="Minimize chat">
+              <Icon name="minus" size={16} />
+            </button>
+          </div>
         )}
       </header>
 
       <div ref={scroller} className={cx('flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto px-4 py-4', compact ? 'max-h-none' : '')} aria-live="polite">
-        {messages.map((m) => (
-          <Bubble key={m.id} m={m} products={products} onOpen={setPreview} />
+        {showWelcome && (
+          <div className="flex flex-1 flex-col items-center justify-center gap-5 pb-8 text-center">
+            <span className="grid size-12 place-items-center rounded-full bg-ink/5 text-ink" aria-hidden="true">
+              <Icon name="chat" size={24} />
+            </span>
+            <div className="max-w-sm">
+              <h2 className="mb-2 text-xl font-semibold">How can I help?</h2>
+              <p className="text-sm leading-relaxed text-muted">{messages[0].text}</p>
+            </div>
+          </div>
+        )}
+        {messages.slice(onClose && firstMessageIsGreeting ? 1 : 0).map((m) => (
+          <Bubble key={m.id} m={m} products={products} onOpen={setPreview} widget={Boolean(onClose)} />
         ))}
         {typing && <TypingIndicator />}
         {failed && (
@@ -294,9 +336,9 @@ export function ChatPanel({ chat, compact = false, onClose }: { chat: ReturnType
       </div>
 
       {fresh && (
-        <div className="flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none]">
+        <div className={cx('gap-2 px-4 pb-3', onClose ? 'mx-auto flex max-w-lg flex-wrap justify-center' : 'flex overflow-x-auto')}>
           {SUGGESTIONS.map((s) => (
-            <button key={s} type="button" onClick={() => submit(s)} className="h-8 shrink-0 rounded-pill border border-line bg-surface px-3 text-[13px] text-ink-2 transition-colors hover:border-ink/30">
+            <button key={s} type="button" onClick={() => submit(s)} className={cx('h-9 shrink-0 rounded-pill border border-line px-3 text-[13px] transition-colors hover:border-ink/30', onClose ? 'bg-white text-[12px] font-medium text-ink-2 shadow-sm' : 'bg-surface text-ink-2')}>
               {s}
             </button>
           ))}
@@ -304,29 +346,55 @@ export function ChatPanel({ chat, compact = false, onClose }: { chat: ReturnType
       )}
 
       <form
-        className="flex items-center gap-2 border-t border-line/80 p-3"
+        className={cx('flex items-center gap-2', onClose ? 'px-4 py-3' : 'border-t border-line/80 p-3')}
         onSubmit={(e) => {
           e.preventDefault()
           submit(text)
         }}
       >
-        <input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          placeholder="Ask about a product, delivery, an order…"
-          aria-label="Message"
-          className="h-11 min-w-0 flex-1 rounded-pill bg-mist px-4 text-[15px] outline-none placeholder:text-muted focus:bg-line/60"
-        />
-        <button
-          type="submit"
-          disabled={!text.trim() || typing}
-          className="grid size-11 shrink-0 place-items-center rounded-full bg-ink text-white transition-[transform,opacity] active:scale-95 disabled:opacity-30"
-          aria-label="Send"
-        >
-          <Icon name="send" size={17} />
-        </button>
+        {onClose ? (
+          <div className="flex w-full min-w-0 items-center rounded-full border border-line bg-white px-2 py-1 focus-within:border-ink/40 focus-within:ring-1 focus-within:ring-ink/10">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Ask a question…"
+              aria-label="Message"
+              className="h-10 min-w-0 flex-1 border-0 bg-transparent px-3 text-sm outline-none placeholder:text-muted focus:ring-0"
+            />
+            <button
+              type="submit"
+              disabled={!text.trim() || typing}
+              className="h-9 shrink-0 rounded-full bg-[#0f2a22] px-5 text-sm font-medium text-white transition-[transform,opacity] active:scale-95 disabled:opacity-50"
+              aria-label="Send"
+            >
+              Send
+            </button>
+          </div>
+        ) : (
+          <>
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Ask about a product, delivery, an order…"
+              aria-label="Message"
+              className="h-11 min-w-0 flex-1 rounded-pill bg-mist px-4 text-[15px] outline-none placeholder:text-muted focus:bg-line/60"
+            />
+            <button
+              type="submit"
+              disabled={!text.trim() || typing}
+              className="grid size-11 shrink-0 place-items-center rounded-full bg-ink text-white transition-[transform,opacity] active:scale-95 disabled:opacity-30"
+              aria-label="Send"
+            >
+              <Icon name="send" size={17} />
+            </button>
+          </>
+        )}
       </form>
-      <p className="pb-2 text-center text-[11px] text-muted">This is Mira answering about itself</p>
+      {onClose ? (
+        <p className="pb-2 text-center text-[11px] text-muted">Powered by <span className="font-medium text-ink-2">Mira AI</span></p>
+      ) : (
+        <p className="pb-2 text-center text-[11px] text-muted">This is Mira answering about itself</p>
+      )}
 
       {preview && <Preview p={preview} onClose={() => setPreview(null)} />}
     </div>
@@ -334,8 +402,9 @@ export function ChatPanel({ chat, compact = false, onClose }: { chat: ReturnType
 }
 
 /** Floating bubble + panel, as it sits on a customer's website. */
-export function ChatWidget({ color = '#111112', defaultOpen = false }: { color?: string; defaultOpen?: boolean }) {
+export function ChatWidget({ color = '#0f2a22', defaultOpen = false }: { color?: string; defaultOpen?: boolean }) {
   const [open, setOpen] = useState(defaultOpen)
+  const [expanded, setExpanded] = useState(false)
   const [nudge, setNudge] = useState(false)
   const chat = useChat({ inviteAfter: 2 })
 
@@ -345,18 +414,26 @@ export function ChatWidget({ color = '#111112', defaultOpen = false }: { color?:
   }, [])
 
   return (
-    <div className="fixed right-4 bottom-4 z-50 flex flex-col items-end gap-3 sm:right-6 sm:bottom-6">
+    <div className={cx('z-50 flex', expanded ? 'fixed inset-2 items-stretch justify-stretch sm:items-end sm:justify-end' : 'fixed right-4 bottom-4 flex-col items-end gap-3 sm:right-6 sm:bottom-6')}>
       {open && (
-        <div className="glass flex h-[min(620px,calc(100dvh-110px))] w-[min(380px,calc(100vw-32px))] origin-bottom-right flex-col overflow-hidden rounded-[28px] shadow-float animate-pop">
-          <ChatPanel chat={chat} onClose={() => setOpen(false)} />
+        <div className={cx('glass flex origin-bottom-right flex-col overflow-hidden rounded-2xl shadow-float animate-pop', expanded ? 'h-full w-full sm:h-[min(780px,calc(100dvh-48px))] sm:w-[min(920px,calc(100vw-48px))]' : 'h-[min(640px,calc(100dvh-110px))] w-[min(380px,calc(100vw-32px))]')}>
+          <ChatPanel
+            chat={chat}
+            onClose={() => {
+              setOpen(false)
+              setExpanded(false)
+            }}
+            onExpand={() => setExpanded((value) => !value)}
+            expanded={expanded}
+          />
         </div>
       )}
-      {!open && nudge && (
+      {!open && !expanded && nudge && (
         <button type="button" onClick={() => setOpen(true)} className="glass hidden max-w-[240px] rounded-[18px] sm:block rounded-br-md px-4 py-3 text-left text-[13px] leading-snug shadow-float animate-pop">
           Questions about sizes, delivery or an order? Ask me.
         </button>
       )}
-      <button
+      {!expanded && <button
         type="button"
         onClick={() => {
           setOpen((o) => !o)
@@ -374,7 +451,7 @@ export function ChatWidget({ color = '#111112', defaultOpen = false }: { color?:
           <Icon name="x" size={20} />
         </span>
         {!open && <span className="absolute top-0.5 right-0.5 size-3.5 rounded-full border-2 border-white bg-lime-3" />}
-      </button>
+      </button>}
     </div>
   )
 }
