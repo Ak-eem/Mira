@@ -67,6 +67,7 @@ export function AnalyticsPanel({ snapshot, baseHref, businessName }: { snapshot:
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">
+        <p className="col-span-full -mb-1 text-xs text-slate-500">Days are counted in {snapshot.timeZone}.</p>
         <BarChart title="Conversations over time" seriesNames={["Conversations", "Human help"]} points={snapshot.conversationsOverTime} />
         <BarChart title="Human help over time" seriesNames={["Human help requests"]} points={snapshot.conversationsOverTime.map((point) => ({ label: point.label, value: point.secondary ?? 0 }))} />
         <BarChart title="AI provider usage" seriesNames={["AI replies"]} points={snapshot.providerBreakdown} />
@@ -108,7 +109,7 @@ export function AnalyticsPanel({ snapshot, baseHref, businessName }: { snapshot:
                 {snapshot.recentUnansweredQuestions.map((q, i) => (
                   <li key={i} className="border-b border-slate-100 pb-2 last:border-0 last:pb-0">
                     <p className="text-slate-700">&quot;{q.question}&quot;</p>
-                    <time className="text-xs text-slate-500">{new Date(q.askedAt).toLocaleString()}</time>
+                    <time className="text-xs text-slate-500">{new Date(q.askedAt).toLocaleString(undefined, { timeZone: snapshot.timeZone })}</time>
                   </li>
                 ))}
               </ul>

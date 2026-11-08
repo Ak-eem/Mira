@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { safeTimeZone } from "@/lib/ask/range";
 
 export default async function ConversationsPage({
   params,
@@ -14,6 +15,8 @@ export default async function ConversationsPage({
   const filter = filters.filter === "human" || filters.filter === "active" || filters.filter === "resolved" || filters.filter === "unread" ? filters.filter : "all";
   const sort = filters.sort === "oldest" ? "oldest" : "newest";
   const supabase = await createClient();
+  const { data: business } = await supabase.from("businesses").select("timezone").eq("id", businessId).maybeSingle();
+  const timeZone = safeTimeZone(business?.timezone);
 
   let conversationsQuery = supabase
     .from("conversations")
@@ -72,7 +75,7 @@ export default async function ConversationsPage({
                   {c.channel === "whatsapp" ? "WhatsApp" : "Web"}
                 </span>
               </span>
-              <span className="shrink-0 text-sm text-slate-500">{new Date(c.last_message_at).toLocaleString()}</span>
+              <span className="shrink-0 text-sm text-slate-500">{new Date(c.last_message_at).toLocaleString(undefined, { timeZone })}</span>
             </Link>
             </li>
           );

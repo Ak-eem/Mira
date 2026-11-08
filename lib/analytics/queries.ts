@@ -1,5 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { unstable_cache } from "next/cache";
+// The business-calendar range resolver (also used by "Ask your data"): days, weeks and months are counted on the
+// business's own clock, not the server's.
+import { DEFAULT_TIME_ZONE, resolveBusinessRange, safeTimeZone, type RangePreset } from "@/lib/ask/range";
 
 export type AnalyticsRange = "today" | "7d" | "30d" | "month" | "all";
 
@@ -27,6 +30,8 @@ export type RecentAiError = {
 
 export type AnalyticsSnapshot = {
   range: AnalyticsRange;
+  /** The timezone days and months were counted in (the business's, or the platform default for the all-business view). */
+  timeZone: string;
   from: string;
   to: string;
   conversations: number;
@@ -60,19 +65,30 @@ export type AnalyticsSnapshot = {
   reopenRate: RateInsight | null;
 };
 
-function getRange(range: AnalyticsRange): { from: Date; to: Date } {
-  const to = new Date();
-  const from = new Date(to);
-  if (range === "today") from.setHours(0, 0, 0, 0);
-  if (range === "7d") from.setDate(from.getDate() - 6);
-  if (range === "30d") from.setDate(from.getDate() - 29);
-  if (range === "month") {
-    from.setDate(1);
-    from.setHours(0, 0, 0, 0);
-  }
+const PRESET_FOR_RANGE: Record<Exclude<AnalyticsRange, "all">, RangePreset> = {
+  today: "today",
+  "7d": "last_7_days",
+  "30d": "last_30_days",
+  month: "this_month",
+};
+
+/**
+ * The UTC instants for a range, counted on the given timezone's calendar. "today" starts at that timezone's
+ * midnight, "7d" is the last 7 whole local days including today, "month" starts on the 1st local day. (This used
+ * to use the server's clock, so a Lagos business on a UTC server had its days cut at 01:00 local time.)
+ */
+export function getAnalyticsRange(range: AnalyticsRange, timeZone: string = DEFAULT_TIME_ZONE, now: Date = new Date()): { from: Date; to: Date } {
   // "All" is everything Mira has ever recorded; a fixed early date keeps the same >= / <= query shape.
-  if (range === "all") return { from: new Date("2000-01-01T00:00:00.000Z"), to };
-  return { from, to };
+  if (range === "all") return { from: new Date("2000-01-01T00:00:00.000Z"), to: now };
+  const resolved = resolveBusinessRange({ preset: PRESET_FOR_RANGE[range] }, timeZone, now);
+  if (!resolved.ok) throw new Error(resolved.error); // cannot happen: the presets above are always valid
+  return { from: new Date(resolved.range.fromIso), to: new Date(resolved.range.toIso) };
+}
+
+async function loadTimeZone(supabase: Awaited<ReturnType<typeof createClient>>, businessId: string | null): Promise<string> {
+  if (!businessId) return DEFAULT_TIME_ZONE;
+  const { data } = await supabase.from("businesses").select("timezone").eq("id", businessId).maybeSingle();
+  return safeTimeZone(data?.timezone);
 }
 
 function safeRange(value: string | undefined): AnalyticsRange {
@@ -83,13 +99,13 @@ export function parseAnalyticsRange(value: string | undefined): AnalyticsRange {
   return safeRange(value);
 }
 
-function dayLabel(value: string): string {
-  return new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+function dayLabel(value: string, timeZone: string): string {
+  return new Date(value).toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone });
 }
 
 /** Bars are days normally, but a whole history would be hundreds of bars: "All" groups by month instead. */
-export function bucketLabel(value: string, range: AnalyticsRange): string {
-  return range === "all" ? new Date(value).toLocaleDateString(undefined, { month: "short", year: "numeric" }) : dayLabel(value);
+export function bucketLabel(value: string, range: AnalyticsRange, timeZone: string = DEFAULT_TIME_ZONE): string {
+  return range === "all" ? new Date(value).toLocaleDateString(undefined, { month: "short", year: "numeric", timeZone }) : dayLabel(value, timeZone);
 }
 
 export async function getAnalyticsSnapshot(
@@ -115,7 +131,8 @@ async function getAnalyticsSnapshotWithClient(
   requestedRange?: string,
 ): Promise<{ data: AnalyticsSnapshot | null; error: Error | null }> {
   const range = safeRange(requestedRange);
-  const { from, to } = getRange(range);
+  const timeZone = await loadTimeZone(supabase, businessId);
+  const { from, to } = getAnalyticsRange(range, timeZone);
   const fromIso = from.toISOString();
   const toIso = to.toISOString();
   const scoped = (query: any) => businessId ? query.eq("business_id", businessId) : query;
@@ -174,11 +191,11 @@ async function getAnalyticsSnapshotWithClient(
   if (businessId) {
     try {
       businessInsights = await Promise.all([
-        getPopularQuestions(businessId, range),
-        getTopProducts(businessId, range),
-        getUnansweredQuestions(businessId, range),
-        getResolutionRate(businessId, range),
-        getReopenRate(businessId, range),
+        getPopularQuestions(businessId, range, timeZone),
+        getTopProducts(businessId, range, timeZone),
+        getUnansweredQuestions(businessId, range, timeZone),
+        getResolutionRate(businessId, range, timeZone),
+        getReopenRate(businessId, range, timeZone),
       ]);
     } catch (error) {
       console.error("Business insights query failed:", error);
@@ -187,7 +204,7 @@ async function getAnalyticsSnapshotWithClient(
   }
   const dayMap = new Map<string, { value: number; secondary: number }>();
   for (const row of conversationRows) {
-    const label = bucketLabel(row.started_at, range);
+    const label = bucketLabel(row.started_at, range, timeZone);
     const current = dayMap.get(label) ?? { value: 0, secondary: 0 };
     current.value += 1;
     if (row.needs_human) current.secondary += 1;
@@ -203,6 +220,7 @@ async function getAnalyticsSnapshotWithClient(
   return {
     data: {
       range,
+      timeZone,
       from: fromIso,
       to: toIso,
       conversations: conversationCount.count ?? 0,
@@ -252,15 +270,17 @@ function topCounts(counts: Map<string, number>): CountInsight[] {
     .slice(0, 10);
 }
 
-async function getBusinessRange(businessId: string, requestedRange?: string) {
+async function getBusinessRange(businessId: string, requestedRange?: string, timeZone?: string) {
   const range = safeRange(requestedRange);
-  const { from, to } = getRange(range);
+  // The snapshot already knows the timezone and passes it down; called on their own, look it up.
+  const zone = timeZone ?? (await loadTimeZone(await createClient(), businessId));
+  const { from, to } = getAnalyticsRange(range, zone);
   return { fromIso: from.toISOString(), toIso: to.toISOString() };
 }
 
-export async function getPopularQuestions(businessId: string, requestedRange?: string): Promise<CountInsight[]> {
+export async function getPopularQuestions(businessId: string, requestedRange?: string, timeZone?: string): Promise<CountInsight[]> {
   const supabase = await createClient();
-  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange);
+  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange, timeZone);
   const { data, error } = await supabase
     .from("messages")
     .select("content")
@@ -280,9 +300,9 @@ export async function getPopularQuestions(businessId: string, requestedRange?: s
   return topCounts(counts);
 }
 
-export async function getTopProducts(businessId: string, requestedRange?: string): Promise<CountInsight[]> {
+export async function getTopProducts(businessId: string, requestedRange?: string, timeZone?: string): Promise<CountInsight[]> {
   const supabase = await createClient();
-  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange);
+  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange, timeZone);
   const [{ data: products, error: productsError }, { data: interests, error: interestsError }, { data: messages, error: messagesError }] = await Promise.all([
     supabase.from("products").select("id, name").eq("business_id", businessId),
     supabase.from("product_interest").select("product_id").eq("business_id", businessId).gte("created_at", fromIso).lte("created_at", toIso),
@@ -307,9 +327,9 @@ export async function getTopProducts(businessId: string, requestedRange?: string
   return topCounts(new Map(productCounts));
 }
 
-export async function getUnansweredQuestions(businessId: string, requestedRange?: string): Promise<UnansweredInsight> {
+export async function getUnansweredQuestions(businessId: string, requestedRange?: string, timeZone?: string): Promise<UnansweredInsight> {
   const supabase = await createClient();
-  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange);
+  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange, timeZone);
   const { data: business, error: businessError } = await supabase.from("businesses").select("name").eq("id", businessId).single();
   if (businessError) {
     console.error("getUnansweredQuestions business lookup failed:", businessError);
@@ -350,9 +370,9 @@ export async function getUnansweredQuestions(businessId: string, requestedRange?
   return { total, top: topCounts(counts) };
 }
 
-export async function getResolutionRate(businessId: string, requestedRange?: string): Promise<RateInsight> {
+export async function getResolutionRate(businessId: string, requestedRange?: string, timeZone?: string): Promise<RateInsight> {
   const supabase = await createClient();
-  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange);
+  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange, timeZone);
   const [{ count: total, error: totalError }, { count: resolved, error: resolvedError }] = await Promise.all([
     supabase.from("conversations").select("id", { count: "exact", head: true }).eq("business_id", businessId).gte("started_at", fromIso).lte("started_at", toIso),
     supabase.from("conversations").select("id", { count: "exact", head: true }).eq("business_id", businessId).eq("status", "closed").gte("started_at", fromIso).lte("started_at", toIso),
@@ -366,9 +386,9 @@ export async function getResolutionRate(businessId: string, requestedRange?: str
   return { resolved: resolvedCount, total: totalCount, percentage: totalCount ? Math.round((resolvedCount / totalCount) * 100) : 0 };
 }
 
-export async function getReopenRate(businessId: string, requestedRange?: string): Promise<RateInsight> {
+export async function getReopenRate(businessId: string, requestedRange?: string, timeZone?: string): Promise<RateInsight> {
   const supabase = await createClient();
-  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange);
+  const { fromIso, toIso } = await getBusinessRange(businessId, requestedRange, timeZone);
   const { data, error } = await supabase
     .from("conversations")
     .select("id, session_token, started_at, status")
