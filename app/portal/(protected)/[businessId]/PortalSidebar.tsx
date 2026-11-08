@@ -83,7 +83,7 @@ export function PortalSidebar({
         { href: `${base}/services`, label: "Services", icon: Briefcase, ownerOnly: true },
         { href: `${base}/faqs`, label: "FAQs", icon: HelpCircle, ownerOnly: true },
         { href: `${base}/policies`, label: "Policies", icon: ScrollText, ownerOnly: true },
-        { href: `${base}/hours`, label: "Opening hours", icon: Clock, ownerOnly: true },
+        { href: `${base}/hours`, label: "Hours", icon: Clock, ownerOnly: true },
         { href: `${base}/school`, label: "School", icon: GraduationCap, ownerOnly: true, schoolOnly: true },
       ],
     },
