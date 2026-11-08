@@ -4,7 +4,6 @@ import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { AdminSidebar } from "./AdminSidebar";
 import { AdminSignOutButton } from "./AdminSignOutButton";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { ThemeScript } from "@/components/ThemeScript";
 import { FeedbackProvider } from "@/components/ui/Feedback";
 
 // Per-page titles: each page exports { title: "Businesses" } and the tab reads "Businesses | Mira Admin".
@@ -28,7 +27,6 @@ export default async function AdminLayout({
 
   return (
     <ThemeProvider>
-      <ThemeScript />
       <FeedbackProvider>
       <div className="mira-wash min-h-screen">
       <header className="glass-panel-strong sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 sm:px-6">

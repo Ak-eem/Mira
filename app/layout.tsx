@@ -1,5 +1,7 @@
 import type { Metadata, Viewport } from "next";
+import Script from "next/script";
 import { GeistSans } from "geist/font/sans";
+import { THEME_INIT_SCRIPT } from "@/lib/theme";
 import "./globals.css";
 
 export const viewport: Viewport = {
@@ -18,7 +20,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={GeistSans.variable} suppressHydrationWarning>
-      <body className="bg-slate-50 text-slate-900">{children}</body>
+      <body className="bg-slate-50 text-slate-900">
+        {children}
+        <Script id="theme-init" strategy="beforeInteractive">
+          {THEME_INIT_SCRIPT}
+        </Script>
+      </body>
     </html>
   );
 }

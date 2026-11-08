@@ -16,7 +16,6 @@ export function resolveTheme(preference: ThemePreference, systemPrefersDark: boo
   return preference;
 }
 
-// Runs before first paint (inlined in the portal and admin layouts) so a
-// dark-mode user never sees a flash of the light theme. Keep it dependency
-// free and wrapped in try/catch: storage can throw in private windows.
-export const THEME_INIT_SCRIPT = `(function(){try{var p=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});var d=p==="dark"||(p==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.dataset.theme=d?"dark":"light";}catch(e){}})();`;
+// Runs before first paint so a dark-mode user never sees a flash of light.
+// Keep it dependency-free and scoped to themed routes; storage can throw in private windows.
+export const THEME_INIT_SCRIPT = `(function(){try{var path=location.pathname;if(path==="/portal/login"||path==="/portal/signup"||path==="/admin/login"||path!=="/portal"&&!path.startsWith("/portal/")&&path!=="/admin"&&!path.startsWith("/admin/"))return;var p=localStorage.getItem(${JSON.stringify(THEME_STORAGE_KEY)});var d=p==="dark"||(p==="system"&&window.matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.dataset.theme=d?"dark":"light";}catch(e){}})();`;

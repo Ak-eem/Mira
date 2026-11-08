@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { WebsiteImport } from "../WebsiteImport";
 import { completeOnboarding, seedFashionStarter } from "./actions";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Segmented } from "@/components/ui/Segmented";
+import { RubberSegment } from "@/components/ui/RubberSegment";
 import { SwitchRow } from "@/components/ui/Switch";
 import { COURIER_OPTIONS, isConnectableCourier } from "@/lib/onboarding";
 import { EMPTY_FASHION_ANSWERS, MAX_DELIVERY_NOTE, MAX_RETURN_DAYS, hasAnyFashionAnswer, type FashionAnswers, type PaymentMethod, type ReturnsPolicy } from "@/lib/fashionStarter";
@@ -35,10 +35,10 @@ function YesNo({ legend, value, onChange }: { legend: string; value: boolean | n
     <fieldset>
       <legend className="text-base font-medium text-slate-900">{legend}</legend>
       <div className="mt-3">
-        <Segmented
+        <RubberSegment
           label={legend}
           options={[{ value: "yes", label: "Yes" }, { value: "no", label: "No" }]}
-          value={(value === null ? "" : value ? "yes" : "no") as "yes" | "no"}
+          value={value === null ? null : value ? "yes" : "no"}
           onChange={(v) => onChange(v === "yes")}
         />
       </div>
@@ -46,7 +46,7 @@ function YesNo({ legend, value, onChange }: { legend: string; value: boolean | n
   );
 }
 
-export function SetupWizard({ businessId, businessName }: { businessId: string; businessName: string }) {
+export function SetupWizard({ businessId, businessName, previewOnly = false }: { businessId: string; businessName: string; previewOnly?: boolean }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>("sells");
   const [sells, setSells] = useState<"fashion" | "other" | null>(null);
@@ -63,6 +63,7 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
   // The fashion questions only appear for fashion stores.
   const STEPS: StepId[] = sells === "fashion" ? ["sells", "fashion", "website", "email", "inventory", "courier"] : ["sells", "website", "email", "inventory", "courier"];
   const stepIndex = step === "done" ? STEPS.length : STEPS.indexOf(step);
+  const progressSteps = step === "sells" ? 5 : STEPS.length;
   const dashboard = `/portal/${businessId}`;
 
   const answered: Record<StepId, boolean> = {
@@ -108,6 +109,10 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
       setStep(STEPS[stepIndex + 1]);
       return;
     }
+    if (previewOnly) {
+      setStep("done");
+      return;
+    }
     if (await save()) {
       await addStarter();
       setStep("done");
@@ -135,14 +140,14 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
             role="progressbar"
             aria-label="Setup progress"
             aria-valuemin={1}
-            aria-valuemax={STEPS.length}
+            aria-valuemax={progressSteps}
             aria-valuenow={stepIndex + 1}
             className="h-1.5 w-full overflow-hidden rounded-full bg-slate-200"
           >
-            <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }} />
+            <div className="h-full rounded-full bg-accent transition-all" style={{ width: `${((stepIndex + 1) / progressSteps) * 100}%` }} />
           </div>
           <p className="ui-hint mt-1.5">
-            Step {stepIndex + 1} of {STEPS.length}
+            Step {stepIndex + 1} of {progressSteps}
           </p>
         </div>
       )}
@@ -152,10 +157,10 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
           <fieldset>
             <legend className="text-base font-medium text-slate-900">What do you sell?</legend>
             <div className="mt-3">
-              <Segmented
+              <RubberSegment
                 label="What do you sell?"
                 options={[{ value: "fashion", label: "Fashion and clothing" }, { value: "other", label: "Something else" }]}
-                value={(sells ?? "") as "fashion" | "other"}
+                value={sells}
                 onChange={setSells}
               />
             </div>
@@ -172,10 +177,10 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
             <fieldset>
               <legend className="text-base font-medium text-slate-900">What is your returns policy?</legend>
               <div className="mt-3">
-                <Segmented
+                <RubberSegment
                   label="Returns policy"
                   options={RETURNS_OPTIONS}
-                  value={(fashion.returns ?? "") as ReturnsPolicy}
+                  value={fashion.returns}
                   onChange={(value) => setFashion({ ...fashion, returns: value, returnDays: value === "none" ? null : fashion.returnDays })}
                 />
               </div>
@@ -275,16 +280,24 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
         {step === "courier" && (
           <fieldset>
             <legend className="text-base font-medium text-slate-900">How do you deliver orders?</legend>
-            <div role="radiogroup" aria-label="How you deliver orders" className="ui-group mt-3">
-              {COURIER_OPTIONS.map((option) => (
-                <label key={option.id} className="ui-row justify-between has-[input:focus-visible]:bg-slate-100">
-                  <span className="text-[15px] text-slate-900">{option.label}</span>
-                  <input type="radio" name="courier" className="sr-only" checked={courier === option.id} onChange={() => setCourier(option.id)} />
-                  {courier === option.id && (
-                    <svg aria-hidden viewBox="0 0 20 20" className="h-5 w-5 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10.5l4 4 8-9" /></svg>
-                  )}
-                </label>
-              ))}
+            <div className="mt-3">
+              <RubberSegment
+                label="How you deliver orders"
+                orientation="vertical"
+                options={COURIER_OPTIONS.map((option) => ({
+                  value: option.id,
+                  label: (
+                    <>
+                      <span className="text-left text-[15px] text-slate-900">{option.label}</span>
+                      {courier === option.id && (
+                        <svg aria-hidden viewBox="0 0 20 20" className="h-5 w-5 shrink-0 text-accent" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 10.5l4 4 8-9" /></svg>
+                      )}
+                    </>
+                  ),
+                }))}
+                value={courier}
+                onChange={setCourier}
+              />
             </div>
             {courier !== null && isConnectableCourier(courier) && (
               <p className="ui-hint mt-3">Mira can update your orders automatically when Shiip delivers them. You&apos;ll connect it in Settings once you finish.</p>
@@ -343,7 +356,7 @@ export function SetupWizard({ businessId, businessName }: { businessId: string; 
                   Back
                 </button>
               )}
-              <button type="button" onClick={() => void skip()} disabled={saving} className="ui-btn ui-btn-plain ui-btn-sm !text-slate-500">
+              <button type="button" onClick={() => void skip()} disabled={saving || previewOnly} className="ui-btn ui-btn-plain ui-btn-sm !text-slate-500">
                 Skip setup
               </button>
             </div>

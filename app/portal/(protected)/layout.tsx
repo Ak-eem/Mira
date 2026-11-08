@@ -4,7 +4,6 @@ import { getRequestUser } from "@/lib/supabase/request";
 import { Logo } from "@/components/site/ui";
 import { HeaderAccount } from "./HeaderAccount";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { ThemeScript } from "@/components/ThemeScript";
 import { FeedbackProvider } from "@/components/ui/Feedback";
 
 // This layout only guards authentication. Business ownership is handled by the
@@ -23,7 +22,6 @@ export default async function PortalLayout({
 
   return (
     <ThemeProvider>
-      <ThemeScript />
       <FeedbackProvider>
       <div className="mira-wash min-h-screen">
       <header className="glass-panel-strong sticky top-0 z-10">
