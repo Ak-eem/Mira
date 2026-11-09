@@ -124,6 +124,7 @@ export function ChatWindow({
   embedMode = false,
   brandColor = null,
   backgroundColor = null,
+  suggestions = [],
 }: {
   businessSlug: string;
   businessName: string;
@@ -135,6 +136,9 @@ export function ChatWindow({
   // Owner's page background (#rrggbb) or null for Mira's default cream. Also re-derives the
   // text greys, borders and card surfaces so light and dark backgrounds both stay readable.
   backgroundColor?: string | null;
+  // One-tap questions for an empty embedded chat, built from what this business actually has
+  // (see lib/chat/suggestions.ts). Empty means the row is not shown.
+  suggestions?: string[];
 }) {
   const [visitorId] = useState(() => {
     const storageKey = `mira_visitor_${businessSlug}`;
@@ -217,6 +221,37 @@ export function ChatWindow({
       body.style.backgroundImage = previousBackgroundImage;
     };
   }, [transparentEmbed]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  // Talking to the widget script (public/embed.js) on the customer's site, when this page runs inside
+  // its iframe. The script owns the panel and the launcher; this page tells it when it is ready to take
+  // focus and when Escape is pressed (key presses inside an iframe never reach the host page), and
+  // moves the cursor into the message box when asked. No data is sent, so the target origin can be "*":
+  // this page cannot know which site embeds it, and the script checks who the message came from.
+  useEffect(() => {
+    if (!embedMode || window.parent === window) return;
+    const tell = (type: string) => {
+      try {
+        window.parent.postMessage({ type }, "*");
+      } catch {
+        /* the parent is not reachable; nothing to do */
+      }
+    };
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== window.parent) return;
+      if (event.data && event.data.type === "mira:focus") inputRef.current?.focus();
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !event.defaultPrevented && !event.isComposing) tell("mira:close");
+    };
+    window.addEventListener("message", onMessage);
+    document.addEventListener("keydown", onKeyDown);
+    tell("mira:ready");
+    return () => {
+      window.removeEventListener("message", onMessage);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [embedMode]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -647,11 +682,6 @@ export function ChatWindow({
 
   const brandStyle = chatThemeVars(brandColor, backgroundColor) as React.CSSProperties | undefined;
   const showChatHeader = !embedMode || openNow !== null || messages.length > 0;
-  const embeddedSuggestions = [
-    "Show me your products",
-    "Shipping information",
-    "What are your hours?",
-  ];
 
   return (
     <div
@@ -798,9 +828,9 @@ export function ChatWindow({
                 offer, and more.
               </span>
             </div>
-            {embedMode && (
-              <div className="mx-auto flex max-w-lg flex-wrap justify-center gap-2" aria-label="Suggested questions">
-                {embeddedSuggestions.map((suggestion) => (
+            {embedMode && suggestions.length > 0 && (
+              <div className="mx-auto flex max-w-lg flex-wrap justify-center gap-2" role="group" aria-label="Suggested questions">
+                {suggestions.map((suggestion) => (
                   <button
                     key={suggestion}
                     type="button"
@@ -979,6 +1009,7 @@ export function ChatWindow({
             <div className="flex w-full min-w-0 items-center rounded-full border border-slate-200 bg-white px-2 py-1 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
               <input
                 className="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm focus:border-transparent focus:outline-hidden focus:ring-0"
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask a question…"
@@ -995,6 +1026,7 @@ export function ChatWindow({
             <>
               <input
                 className="min-w-0 flex-1 rounded-sm border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
+                ref={inputRef}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask a question…"
