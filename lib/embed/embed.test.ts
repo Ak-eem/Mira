@@ -20,10 +20,8 @@ for (const name of NOT_CSS_PROPERTIES) {
   check(`embed.js has no "${name}:" declaration (not a CSS property)`, !asDeclaration.test(source));
 }
 
-check("the panel does not add a branded title header above the chat", !/mira-panel-header|headerTitle/.test(source));
-check("the widget shell has a translucent background", /background: rgba\(255,255,255,0\.82\)/.test(source));
 check("the embedded iframe background stays transparent", /\.mira-panel iframe \{[^}]*background: transparent;/.test(source));
-check("panel resizing uses a spring easing", /width 0\.52s cubic-bezier\(0\.34, 1\.56, 0\.64, 1\), height 0\.52s cubic-bezier\(0\.34, 1\.56, 0\.64, 1\)/.test(source));
-check("mobile expansion animates its edges and height", /right: 8px; bottom: 8px; left: 8px; width: auto; height: calc\(100vh - 16px\)/.test(source));
-check("the launcher hides while the panel is open", /\.mira-panel\.mira-open ~ \.mira-bubble \{ opacity: 0; visibility: hidden; pointer-events: none; \}/.test(source));
-check("the embedded chat can close the panel through a trusted same-origin message", /event\.data\.type === "mira:close"/.test(source));
+check("no hard-coded brand name in the panel (it shows the site's data-title)", !/Mira assistant/.test(source));
+check("the shell is painted from CSS variables, not a hard-coded translucent white", !/rgba\(255,255,255,0\.82\)/.test(source) && /var\(--mira-shell-bg\)/.test(source));
+check("nothing in the widget uses innerHTML for the site-supplied title", !/innerHTML\s*=[^;]*title/.test(source));
+// Behaviour (focus, launcher, colours, sizing, messages) is tested by running the script: embedBehavior.test.ts.
