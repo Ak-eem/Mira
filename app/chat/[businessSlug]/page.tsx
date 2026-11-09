@@ -3,6 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { isOpenNow } from "@/lib/hours";
 import { isCancelled, isLocked } from "@/lib/plans";
 import { parseBrandColor } from "@/lib/brandColor";
+import { buildSuggestions } from "@/lib/chat/suggestions";
 import { BusinessNotFound } from "./BusinessNotFound";
 import { ChatWindow } from "./ChatWindow";
 
@@ -105,6 +106,9 @@ export default async function ChatPage({
   const brandColor = parseBrandColor(brand?.brand_color);
   const backgroundColor = parseBrandColor(background?.background_color);
 
+  // Best effort: any failure just means no chips.
+  const suggestions = await loadSuggestions(supabase, business.id, (hours?.length ?? 0) > 0);
+
   return (
     <ChatWindow
       businessSlug={businessSlug}
@@ -113,6 +117,36 @@ export default async function ChatPage({
       embedMode={embedMode}
       brandColor={brandColor}
       backgroundColor={backgroundColor}
+      suggestions={suggestions}
     />
   );
+}
+
+// What this business actually has, so the one-tap questions only offer things it can answer.
+async function loadSuggestions(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  businessId: string,
+  hasHours: boolean,
+): Promise<string[]> {
+  try {
+    const [products, policies, faqs] = await Promise.all([
+      supabase.from("products").select("id").eq("business_id", businessId).eq("is_available", true).limit(1),
+      supabase.from("policies").select("title").eq("business_id", businessId).eq("is_active", true).limit(30),
+      supabase
+        .from("faqs")
+        .select("question")
+        .eq("business_id", businessId)
+        .eq("is_active", true)
+        .order("created_at", { ascending: true })
+        .limit(8),
+    ]);
+    return buildSuggestions({
+      hasProducts: (products.data?.length ?? 0) > 0,
+      hasHours,
+      policyTitles: (policies.data ?? []).map((row) => String(row.title ?? "")),
+      faqQuestions: (faqs.data ?? []).map((row) => String(row.question ?? "")),
+    });
+  } catch {
+    return [];
+  }
 }
