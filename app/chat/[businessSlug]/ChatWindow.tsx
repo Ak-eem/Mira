@@ -1,6 +1,7 @@
 "use client";
 
 import { uuidV4FromRandomValues } from "@/lib/chat/visitor";
+import { embedStrongHoverClass, embedStrongTextClass, embedUsesTransparentSurface } from "@/lib/embed/surface";
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
 import { chatThemeVars } from "@/lib/brandColor";
 import { BusinessNotFound } from "./BusinessNotFound";
@@ -203,8 +204,9 @@ export function ChatWindow({
     }
   });
 
+  const transparentEmbed = embedUsesTransparentSurface(embedMode, backgroundColor);
   useEffect(() => {
-    if (!embedMode) return;
+    if (!transparentEmbed) return;
     const body = document.body;
     const previousBackgroundColor = body.style.backgroundColor;
     const previousBackgroundImage = body.style.backgroundImage;
@@ -214,7 +216,7 @@ export function ChatWindow({
       body.style.backgroundColor = previousBackgroundColor;
       body.style.backgroundImage = previousBackgroundImage;
     };
-  }, [embedMode]);
+  }, [transparentEmbed]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -654,7 +656,7 @@ export function ChatWindow({
   return (
     <div
       className={`${embedMode ? "flex h-dvh flex-col" : "flex min-h-screen flex-col"} mira-wash ${nunito.className}`}
-      style={{ ...brandStyle, ...(embedMode ? { background: "transparent" } : {}) }}
+      style={{ ...brandStyle, ...(transparentEmbed ? { background: "transparent" } : {}) }}
     >
       {showChatHeader && (
         <header
@@ -790,7 +792,7 @@ export function ChatWindow({
               </div>
             )}
             <div className={embedMode ? "text-center" : "text-left"}>
-              {embedMode && <h2 className="mb-2 text-xl font-semibold text-slate-900">How can we help?</h2>}
+              {embedMode && <h2 className={`mb-2 text-xl font-semibold ${embedStrongTextClass(backgroundColor)}`}>How can we help?</h2>}
               <span className={`${embedMode ? "inline-block max-w-sm text-slate-600" : "glass-panel inline-block max-w-[85%]"} rounded-xl px-4 py-3 text-sm`}>
                 Hi! 👋 Ask me anything about {businessName} — hours, prices, what we
                 offer, and more.
@@ -868,7 +870,7 @@ export function ChatWindow({
                   className={
                     m.feedback === "up"
                       ? "rounded-sm p-1 text-emerald-600"
-                      : `rounded-sm p-1 ${embedMode ? "text-slate-900 hover:text-black" : "text-slate-300 hover:text-slate-500"}`
+                      : `rounded-sm p-1 ${embedMode ? `${embedStrongTextClass(backgroundColor)} ${embedStrongHoverClass(backgroundColor)}` : "text-slate-300 hover:text-slate-500"}`
                   }
                 >
                   <ThumbIcon direction="up" filled={m.feedback === "up"} />
@@ -880,7 +882,7 @@ export function ChatWindow({
                   className={
                     m.feedback === "down"
                       ? "rounded-sm p-1 text-red-500"
-                      : `rounded-sm p-1 ${embedMode ? "text-slate-900 hover:text-black" : "text-slate-300 hover:text-slate-500"}`
+                      : `rounded-sm p-1 ${embedMode ? `${embedStrongTextClass(backgroundColor)} ${embedStrongHoverClass(backgroundColor)}` : "text-slate-300 hover:text-slate-500"}`
                   }
                 >
                   <ThumbIcon direction="down" filled={m.feedback === "down"} />
