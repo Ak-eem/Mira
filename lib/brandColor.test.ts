@@ -70,3 +70,17 @@ for (const bg of ["#000000", "#ffffff", "#f6f0e2", "#1a1a2e", "#ffe97f", "#fafaf
   const v = chatThemeVars(null, bg);
   check(!!v && contrastRatio(v["--color-slate-700"], bg) >= 7, `vars: strongest grey is clearly readable on ${bg}`);
 }
+
+// The full-screen business page is built from the website's own tokens (surface, mist, line, ink, muted,
+// lime), so a custom background has to drive all of them or the page breaks on dark colours.
+check(chatThemeVars("#1a7f5a", null)!["--color-surface"] === undefined, "tokens: a brand colour alone leaves the website tokens (and so the default look) alone");
+for (const bg of ["#000000", "#ffffff", "#f6f0e2", "#1a1a2e", "#ffe97f", "#fafafa", "#111111", "#0f172a", "#1f2937"]) {
+  const v = chatThemeVars(null, bg)!;
+  check(v["--color-surface"] === bg, `tokens: ${bg} becomes the card surface`);
+  check(contrastRatio(v["--color-ink"], v["--color-surface"]) >= 7, `tokens: text is clearly readable on the ${bg} card`);
+  check(contrastRatio(v["--color-ink"], v["--color-mist"]) >= 7, `tokens: text is clearly readable on the ${bg} bubble tint`);
+  check(contrastRatio(v["--color-muted"], v["--color-surface"]) >= 4.5, `tokens: secondary text meets 4.5:1 on the ${bg} card`);
+  check(contrastRatio(v["--color-muted"], v["--color-mist"]) >= 4.5, `tokens: placeholder text meets 4.5:1 on the ${bg} input`);
+  check(contrastRatio(v["--color-ink"], v["--color-lime"]) >= 4.5, `tokens: an owner reply stays readable on ${bg}`);
+  check(v["--color-line"] !== v["--color-surface"] && v["--color-mist"] !== v["--color-surface"], `tokens: borders and tints are visibly different from the ${bg} card`);
+}

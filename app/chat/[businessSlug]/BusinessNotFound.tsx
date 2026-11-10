@@ -37,14 +37,17 @@ export function BusinessNotFound({ embed }: { embed: boolean }) {
   }, [embed, goesHome]);
 
   return (
-    <div className={embed ? "flex h-dvh items-center justify-center p-6" : "flex min-h-screen items-center justify-center bg-slate-50 p-6"}>
-      <div role="alert" className={embed ? "text-center" : "max-w-sm rounded-3xl border border-white/80 bg-white/70 p-8 text-center shadow-xl shadow-sky-100/60 backdrop-blur-xl"}>
-        <h1 className="text-lg font-semibold text-slate-900">Business not found</h1>
-        <p className="mt-2 text-sm text-slate-600">
+    <div
+      className={embed ? "flex h-dvh items-center justify-center p-6" : "flex h-dvh items-center justify-center bg-canvas p-6 text-ink"}
+      style={embed ? undefined : { fontFamily: "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif" }}
+    >
+      <div role="alert" className={embed ? "text-center" : "max-w-sm rounded-[28px] bg-surface p-8 text-center shadow-float"}>
+        <h1 className={embed ? "text-lg font-semibold text-slate-900" : "text-lg font-semibold"}>Business not found</h1>
+        <p className={embed ? "mt-2 text-sm text-slate-600" : "mt-2 text-sm text-muted"}>
           {goesHome ? "Taking you to the Mira home page…" : "This business is no longer available."}
         </p>
         {!embed && (
-          <Link href="/" className="mt-5 inline-flex min-h-10 items-center rounded-2xl bg-accent px-5 text-sm font-semibold text-white transition hover:brightness-110">
+          <Link href="/" className="mt-5 inline-flex h-10 items-center rounded-full bg-ink px-5 text-sm font-medium text-white transition-transform active:scale-[0.97]">
             Go to Mira now
           </Link>
         )}

@@ -2,6 +2,7 @@
 
 import { uuidV4FromRandomValues } from "@/lib/chat/visitor";
 import { embedStrongHoverClass, embedStrongTextClass, embedUsesTransparentSurface } from "@/lib/embed/surface";
+import { Icon } from "@/components/site/icons";
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
 import { chatThemeVars } from "@/lib/brandColor";
 import { BusinessNotFound } from "./BusinessNotFound";
@@ -75,6 +76,7 @@ function renderAssistantContent(content: string): ReactNode {
 // system sans-serif, this is specifically about the customer-facing
 // surface feeling warmer and more personable.
 const nunito = Nunito({ subsets: ["latin"], weight: ["400", "600", "700"] });
+const SITE_FONT = "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif";
 const GENERIC_ERROR_MESSAGE = "Something went wrong on our end. Please try again.";
 
 type ProductImage = { name: string; imageUrl: string };
@@ -124,6 +126,7 @@ export function ChatWindow({
   embedMode = false,
   brandColor = null,
   backgroundColor = null,
+  suggestions = [],
 }: {
   businessSlug: string;
   businessName: string;
@@ -135,6 +138,9 @@ export function ChatWindow({
   // Owner's page background (#rrggbb) or null for Mira's default cream. Also re-derives the
   // text greys, borders and card surfaces so light and dark backgrounds both stay readable.
   backgroundColor?: string | null;
+  // One-tap questions for the full-screen page's empty chat, built from what the business actually has
+  // (see lib/chat/suggestions.ts). Empty means no chips. The embedded widget has its own fixed set.
+  suggestions?: string[];
 }) {
   const [visitorId] = useState(() => {
     const storageKey = `mira_visitor_${businessSlug}`;
@@ -634,10 +640,20 @@ export function ChatWindow({
   if (unavailable) return <BusinessNotFound embed={embedMode} />;
 
   if (locked) {
+    if (!embedMode) {
+      return (
+        <div
+          className="flex h-dvh items-center justify-center bg-canvas p-4 text-ink"
+          style={{ ...(chatThemeVars(brandColor, backgroundColor) as React.CSSProperties | undefined), fontFamily: SITE_FONT }}
+        >
+          <div className="max-w-sm rounded-[28px] bg-surface px-6 py-8 text-center shadow-float">
+            <p className="text-sm text-muted">This business is temporarily unavailable.</p>
+          </div>
+        </div>
+      );
+    }
     return (
-      <div
-        className={`${embedMode ? "flex h-dvh flex-col" : "flex min-h-screen flex-col"} mira-wash items-center justify-center ${nunito.className}`}
-      >
+      <div className={`flex h-dvh flex-col mira-wash items-center justify-center ${nunito.className}`}>
         <div className="glass-panel-strong mx-4 max-w-sm rounded-lg px-6 py-8 text-center">
           <p className="text-sm text-slate-600">This business is temporarily unavailable.</p>
         </div>
@@ -647,6 +663,18 @@ export function ChatWindow({
 
   const brandStyle = chatThemeVars(brandColor, backgroundColor) as React.CSSProperties | undefined;
   const showChatHeader = !embedMode || openNow !== null || messages.length > 0;
+  // The full-screen page uses the Mira website's chat look (tokens from the website design system); the
+  // embedded widget keeps its own. A custom brand colour still wins over the website's ink.
+  const site = !embedMode;
+  const accentFill = brandColor ? "bg-accent text-on-accent" : "bg-ink text-white";
+  const banner = site ? "border-b border-line/80 bg-mist" : "glass-panel-strong";
+  const smallRadius = site ? "rounded-full" : "rounded-sm";
+  // Side padding that keeps the content in a centred column of at most 46rem on a wide screen (so borders and
+  // surfaces still run edge to edge) and is a plain 1rem on a phone.
+  const padX = site ? "px-[max(1rem,calc(50%-23rem))]" : "px-4";
+  const initial = Array.from(businessName.trim())[0]?.toUpperCase() ?? "•";
+  const statusText = openNow === true ? "Open now · replies instantly" : openNow === false ? "Closed · replies instantly" : "Replies instantly";
+  const showSiteChips = site && messages.length === 0 && suggestions.length > 0 && !conversationEnded;
   const embeddedSuggestions = [
     "Show me your products",
     "Shipping information",
@@ -655,392 +683,428 @@ export function ChatWindow({
 
   return (
     <div
-      className={`${embedMode ? "flex h-dvh flex-col" : "flex min-h-screen flex-col"} mira-wash ${nunito.className}`}
-      style={{ ...brandStyle, ...(transparentEmbed ? { background: "transparent" } : {}) }}
+      className={embedMode ? `flex h-dvh flex-col mira-wash ${nunito.className}` : "flex h-dvh flex-col bg-surface text-ink"}
+      style={embedMode ? { ...brandStyle, ...(transparentEmbed ? { background: "transparent" } : {}) } : { ...brandStyle, fontFamily: SITE_FONT }}
     >
-      {showChatHeader && (
-        <header
-          className={
-            embedMode
-              ? "flex items-center justify-between gap-2 px-4 py-2"
-              : "glass-panel-strong flex items-center justify-between px-4 py-3"
-          }
-        >
-          {!embedMode && <span className="font-semibold">{businessName}</span>}
-          <div className="flex items-center gap-2">
-            {openNow !== null && (
-              <span
-                className={
-                  openNow
-                    ? "text-xs font-medium text-emerald-600"
-                    : "text-xs font-medium text-slate-400"
-                }
-              >
-                {openNow ? "● Open now" : "Closed"}
+      {/* Website look: the whole screen. Embedded: the wrapper adds no box. */}
+      <div className={embedMode ? "contents" : "relative flex min-h-0 flex-1 flex-col"}>
+        {showChatHeader &&
+          (embedMode ? (
+            <header className="flex items-center justify-between gap-2 px-4 py-2">
+              <div className="flex items-center gap-2">
+                {openNow !== null && (
+                  <span className={openNow ? "text-xs font-medium text-emerald-600" : "text-xs font-medium text-slate-400"}>
+                    {openNow ? "● Open now" : "Closed"}
+                  </span>
+                )}
+                {messages.length > 0 && !conversationEnded && !showEndConfirm && (
+                  <button
+                    type="button"
+                    onClick={() => setShowEndConfirm(true)}
+                    className="text-xs font-medium text-slate-400 hover:text-slate-600"
+                  >
+                    End chat
+                  </button>
+                )}
+              </div>
+            </header>
+          ) : (
+            <header className={`flex items-center gap-3 border-b border-line/80 py-3 ${padX}`}>
+              <span aria-hidden="true" className={`grid size-9 shrink-0 place-items-center rounded-full text-[15px] font-semibold ${accentFill}`}>
+                {initial}
               </span>
-            )}
-            {messages.length > 0 && !conversationEnded && !showEndConfirm && (
+              <div className="min-w-0 flex-1">
+                <h1 className="truncate text-[14px] font-medium">{businessName}</h1>
+                <p className="flex items-center gap-1.5 text-xs text-muted">
+                  <span className={`size-1.5 rounded-full ${openNow === false ? "bg-line" : "bg-lime-3"}`} />
+                  {statusText}
+                </p>
+              </div>
+              {messages.length > 0 && !conversationEnded && !showEndConfirm && (
+                <button
+                  type="button"
+                  onClick={() => setShowEndConfirm(true)}
+                  className="rounded-full px-3 py-1.5 text-xs font-medium text-muted transition-colors hover:bg-mist hover:text-ink"
+                >
+                  End chat
+                </button>
+              )}
+            </header>
+          ))}
+
+        {showEndConfirm && (
+          <div className={`${banner} flex items-center justify-between gap-3 py-2 text-xs ${padX}`}>
+            <span className="text-slate-600">End this conversation?</span>
+            <div className="flex gap-2">
               <button
                 type="button"
-                onClick={() => setShowEndConfirm(true)}
-                className="text-xs font-medium text-slate-400 hover:text-slate-600"
+                onClick={() => setShowEndConfirm(false)}
+                className={`${smallRadius} px-2 py-1 font-medium text-slate-500 hover:text-slate-700`}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmEndConversation}
+                disabled={ending}
+                className={`${smallRadius} bg-accent px-2 py-1 font-medium text-on-accent hover:bg-accent-dark disabled:opacity-50`}
               >
                 End chat
               </button>
-            )}
-          </div>
-        </header>
-      )}
-
-      {showEndConfirm && (
-        <div className="glass-panel-strong flex items-center justify-between gap-3 px-4 py-2 text-xs">
-          <span className="text-slate-600">End this conversation?</span>
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => setShowEndConfirm(false)}
-              className="rounded-sm px-2 py-1 font-medium text-slate-500 hover:text-slate-700"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={confirmEndConversation}
-              disabled={ending}
-              className="rounded-sm bg-accent px-2 py-1 font-medium text-on-accent hover:bg-accent-dark disabled:opacity-50"
-            >
-              End chat
-            </button>
-          </div>
-        </div>
-      )}
-
-      {!locked &&
-        deliverableOrders.map((order) => (
-          <div key={order.id} className="glass-panel-strong flex items-center justify-between gap-3 px-4 py-2 text-xs">
-            <span className="min-w-0 truncate text-slate-600">
-              Your order{order.items.length > 0 ? `: ${order.items.map((item) => item.name).join(", ")}` : ""}
-            </span>
-            <button
-              type="button"
-              onClick={() => markOrderReceived(order.id)}
-              disabled={markingOrderId === order.id}
-              className="shrink-0 rounded-sm bg-accent px-2 py-1 font-medium text-on-accent hover:bg-accent-dark disabled:opacity-50"
-            >
-              {markingOrderId === order.id ? "Saving..." : "I received it"}
-            </button>
-          </div>
-        ))}
-
-      {/* Shown once a real exchange has happened, so it's contextual
-          rather than the first thing a visitor sees. Consent is opt-in
-          and explicit -- nothing gets saved until they submit an email
-          here, matching the same pattern as ending a chat or leaving
-          feedback: a deliberate action, not an assumption. */}
-      {messages.length > 0 &&
-        !conversationEnded &&
-        !locked &&
-        !notificationConsentSaved &&
-        !notificationDismissed && (
-          <div className="glass-panel-strong space-y-2 px-4 py-3">
-            <p className="text-xs text-slate-600">Want delivery updates by email?</p>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                type="email"
-                value={notificationEmail}
-                onChange={(e) => setNotificationEmail(e.target.value)}
-                placeholder="you@example.com"
-                aria-label="Email address for delivery updates"
-                className="min-w-0 flex-1 rounded-sm border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
-              />
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  disabled={notificationSaving || !notificationEmail.trim()}
-                  onClick={saveNotificationConsent}
-                  className="glass-hover rounded-sm bg-accent px-3 py-2 text-sm font-medium text-on-accent hover:bg-accent-dark disabled:opacity-50"
-                >
-                  {notificationSaving ? "Saving..." : "Yes, notify me"}
-                </button>
-                <button
-                  type="button"
-                  onClick={dismissNotificationPrompt}
-                  className="rounded-sm px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700"
-                >
-                  Not now
-                </button>
-              </div>
             </div>
-            {notificationError && <p className="text-xs text-red-600">{notificationError}</p>}
           </div>
         )}
 
-      {notificationJustSaved && (
-        <div className="glass-panel-strong px-4 py-2 text-xs text-emerald-600">
-          You&apos;ll get an email when your order status changes.
-        </div>
-      )}
-
-      <div className="flex-1 space-y-3 overflow-y-auto px-4 py-4">
-        {messages.length === 0 && (
-          <div className={embedMode ? "flex h-full flex-col justify-center gap-5 pb-8" : "text-left"}>
-            {embedMode && (
-              <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
-                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-6 w-6">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z" />
-                </svg>
-              </div>
-            )}
-            <div className={embedMode ? "text-center" : "text-left"}>
-              {embedMode && <h2 className={`mb-2 text-xl font-semibold ${embedStrongTextClass(backgroundColor)}`}>How can we help?</h2>}
-              <span className={`${embedMode ? "inline-block max-w-sm text-slate-600" : "glass-panel inline-block max-w-[85%]"} rounded-xl px-4 py-3 text-sm`}>
-                Hi! 👋 Ask me anything about {businessName} — hours, prices, what we
-                offer, and more.
+        {!locked &&
+          deliverableOrders.map((order) => (
+            <div key={order.id} className={`${banner} flex items-center justify-between gap-3 py-2 text-xs ${padX}`}>
+              <span className="min-w-0 truncate text-slate-600">
+                Your order{order.items.length > 0 ? `: ${order.items.map((item) => item.name).join(", ")}` : ""}
               </span>
-            </div>
-            {embedMode && (
-              <div className="mx-auto flex max-w-lg flex-wrap justify-center gap-2" aria-label="Suggested questions">
-                {embeddedSuggestions.map((suggestion) => (
-                  <button
-                    key={suggestion}
-                    type="button"
-                    disabled={sending}
-                    onClick={() => void sendMessage(suggestion)}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:border-accent/40 hover:bg-slate-50 disabled:opacity-50"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-        {messagesWithUniqueImages.map((m, i) =>
-          m.role === "system" ? (
-            <div key={i} className="message-enter text-center">
-              <span className="glass-panel inline-block rounded-full px-3 py-1 text-xs text-slate-500">
-                {m.content}
-              </span>
-            </div>
-          ) : (
-          <div
-            key={i}
-            className={`message-enter ${m.role === "customer" ? "text-right" : "text-left"}`}
-          >
-            {m.role === "assistant" ? (
-              <div
-                className={`${embedMode ? "inline-block max-w-[85%] rounded-2xl bg-white/65 px-4 py-3 text-sm shadow-sm backdrop-blur-md" : "glass-panel inline-block max-w-[85%] rounded-lg px-3 py-2 text-sm"}`}
-              >
-                {renderAssistantContent(m.content)}
-              </div>
-            ) : (
-              <span className={`${embedMode ? "border border-white/35 shadow-[0_8px_20px_-12px_rgba(15,42,34,0.6)]" : "shadow-[0_8px_20px_-12px_rgba(15,118,110,0.6)]"} inline-block max-w-[85%] rounded-lg bg-accent px-3 py-2 text-sm text-on-accent`}>
-                {linkifyContent(m.content)}
-              </span>
-            )}
-
-            {m.role === "assistant" && m.productImages && m.productImages.length > 0 && (
-              <div className="mt-3 flex max-w-full gap-3 overflow-x-auto pb-2">
-                {m.productImages.map((p) => (
-                  <button
-                    key={p.imageUrl}
-                    type="button"
-                    onClick={() => setExpandedImage({ url: p.imageUrl, name: p.name })}
-                    className="glass-hover w-36 shrink-0 overflow-hidden rounded-xl border border-slate-200 bg-white text-left shadow-sm"
-                    aria-label={`Expand image of ${p.name}`}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={p.imageUrl}
-                      alt={p.name}
-                      className="h-24 w-full cursor-zoom-in object-cover"
-                    />
-                    <span className="block truncate px-2.5 py-2 text-xs font-medium text-slate-700">{p.name}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-
-            {m.role === "assistant" && m.id && (
-              <div className="mt-1 flex gap-1">
-                <button
-                  type="button"
-                  aria-label="Good response"
-                  onClick={() => submitFeedback(i, m.id!, "up")}
-                  className={
-                    m.feedback === "up"
-                      ? "rounded-sm p-1 text-emerald-600"
-                      : `rounded-sm p-1 ${embedMode ? `${embedStrongTextClass(backgroundColor)} ${embedStrongHoverClass(backgroundColor)}` : "text-slate-300 hover:text-slate-500"}`
-                  }
-                >
-                  <ThumbIcon direction="up" filled={m.feedback === "up"} />
-                </button>
-                <button
-                  type="button"
-                  aria-label="Poor response"
-                  onClick={() => submitFeedback(i, m.id!, "down")}
-                  className={
-                    m.feedback === "down"
-                      ? "rounded-sm p-1 text-red-500"
-                      : `rounded-sm p-1 ${embedMode ? `${embedStrongTextClass(backgroundColor)} ${embedStrongHoverClass(backgroundColor)}` : "text-slate-300 hover:text-slate-500"}`
-                  }
-                >
-                  <ThumbIcon direction="down" filled={m.feedback === "down"} />
-                </button>
-              </div>
-            )}
-
-            {m.role === "assistant" && m.id && m.feedback === "down" && m.askReason && (
-              <div className="mt-1 flex flex-wrap items-center gap-1 text-xs" role="group" aria-label="What went wrong?">
-                <span className="text-slate-400">What went wrong?</span>
-                {FEEDBACK_REASONS.map((code) => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => submitFeedback(i, m.id!, "down", code)}
-                    className="rounded-full border border-slate-200 px-2 py-0.5 text-slate-500 hover:border-slate-400 hover:text-slate-700"
-                  >
-                    {CUSTOMER_REASON_LABELS[code]}
-                  </button>
-                ))}
-              </div>
-            )}
-            {m.role === "assistant" && m.feedback === "down" && m.feedbackReason && !m.askReason && (
-              <p className="mt-1 text-xs text-slate-400">Thanks, noted: {CUSTOMER_REASON_LABELS[m.feedbackReason].toLowerCase()}.</p>
-            )}
-          </div>
-          )
-        )}
-        {sending && (
-          <div className="flex gap-1 px-1">
-            <span
-              className="h-2 w-2 animate-bounce rounded-full bg-slate-300"
-              style={{ animationDelay: "0ms" }}
-            />
-            <span
-              className="h-2 w-2 animate-bounce rounded-full bg-slate-300"
-              style={{ animationDelay: "150ms" }}
-            />
-            <span
-              className="h-2 w-2 animate-bounce rounded-full bg-slate-300"
-              style={{ animationDelay: "300ms" }}
-            />
-          </div>
-        )}
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        <div ref={containerRef} />
-      </div>
-
-      {conversationEnded ? (
-        <div className="glass-panel-strong flex flex-col items-center gap-2 px-4 py-4">
-          {ratingState === "done" ? (
-            <p className="text-sm font-medium text-slate-600">Thanks for your feedback! 💛</p>
-          ) : ratingState === "skipped" ? (
-            <p className="text-sm text-slate-500">Conversation ended.</p>
-          ) : (
-            <>
-              <p className="text-sm font-medium text-slate-600">How was your experience?</p>
-              <div className="flex gap-3">
-                {[
-                  { rating: 1, emoji: "😠", label: "Very unhappy" },
-                  { rating: 2, emoji: "🙁", label: "Unhappy" },
-                  { rating: 3, emoji: "😐", label: "Neutral" },
-                  { rating: 4, emoji: "🙂", label: "Happy" },
-                  { rating: 5, emoji: "😄", label: "Very happy" },
-                ].map((option) => (
-                  <button
-                    key={option.rating}
-                    type="button"
-                    aria-label={option.label}
-                    disabled={ratingState === "submitting"}
-                    onClick={() => submitRating(option.rating)}
-                    className="glass-hover rounded-full p-1.5 text-2xl leading-none disabled:opacity-50"
-                  >
-                    {option.emoji}
-                  </button>
-                ))}
-              </div>
               <button
                 type="button"
-                onClick={() => setRatingState("skipped")}
-                className="text-xs font-medium text-slate-400 hover:text-slate-600"
+                onClick={() => markOrderReceived(order.id)}
+                disabled={markingOrderId === order.id}
+                className="shrink-0 rounded-sm bg-accent px-2 py-1 font-medium text-on-accent hover:bg-accent-dark disabled:opacity-50"
               >
-                No thanks
-              </button>
-            </>
-          )}
-        </div>
-      ) : (
-        <form
-          onSubmit={handleSend}
-          className={embedMode ? "flex w-full px-4 py-3" : "glass-panel-strong flex gap-2 px-4 py-3"}
-        >
-          {embedMode ? (
-            <div className="flex w-full min-w-0 items-center rounded-full border border-slate-200 bg-white px-2 py-1 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
-              <input
-                className="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm focus:border-transparent focus:outline-hidden focus:ring-0"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask a question…"
-              />
-              <button
-                type="submit"
-                disabled={sending || !input.trim()}
-                className="shrink-0 rounded-full bg-accent px-5 py-2 text-sm font-medium text-on-accent transition-colors hover:bg-accent-dark disabled:opacity-50"
-              >
-                Send
+                {markingOrderId === order.id ? "Saving..." : "I received it"}
               </button>
             </div>
-          ) : (
-            <>
-              <input
-                className="min-w-0 flex-1 rounded-sm border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent"
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask a question…"
-              />
-              <button
-                type="submit"
-                disabled={sending || !input.trim()}
-                className="rounded-sm bg-accent px-4 py-2 text-sm font-medium text-on-accent transition-colors hover:bg-accent-dark disabled:opacity-50"
-              >
-                Send
-              </button>
-            </>
-          )}
-        </form>
-      )}
-      <div
-        className={`${embedMode ? "" : "glass-panel-strong"} pb-2 pt-1.5 text-center text-[11px] text-slate-400`}
-      >
-        Powered by <span className="font-medium text-slate-500">Mira AI</span>
-      </div>
+          ))}
 
-      {expandedImage && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-6"
-          onClick={() => setExpandedImage(null)}
-        >
-          <button
-            type="button"
-            onClick={() => setExpandedImage(null)}
-            aria-label="Close"
-            className="absolute right-4 top-4 rounded-full bg-white/90 p-2 text-slate-700 shadow-lg hover:bg-white"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18" />
-              <line x1="6" y1="6" x2="18" y2="18" />
-            </svg>
-          </button>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={expandedImage.url}
-            alt={expandedImage.name}
-            onClick={(e) => e.stopPropagation()}
-            className="max-h-full max-w-full rounded-lg object-contain shadow-2xl message-enter"
-          />
+        {/* Shown once a real exchange has happened, so it's contextual
+            rather than the first thing a visitor sees. Consent is opt-in
+            and explicit -- nothing gets saved until they submit an email
+            here, matching the same pattern as ending a chat or leaving
+            feedback: a deliberate action, not an assumption. */}
+        {messages.length > 0 &&
+          !conversationEnded &&
+          !locked &&
+          !notificationConsentSaved &&
+          !notificationDismissed && (
+            <div className={`${banner} space-y-2 py-3 ${padX}`}>
+              <p className="text-xs text-slate-600">Want delivery updates by email?</p>
+              <div className="flex flex-col gap-2 sm:flex-row">
+                <input
+                  type="email"
+                  value={notificationEmail}
+                  onChange={(e) => setNotificationEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  aria-label="Email address for delivery updates"
+                  className={`min-w-0 flex-1 ${smallRadius} border border-teal-900/10 bg-white/70 px-3 py-2 text-sm focus:border-accent focus:outline-hidden focus:ring-1 focus:ring-accent`}
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    disabled={notificationSaving || !notificationEmail.trim()}
+                    onClick={saveNotificationConsent}
+                    className={`glass-hover ${smallRadius} bg-accent px-3 py-2 text-sm font-medium text-on-accent hover:bg-accent-dark disabled:opacity-50`}
+                  >
+                    {notificationSaving ? "Saving..." : "Yes, notify me"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={dismissNotificationPrompt}
+                    className={`${smallRadius} px-3 py-2 text-sm font-medium text-slate-500 hover:text-slate-700`}
+                  >
+                    Not now
+                  </button>
+                </div>
+              </div>
+              {notificationError && <p className="text-xs text-red-600">{notificationError}</p>}
+            </div>
+          )}
+
+        {notificationJustSaved && (
+          <div className={`${banner} py-2 text-xs text-emerald-600 ${padX}`}>
+            You&apos;ll get an email when your order status changes.
+          </div>
+        )}
+
+        <div className={`min-h-0 flex-1 space-y-3 overflow-y-auto py-4 ${padX}`}>
+          {messages.length === 0 && (
+            <div className={embedMode ? "flex h-full flex-col justify-center gap-5 pb-8" : "text-left"}>
+              {embedMode && (
+                <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-accent/10 text-accent">
+                  <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" className="h-6 w-6">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8A8.5 8.5 0 0 1 8.7 3.9a8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5Z" />
+                  </svg>
+                </div>
+              )}
+              <div className={embedMode ? "text-center" : "text-left"}>
+                {embedMode && <h2 className={`mb-2 text-xl font-semibold ${embedStrongTextClass(backgroundColor)}`}>How can we help?</h2>}
+                <span className={embedMode ? "inline-block max-w-sm rounded-xl px-4 py-3 text-sm text-slate-600" : "message-enter inline-block max-w-[85%] rounded-[18px] rounded-bl-md bg-mist px-3.5 py-2.5 text-[14px] leading-snug"}>
+                  Hi! 👋 Ask me anything about {businessName} — hours, prices, what we
+                  offer, and more.
+                </span>
+              </div>
+              {embedMode && (
+                <div className="mx-auto flex max-w-lg flex-wrap justify-center gap-2" aria-label="Suggested questions">
+                  {embeddedSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      disabled={sending}
+                      onClick={() => void sendMessage(suggestion)}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:border-accent/40 hover:bg-slate-50 disabled:opacity-50"
+                    >
+                      {suggestion}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+          {messagesWithUniqueImages.map((m, i) =>
+            m.role === "system" ? (
+              <div key={i} className="message-enter text-center">
+                <span className={`${embedMode ? "glass-panel text-slate-500" : "bg-mist text-muted"} inline-block rounded-full px-3 py-1 text-xs`}>
+                  {m.content}
+                </span>
+              </div>
+            ) : (
+            <div
+              key={i}
+              className={`message-enter ${m.role === "customer" ? "text-right" : "text-left"}`}
+            >
+              {m.role === "assistant" ? (
+                <div
+                  className={`${embedMode ? "inline-block max-w-[85%] rounded-2xl bg-white/65 px-4 py-3 text-sm shadow-sm backdrop-blur-md" : "inline-block max-w-[85%] rounded-[18px] rounded-bl-md bg-mist px-3.5 py-2.5 text-[14px] leading-snug"}`}
+                >
+                  {renderAssistantContent(m.content)}
+                </div>
+              ) : (
+                <span className={embedMode ? "inline-block max-w-[85%] rounded-lg border border-white/35 bg-accent px-3 py-2 text-sm text-on-accent shadow-[0_8px_20px_-12px_rgba(15,42,34,0.6)]" : `inline-block max-w-[85%] rounded-[18px] rounded-br-md px-3.5 py-2.5 text-[14px] leading-snug ${accentFill}`}>
+                  {linkifyContent(m.content)}
+                </span>
+              )}
+
+              {m.role === "assistant" && m.productImages && m.productImages.length > 0 && (
+                <div className="mt-3 flex max-w-full gap-3 overflow-x-auto pb-2">
+                  {m.productImages.map((p) => (
+                    <button
+                      key={p.imageUrl}
+                      type="button"
+                      onClick={() => setExpandedImage({ url: p.imageUrl, name: p.name })}
+                      className={`${embedMode ? "glass-hover rounded-xl border-slate-200 bg-white shadow-sm" : "rounded-[18px] border-line bg-surface"} w-36 shrink-0 overflow-hidden border text-left`}
+                      aria-label={`Expand image of ${p.name}`}
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={p.imageUrl}
+                        alt={p.name}
+                        className="h-24 w-full cursor-zoom-in object-cover"
+                      />
+                      <span className={`block truncate px-2.5 py-2 font-medium ${embedMode ? "text-xs text-slate-700" : "text-[13px] text-ink"}`}>{p.name}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {m.role === "assistant" && m.id && (
+                <div className="mt-1 flex gap-1">
+                  <button
+                    type="button"
+                    aria-label="Good response"
+                    onClick={() => submitFeedback(i, m.id!, "up")}
+                    className={
+                      m.feedback === "up"
+                        ? "rounded-sm p-1 text-emerald-600"
+                        : `rounded-sm p-1 ${embedMode ? `${embedStrongTextClass(backgroundColor)} ${embedStrongHoverClass(backgroundColor)}` : "text-muted hover:text-ink"}`
+                    }
+                  >
+                    <ThumbIcon direction="up" filled={m.feedback === "up"} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Poor response"
+                    onClick={() => submitFeedback(i, m.id!, "down")}
+                    className={
+                      m.feedback === "down"
+                        ? "rounded-sm p-1 text-red-500"
+                        : `rounded-sm p-1 ${embedMode ? `${embedStrongTextClass(backgroundColor)} ${embedStrongHoverClass(backgroundColor)}` : "text-muted hover:text-ink"}`
+                    }
+                  >
+                    <ThumbIcon direction="down" filled={m.feedback === "down"} />
+                  </button>
+                </div>
+              )}
+
+              {m.role === "assistant" && m.id && m.feedback === "down" && m.askReason && (
+                <div className="mt-1 flex flex-wrap items-center gap-1 text-xs" role="group" aria-label="What went wrong?">
+                  <span className="text-slate-400">What went wrong?</span>
+                  {FEEDBACK_REASONS.map((code) => (
+                    <button
+                      key={code}
+                      type="button"
+                      onClick={() => submitFeedback(i, m.id!, "down", code)}
+                      className={`rounded-full border px-2 py-0.5 ${embedMode ? "border-slate-200 text-slate-500 hover:border-slate-400 hover:text-slate-700" : "border-line text-muted hover:border-ink/30 hover:text-ink"}`}
+                    >
+                      {CUSTOMER_REASON_LABELS[code]}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {m.role === "assistant" && m.feedback === "down" && m.feedbackReason && !m.askReason && (
+                <p className="mt-1 text-xs text-slate-400">Thanks, noted: {CUSTOMER_REASON_LABELS[m.feedbackReason].toLowerCase()}.</p>
+              )}
+            </div>
+            )
+          )}
+          {sending &&
+            (site ? (
+              <div role="status" aria-label="Assistant is typing" className="flex w-fit items-center gap-1 rounded-[18px] rounded-bl-md bg-mist px-3.5 py-3">
+                {[0, 1, 2].map((dot) => (
+                  <span key={dot} className="dot-bounce size-1.5 rounded-full bg-ink" style={{ animationDelay: `${dot * 0.14}s` }} />
+                ))}
+              </div>
+            ) : (
+              <div className="flex gap-1 px-1">
+                <span
+                  className="h-2 w-2 animate-bounce rounded-full bg-slate-300"
+                  style={{ animationDelay: "0ms" }}
+                />
+                <span
+                  className="h-2 w-2 animate-bounce rounded-full bg-slate-300"
+                  style={{ animationDelay: "150ms" }}
+                />
+                <span
+                  className="h-2 w-2 animate-bounce rounded-full bg-slate-300"
+                  style={{ animationDelay: "300ms" }}
+                />
+              </div>
+            ))}
+          {error && <p className="text-sm text-red-600">{error}</p>}
+          <div ref={containerRef} />
         </div>
-      )}
+
+        {showSiteChips && (
+          <div className={`flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] ${padX}`} role="group" aria-label="Suggested questions">
+            {suggestions.map((suggestion) => (
+              <button
+                key={suggestion}
+                type="button"
+                disabled={sending}
+                onClick={() => void sendMessage(suggestion)}
+                className="h-8 shrink-0 rounded-full border border-line bg-surface px-3 text-[13px] text-ink-2 transition-colors hover:border-ink/30 disabled:opacity-50"
+              >
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {conversationEnded ? (
+          <div className={`${site ? "border-t border-line/80 bg-mist" : "glass-panel-strong"} flex flex-col items-center gap-2 py-4 ${padX}`}>
+            {ratingState === "done" ? (
+              <p className="text-sm font-medium text-slate-600">Thanks for your feedback! 💛</p>
+            ) : ratingState === "skipped" ? (
+              <p className="text-sm text-slate-500">Conversation ended.</p>
+            ) : (
+              <>
+                <p className="text-sm font-medium text-slate-600">How was your experience?</p>
+                <div className="flex gap-3">
+                  {[
+                    { rating: 1, emoji: "😠", label: "Very unhappy" },
+                    { rating: 2, emoji: "🙁", label: "Unhappy" },
+                    { rating: 3, emoji: "😐", label: "Neutral" },
+                    { rating: 4, emoji: "🙂", label: "Happy" },
+                    { rating: 5, emoji: "😄", label: "Very happy" },
+                  ].map((option) => (
+                    <button
+                      key={option.rating}
+                      type="button"
+                      aria-label={option.label}
+                      disabled={ratingState === "submitting"}
+                      onClick={() => submitRating(option.rating)}
+                      className="glass-hover rounded-full p-1.5 text-2xl leading-none disabled:opacity-50"
+                    >
+                      {option.emoji}
+                    </button>
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRatingState("skipped")}
+                  className="text-xs font-medium text-slate-400 hover:text-slate-600"
+                >
+                  No thanks
+                </button>
+              </>
+            )}
+          </div>
+        ) : (
+          <form
+            onSubmit={handleSend}
+            className={embedMode ? "flex w-full px-4 py-3" : `flex items-center gap-2 border-t border-line/80 py-3 ${padX}`}
+          >
+            {embedMode ? (
+              <div className="flex w-full min-w-0 items-center rounded-full border border-slate-200 bg-white px-2 py-1 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
+                <input
+                  className="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm focus:border-transparent focus:outline-hidden focus:ring-0"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask a question…"
+                />
+                <button
+                  type="submit"
+                  disabled={sending || !input.trim()}
+                  className="shrink-0 rounded-full bg-accent px-5 py-2 text-sm font-medium text-on-accent transition-colors hover:bg-accent-dark disabled:opacity-50"
+                >
+                  Send
+                </button>
+              </div>
+            ) : (
+              <>
+                <input
+                  aria-label="Message"
+                  className="h-11 min-w-0 flex-1 rounded-full bg-mist px-4 text-[15px] outline-none placeholder:text-muted focus:bg-line/60"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  placeholder="Ask a question…"
+                />
+                <button
+                  type="submit"
+                  aria-label="Send"
+                  disabled={sending || !input.trim()}
+                  className={`grid size-11 shrink-0 place-items-center rounded-full transition-[transform,opacity] active:scale-95 disabled:opacity-30 ${accentFill}`}
+                >
+                  <Icon name="send" size={17} />
+                </button>
+              </>
+            )}
+          </form>
+        )}
+        <div className={`pb-2 text-center text-[11px] ${embedMode ? "pt-1.5 text-slate-400" : "text-muted"}`}>
+          Powered by <span className={`font-medium ${embedMode ? "text-slate-500" : "text-ink-2"}`}>Mira AI</span>
+        </div>
+
+        {expandedImage && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 p-6"
+            onClick={() => setExpandedImage(null)}
+          >
+            <button
+              type="button"
+              onClick={() => setExpandedImage(null)}
+              aria-label="Close"
+              className="absolute right-4 top-4 rounded-full bg-white/90 p-2 text-slate-700 shadow-lg hover:bg-white"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
+            </button>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={expandedImage.url}
+              alt={expandedImage.name}
+              onClick={(e) => e.stopPropagation()}
+              className="max-h-full max-w-full rounded-lg object-contain shadow-2xl message-enter"
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
