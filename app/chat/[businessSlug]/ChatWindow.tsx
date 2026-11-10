@@ -3,6 +3,8 @@
 import { uuidV4FromRandomValues } from "@/lib/chat/visitor";
 import { embedStrongHoverClass, embedStrongTextClass, embedUsesTransparentSurface } from "@/lib/embed/surface";
 import { Icon } from "@/components/site/icons";
+import type { BusinessProfile } from "@/lib/chat/profile";
+import { BusinessProfileSection } from "./BusinessProfileSection";
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
 import { chatThemeVars } from "@/lib/brandColor";
 import { BusinessNotFound } from "./BusinessNotFound";
@@ -127,6 +129,7 @@ export function ChatWindow({
   brandColor = null,
   backgroundColor = null,
   suggestions = [],
+  profile = null,
 }: {
   businessSlug: string;
   businessName: string;
@@ -141,6 +144,9 @@ export function ChatWindow({
   // One-tap questions for the full-screen page's empty chat, built from what the business actually has
   // (see lib/chat/suggestions.ts). Empty means no chips. The embedded widget has its own fixed set.
   suggestions?: string[];
+  // The "about" section (description, today's hours, links, products) shown at the top of the full-screen
+  // page. Null means none; the embedded widget never shows it.
+  profile?: BusinessProfile | null;
 }) {
   const [visitorId] = useState(() => {
     const storageKey = `mira_visitor_${businessSlug}`;
@@ -822,6 +828,9 @@ export function ChatWindow({
         )}
 
         <div className={`min-h-0 flex-1 space-y-3 overflow-y-auto py-4 ${padX}`}>
+          {site && profile && (
+            <BusinessProfileSection profile={profile} businessName={businessName} onAsk={(question) => void sendMessage(question)} disabled={sending} />
+          )}
           {messages.length === 0 && (
             <div className={embedMode ? "flex h-full flex-col justify-center gap-5 pb-8" : "text-left"}>
               {embedMode && (

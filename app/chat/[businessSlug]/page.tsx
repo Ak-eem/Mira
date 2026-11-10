@@ -4,6 +4,9 @@ import { isOpenNow } from "@/lib/hours";
 import { isCancelled, isLocked } from "@/lib/plans";
 import { parseBrandColor } from "@/lib/brandColor";
 import { buildSuggestions } from "@/lib/chat/suggestions";
+import { buildProfile, MAX_PROFILE_PRODUCTS, type BusinessProfile } from "@/lib/chat/profile";
+import type { BusinessSocialLinks } from "@/lib/types";
+import type { HoursRow } from "@/lib/hours";
 import { BusinessNotFound } from "./BusinessNotFound";
 import { ChatWindow } from "./ChatWindow";
 
@@ -110,6 +113,8 @@ export default async function ChatPage({
   // Best effort: any failure just means no chips.
   const suggestions = embedMode ? [] : await loadSuggestions(supabase, business.id, (hours?.length ?? 0) > 0);
 
+  const profile = embedMode ? null : await loadProfile(supabase, business.id, business.timezone, (hours ?? []) as HoursRow[]);
+
   return (
     <ChatWindow
       businessSlug={businessSlug}
@@ -119,6 +124,7 @@ export default async function ChatPage({
       brandColor={brandColor}
       backgroundColor={backgroundColor}
       suggestions={suggestions}
+      profile={profile}
     />
   );
 }
@@ -149,5 +155,36 @@ async function loadSuggestions(
     });
   } catch {
     return [];
+  }
+}
+
+// The "about" section of the full-screen page. Best effort: any failure just means no section.
+async function loadProfile(
+  supabase: ReturnType<typeof createServiceRoleClient>,
+  businessId: string,
+  timezone: string,
+  hours: HoursRow[],
+): Promise<BusinessProfile | null> {
+  try {
+    const [details, products] = await Promise.all([
+      supabase.from("businesses").select("description, currency, social_links").eq("id", businessId).maybeSingle(),
+      supabase
+        .from("products")
+        .select("id, name, price, image_url")
+        .eq("business_id", businessId)
+        .eq("is_available", true)
+        .order("created_at", { ascending: true })
+        .limit(MAX_PROFILE_PRODUCTS),
+    ]);
+    return buildProfile({
+      description: details.data?.description,
+      currency: details.data?.currency,
+      timezone,
+      socialLinks: details.data?.social_links as BusinessSocialLinks | null | undefined,
+      hours,
+      products: products.data ?? [],
+    });
+  } catch {
+    return null;
   }
 }
