@@ -170,6 +170,17 @@ export function chatThemeVars(brand: string | null, background: string | null): 
     vars["--color-slate-500"] = ramp(0.64);
     vars["--color-slate-600"] = ramp(0.76);
     vars["--color-slate-700"] = ramp(0.88);
+    // The website's own design tokens (page, card, tint, border, text, owner-reply tint). The full-screen
+    // business page is built from these, so a custom background has to drive them too, or a dark
+    // background would put cream bubbles under light text.
+    vars["--color-canvas"] = ramp(0.06);
+    vars["--color-surface"] = background;
+    vars["--color-mist"] = ramp(0.08);
+    vars["--color-line"] = ramp(0.18);
+    vars["--color-ink"] = ink;
+    vars["--color-ink-2"] = ramp(0.86);
+    vars["--color-muted"] = ramp(0.75);
+    vars["--color-lime"] = mix(background, "#f2a900", 0.22);
     vars["color"] = ink;
   }
   return Object.keys(vars).length ? vars : undefined;
