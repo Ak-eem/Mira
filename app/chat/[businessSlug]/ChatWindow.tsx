@@ -669,6 +669,9 @@ export function ChatWindow({
   const accentFill = brandColor ? "bg-accent text-on-accent" : "bg-ink text-white";
   const banner = site ? "border-b border-line/80 bg-mist" : "glass-panel-strong";
   const smallRadius = site ? "rounded-full" : "rounded-sm";
+  // Side padding that keeps the content in a centred column of at most 46rem on a wide screen (so borders and
+  // surfaces still run edge to edge) and is a plain 1rem on a phone.
+  const padX = site ? "px-[max(1rem,calc(50%-23rem))]" : "px-4";
   const initial = Array.from(businessName.trim())[0]?.toUpperCase() ?? "•";
   const statusText = openNow === true ? "Open now · replies instantly" : openNow === false ? "Closed · replies instantly" : "Replies instantly";
   const showSiteChips = site && messages.length === 0 && suggestions.length > 0 && !conversationEnded;
@@ -680,11 +683,11 @@ export function ChatWindow({
 
   return (
     <div
-      className={embedMode ? `flex h-dvh flex-col mira-wash ${nunito.className}` : "flex h-dvh justify-center bg-canvas text-ink sm:p-3"}
+      className={embedMode ? `flex h-dvh flex-col mira-wash ${nunito.className}` : "flex h-dvh flex-col bg-surface text-ink"}
       style={embedMode ? { ...brandStyle, ...(transparentEmbed ? { background: "transparent" } : {}) } : { ...brandStyle, fontFamily: SITE_FONT }}
     >
-      {/* Website look: one card on the page (full-bleed on a phone). Embedded: the wrapper adds no box. */}
-      <div className={embedMode ? "contents" : "relative flex h-full w-full max-w-[560px] flex-col overflow-hidden bg-surface sm:rounded-[28px] sm:shadow-float"}>
+      {/* Website look: the whole screen. Embedded: the wrapper adds no box. */}
+      <div className={embedMode ? "contents" : "relative flex min-h-0 flex-1 flex-col"}>
         {showChatHeader &&
           (embedMode ? (
             <header className="flex items-center justify-between gap-2 px-4 py-2">
@@ -706,7 +709,7 @@ export function ChatWindow({
               </div>
             </header>
           ) : (
-            <header className="flex items-center gap-3 border-b border-line/80 px-4 py-3">
+            <header className={`flex items-center gap-3 border-b border-line/80 py-3 ${padX}`}>
               <span aria-hidden="true" className={`grid size-9 shrink-0 place-items-center rounded-full text-[15px] font-semibold ${accentFill}`}>
                 {initial}
               </span>
@@ -730,7 +733,7 @@ export function ChatWindow({
           ))}
 
         {showEndConfirm && (
-          <div className={`${banner} flex items-center justify-between gap-3 px-4 py-2 text-xs`}>
+          <div className={`${banner} flex items-center justify-between gap-3 py-2 text-xs ${padX}`}>
             <span className="text-slate-600">End this conversation?</span>
             <div className="flex gap-2">
               <button
@@ -754,7 +757,7 @@ export function ChatWindow({
 
         {!locked &&
           deliverableOrders.map((order) => (
-            <div key={order.id} className={`${banner} flex items-center justify-between gap-3 px-4 py-2 text-xs`}>
+            <div key={order.id} className={`${banner} flex items-center justify-between gap-3 py-2 text-xs ${padX}`}>
               <span className="min-w-0 truncate text-slate-600">
                 Your order{order.items.length > 0 ? `: ${order.items.map((item) => item.name).join(", ")}` : ""}
               </span>
@@ -779,7 +782,7 @@ export function ChatWindow({
           !locked &&
           !notificationConsentSaved &&
           !notificationDismissed && (
-            <div className={`${banner} space-y-2 px-4 py-3`}>
+            <div className={`${banner} space-y-2 py-3 ${padX}`}>
               <p className="text-xs text-slate-600">Want delivery updates by email?</p>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <input
@@ -813,12 +816,12 @@ export function ChatWindow({
           )}
 
         {notificationJustSaved && (
-          <div className={`${banner} px-4 py-2 text-xs text-emerald-600`}>
+          <div className={`${banner} py-2 text-xs text-emerald-600 ${padX}`}>
             You&apos;ll get an email when your order status changes.
           </div>
         )}
 
-        <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-4">
+        <div className={`min-h-0 flex-1 space-y-3 overflow-y-auto py-4 ${padX}`}>
           {messages.length === 0 && (
             <div className={embedMode ? "flex h-full flex-col justify-center gap-5 pb-8" : "text-left"}>
               {embedMode && (
@@ -976,7 +979,7 @@ export function ChatWindow({
         </div>
 
         {showSiteChips && (
-          <div className="flex gap-2 overflow-x-auto px-4 pb-2 [scrollbar-width:none]" role="group" aria-label="Suggested questions">
+          <div className={`flex gap-2 overflow-x-auto pb-2 [scrollbar-width:none] ${padX}`} role="group" aria-label="Suggested questions">
             {suggestions.map((suggestion) => (
               <button
                 key={suggestion}
@@ -992,7 +995,7 @@ export function ChatWindow({
         )}
 
         {conversationEnded ? (
-          <div className={`${site ? "border-t border-line/80 bg-mist" : "glass-panel-strong"} flex flex-col items-center gap-2 px-4 py-4`}>
+          <div className={`${site ? "border-t border-line/80 bg-mist" : "glass-panel-strong"} flex flex-col items-center gap-2 py-4 ${padX}`}>
             {ratingState === "done" ? (
               <p className="text-sm font-medium text-slate-600">Thanks for your feedback! 💛</p>
             ) : ratingState === "skipped" ? (
@@ -1033,7 +1036,7 @@ export function ChatWindow({
         ) : (
           <form
             onSubmit={handleSend}
-            className={embedMode ? "flex w-full px-4 py-3" : "flex items-center gap-2 border-t border-line/80 p-3"}
+            className={embedMode ? "flex w-full px-4 py-3" : `flex items-center gap-2 border-t border-line/80 py-3 ${padX}`}
           >
             {embedMode ? (
               <div className="flex w-full min-w-0 items-center rounded-full border border-slate-200 bg-white px-2 py-1 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
