@@ -5,6 +5,7 @@ import { embedStrongHoverClass, embedStrongTextClass, embedUsesTransparentSurfac
 import { Icon } from "@/components/site/icons";
 import type { BusinessProfile } from "@/lib/chat/profile";
 import { BusinessProfileSection } from "./BusinessProfileSection";
+import { BusinessSidebar } from "./BusinessSidebar";
 import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
 import { chatThemeVars } from "@/lib/brandColor";
 import { BusinessNotFound } from "./BusinessNotFound";
@@ -680,6 +681,7 @@ export function ChatWindow({
   const padX = site ? "px-[max(1rem,calc(50%-23rem))]" : "px-4";
   const initial = Array.from(businessName.trim())[0]?.toUpperCase() ?? "•";
   const statusText = openNow === true ? "Open now · replies instantly" : openNow === false ? "Closed · replies instantly" : "Replies instantly";
+  const hasSidebar = site && profile !== null;
   const showSiteChips = site && messages.length === 0 && suggestions.length > 0 && !conversationEnded;
   const embeddedSuggestions = [
     "Show me your products",
@@ -689,11 +691,26 @@ export function ChatWindow({
 
   return (
     <div
-      className={embedMode ? `flex h-dvh flex-col mira-wash ${nunito.className}` : "flex h-dvh flex-col bg-surface text-ink"}
+      className={embedMode ? `flex h-dvh flex-col mira-wash ${nunito.className}` : "flex h-dvh flex-col bg-surface text-ink lg:flex-row"}
       style={embedMode ? { ...brandStyle, ...(transparentEmbed ? { background: "transparent" } : {}) } : { ...brandStyle, fontFamily: SITE_FONT }}
     >
+      {/* Wide screen: the business's details in a left-hand panel, the chat on the right. */}
+      {hasSidebar && profile && (
+        <aside aria-label={`About ${businessName}`} className="hidden min-h-0 w-[26rem] shrink-0 overflow-y-auto border-r border-line/80 bg-canvas lg:block">
+          <BusinessSidebar
+            profile={profile}
+            businessName={businessName}
+            initial={initial}
+            statusText={statusText}
+            closed={openNow === false}
+            accentFill={accentFill}
+            onAsk={(question) => void sendMessage(question)}
+            disabled={sending}
+          />
+        </aside>
+      )}
       {/* Website look: the whole screen. Embedded: the wrapper adds no box. */}
-      <div className={embedMode ? "contents" : "relative flex min-h-0 flex-1 flex-col"}>
+      <div className={embedMode ? "contents" : "relative flex min-h-0 min-w-0 flex-1 flex-col"}>
         {showChatHeader &&
           (embedMode ? (
             <header className="flex items-center justify-between gap-2 px-4 py-2">
@@ -716,16 +733,27 @@ export function ChatWindow({
             </header>
           ) : (
             <header className={`flex items-center gap-3 border-b border-line/80 py-3 ${padX}`}>
-              <span aria-hidden="true" className={`grid size-9 shrink-0 place-items-center rounded-full text-[15px] font-semibold ${accentFill}`}>
+              <span aria-hidden="true" className={`grid size-9 shrink-0 place-items-center rounded-full text-[15px] font-semibold ${accentFill} ${hasSidebar ? "lg:hidden" : ""}`}>
                 {initial}
               </span>
-              <div className="min-w-0 flex-1">
+              <div className={`min-w-0 flex-1 ${hasSidebar ? "lg:hidden" : ""}`}>
                 <h1 className="truncate text-[14px] font-medium">{businessName}</h1>
                 <p className="flex items-center gap-1.5 text-xs text-muted">
                   <span className={`size-1.5 rounded-full ${openNow === false ? "bg-line" : "bg-lime-3"}`} />
                   {statusText}
                 </p>
               </div>
+              {hasSidebar && (
+                <div className="hidden min-w-0 flex-1 items-center gap-3 lg:flex">
+                  <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-full bg-mist text-ink">
+                    <Icon name="chat" size={17} />
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-[14px] font-medium">Ask {businessName}</p>
+                    <p className="text-xs text-muted">Replies instantly</p>
+                  </div>
+                </div>
+              )}
               {messages.length > 0 && !conversationEnded && !showEndConfirm && (
                 <button
                   type="button"
@@ -829,7 +857,9 @@ export function ChatWindow({
 
         <div className={`min-h-0 flex-1 space-y-3 overflow-y-auto py-4 ${padX}`}>
           {site && profile && (
-            <BusinessProfileSection profile={profile} businessName={businessName} onAsk={(question) => void sendMessage(question)} disabled={sending} />
+            <div className="lg:hidden">
+              <BusinessProfileSection profile={profile} businessName={businessName} onAsk={(question) => void sendMessage(question)} disabled={sending} />
+            </div>
           )}
           {messages.length === 0 && (
             <div className={embedMode ? "flex h-full flex-col justify-center gap-5 pb-8" : "text-left"}>

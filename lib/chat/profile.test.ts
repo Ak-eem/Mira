@@ -1,4 +1,4 @@
-import { buildProfile, formatPrice, hoursTodayLabel, MAX_DESCRIPTION_LENGTH, MAX_PROFILE_PRODUCTS } from "./profile";
+import { buildProfile, formatPrice, hoursTodayLabel, weeklyHours, MAX_DESCRIPTION_LENGTH, MAX_FAQS, MAX_POLICIES, MAX_PROFILE_PRODUCTS, MAX_PROMOTIONS } from "./profile";
 
 let failures = 0;
 function check(name: string, ok: boolean) {
@@ -59,5 +59,35 @@ check("products: names are trimmed and prices formatted", odd[0].name === "Sourd
 check("products: only http(s) images are kept", odd[0].imageUrl === "https://cdn.example.com/a.jpg" && odd[1].imageUrl === null);
 check("products: nameless, priceless and unpriceable products are skipped", odd.length === 2);
 check("currency: defaults to naira when the business has none set", buildProfile({ ...base, currency: null, products: [{ id: "x", name: "X", price: 500, image_url: null }] })!.products[0].priceLabel === "₦500");
+
+// --- the whole week (left-hand panel) ---
+const monFri = weeklyHours(weekdays, "Africa/Lagos", MONDAY_10AM_LAGOS)!;
+check("week: Monday first, Sunday last", monFri.length === 7 && monFri[0].day === "Monday" && monFri[6].day === "Sunday");
+check("week: exactly today is flagged, in the business's timezone", monFri.filter((r) => r.today).length === 1 && monFri[0].today === true);
+check("week: days without hours read 'Closed'", monFri[5].hours === "Closed" && monFri[6].hours === "Closed" && monFri[0].hours === "9:00 AM – 6:00 PM");
+check("week: Sunday is today on a Sunday", weeklyHours(weekdays, "Africa/Lagos", SUNDAY_NOON)![6].today === true);
+check("week: no hours set means no week", weeklyHours([], "Africa/Lagos", MONDAY_10AM_LAGOS) === null);
+
+// --- offers, FAQs, policies ---
+const NOW = MONDAY_10AM_LAGOS;
+const promos = buildProfile({ ...base, promotions: [
+  { description: "10% off all loaves this week", starts_at: "2026-11-01T00:00:00Z", ends_at: "2026-11-30T00:00:00Z" },
+  { description: "Open-ended offer", starts_at: null, ends_at: null },
+  { description: "Expired offer", starts_at: "2026-10-01T00:00:00Z", ends_at: "2026-10-31T00:00:00Z" },
+  { description: "Starts next month", starts_at: "2026-12-01T00:00:00Z", ends_at: null },
+  { description: "   ", starts_at: null, ends_at: null },
+  { description: "Third", starts_at: null, ends_at: null },
+  { description: "Fourth (over the cap)", starts_at: null, ends_at: null },
+] })!.promotions;
+check("offers: only ones running today, blanks skipped", promos[0] === "10% off all loaves this week" && promos[1] === "Open-ended offer" && !promos.some((p) => /Expired|next month/.test(p)));
+check(`offers: at most ${MAX_PROMOTIONS}`, promos.length === MAX_PROMOTIONS);
+check("offers: a very long one is cut with an ellipsis", buildProfile({ ...base, promotions: [{ description: "sale ".repeat(100), starts_at: null, ends_at: null }] })!.promotions[0].endsWith("…"));
+const faqs = buildProfile({ ...base, faqs: [{ question: "Do you deliver?" }, { question: "x".repeat(81) }, { question: "Hi" }, ...Array.from({ length: 8 }, (_, i) => ({ question: `Question number ${i}?` }))] })!.faqs;
+check(`FAQs: too short and too long are skipped, at most ${MAX_FAQS}`, faqs[0] === "Do you deliver?" && faqs.length === MAX_FAQS && !faqs.includes("Hi"));
+const policies = buildProfile({ ...base, policies: [{ title: "  Shipping & returns " }, { title: "" }, ...Array.from({ length: 9 }, (_, i) => ({ title: `Policy ${i}` }))] })!.policies;
+check(`policies: tidy titles, blanks skipped, at most ${MAX_POLICIES}`, policies[0] === "Shipping & returns" && policies.length === MAX_POLICIES);
+check("a business with only FAQs still has a panel", buildProfile({ ...base, faqs: [{ question: "Do you deliver?" }] }) !== null);
+check("an offer outside its dates alone is not a reason to show anything", buildProfile({ ...base, promotions: [{ description: "Old", starts_at: null, ends_at: "2026-01-01T00:00:00Z" }] }) === null);
+void NOW;
 
 if (failures) { console.error(`${failures} check(s) failed`); process.exit(1); }

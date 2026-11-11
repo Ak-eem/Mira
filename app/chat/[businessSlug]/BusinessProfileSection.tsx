@@ -15,6 +15,7 @@ export function BusinessProfileSection({
   disabled: boolean;
 }) {
   const { description, hoursToday, links, products } = profile;
+  if (!description && !hoursToday && links.length === 0 && products.length === 0) return null;
   return (
     <section aria-label={`About ${businessName}`} className="flex flex-col gap-4 pb-1">
       {description && <p className="text-[14px] leading-snug text-ink-2">{description}</p>}
