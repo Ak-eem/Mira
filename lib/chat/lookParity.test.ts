@@ -28,6 +28,13 @@ check("the welcome screen (icon, heading, chips) is not hidden behind embedMode"
 check("suggestion chips are shown whenever there are any, in both modes", /suggestions\.length > 0 && \(/.test(source) && !/embedMode && \(\s*<div[^>]*Suggested questions/.test(source));
 check("both modes use the same single-column wrapper", source.includes("max-w-3xl flex-1 flex-col"));
 check("both modes are one full-height page (no min-h-screen variant)", !source.includes("min-h-screen flex-col\"") || source.includes("mira-wash items-center justify-center"));
+check("feedback controls use contrasting theme colors for either selection state",
+  source.includes("border-teal-900 bg-teal-900 p-1.5 text-white") &&
+  source.includes("border-slate-200 bg-white p-1.5 text-teal-900") &&
+  source.includes('aria-pressed={m.feedback === "up"}') &&
+  source.includes('aria-pressed={m.feedback === "down"}'));
+check("End chat uses a theme-aware contrasting surface and foreground",
+  /onClick=\{\(\) => setShowEndConfirm\(true\)\}[\s\S]{0,260}bg-white[\s\S]{0,100}text-teal-900/.test(source));
 
 // What may still depend on embedMode: keep this list short and deliberate.
 const uses = [...source.matchAll(/embedMode/g)].length;

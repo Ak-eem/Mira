@@ -668,26 +668,32 @@ export function ChatWindow({
       <div className="flex min-h-0 w-full max-w-3xl flex-1 flex-col">
         {showChatHeader && (
           <header
-            className={`flex items-center justify-between gap-2 px-4 ${embedMode ? "py-2" : "py-3"}`}
+            className={`sticky top-0 z-20 flex items-center justify-between gap-3 border-b border-black/5 bg-white/80 px-4 backdrop-blur-md ${embedMode ? "py-2" : "py-2.5 sm:py-3"}`}
           >
-            {!embedMode && <span className="text-base font-semibold">{businessName}</span>}
-            <div className="flex items-center gap-2">
-              {openNow !== null && (
-                <span
-                  className={
-                    openNow
-                      ? "text-xs font-medium text-emerald-600"
-                      : "text-xs font-medium text-slate-400"
-                  }
-                >
-                  {openNow ? "● Open now" : "Closed"}
-                </span>
+            <div className="flex min-w-0 items-center gap-2.5">
+              {!embedMode && (
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-accent text-sm font-bold text-on-accent shadow-xs">
+                  {businessName.slice(0, 1).toUpperCase()}
+                </div>
               )}
+              <div className="min-w-0">
+                {!embedMode && <h1 className="truncate text-sm font-semibold tracking-tight text-slate-900 sm:text-base">{businessName}</h1>}
+                {openNow !== null && (
+                  <div className="flex items-center gap-1.5 text-[11px] font-medium">
+                    <span className={`inline-block h-2 w-2 rounded-full ${openNow ? "animate-pulse bg-emerald-500" : "bg-slate-300"}`} />
+                    <span className={openNow ? "text-emerald-700" : "text-slate-500"}>
+                      {openNow ? "Online · 24/7 assistant" : "Closed"}
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
               {messages.length > 0 && !conversationEnded && !showEndConfirm && (
                 <button
                   type="button"
                   onClick={() => setShowEndConfirm(true)}
-                  className="text-xs font-medium text-slate-400 hover:text-slate-600"
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-teal-900 shadow-sm transition-colors hover:bg-white/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-900"
                 >
                   End chat
                 </button>
@@ -830,9 +836,7 @@ export function ChatWindow({
               className={`message-enter ${m.role === "customer" ? "text-right" : "text-left"}`}
             >
               {m.role === "assistant" ? (
-                <div
-                  className="inline-block max-w-[85%] rounded-2xl bg-white/65 px-4 py-3 text-sm shadow-sm backdrop-blur-md"
-                >
+                <div className="inline-block max-w-[85%] rounded-2xl bg-white/65 px-4 py-3 text-sm shadow-sm backdrop-blur-md">
                   {renderAssistantContent(m.content)}
                 </div>
               ) : (
@@ -868,11 +872,12 @@ export function ChatWindow({
                   <button
                     type="button"
                     aria-label="Good response"
+                    aria-pressed={m.feedback === "up"}
                     onClick={() => submitFeedback(i, m.id!, "up")}
                     className={
                       m.feedback === "up"
-                        ? "rounded-sm p-1 text-emerald-600"
-                        : `rounded-sm p-1 ${embedStrongTextClass(backgroundColor)} ${embedStrongHoverClass(backgroundColor)}`
+                        ? "rounded-full border border-teal-900 bg-teal-900 p-1.5 text-white shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-900"
+                        : "rounded-full border border-slate-200 bg-white p-1.5 text-teal-900 shadow-sm transition-colors hover:bg-white/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-900"
                     }
                   >
                     <ThumbIcon direction="up" filled={m.feedback === "up"} />
@@ -880,11 +885,12 @@ export function ChatWindow({
                   <button
                     type="button"
                     aria-label="Poor response"
+                    aria-pressed={m.feedback === "down"}
                     onClick={() => submitFeedback(i, m.id!, "down")}
                     className={
                       m.feedback === "down"
-                        ? "rounded-sm p-1 text-red-500"
-                        : `rounded-sm p-1 ${embedStrongTextClass(backgroundColor)} ${embedStrongHoverClass(backgroundColor)}`
+                        ? "rounded-full border border-teal-900 bg-teal-900 p-1.5 text-white shadow-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-900"
+                        : "rounded-full border border-slate-200 bg-white p-1.5 text-teal-900 shadow-sm transition-colors hover:bg-white/80 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-900"
                     }
                   >
                     <ThumbIcon direction="down" filled={m.feedback === "down"} />
@@ -973,10 +979,10 @@ export function ChatWindow({
             )}
           </div>
         ) : (
-          <form onSubmit={handleSend} className="flex w-full px-4 py-3">
+          <form onSubmit={handleSend} className="sticky bottom-0 z-20 flex w-full border-t border-black/5 bg-white/90 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur-md sm:px-4">
             <div className="flex w-full min-w-0 items-center rounded-full border border-slate-200 bg-white px-2 py-1 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">
               <input
-                className="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm focus:border-transparent focus:outline-hidden focus:ring-0"
+                className="min-w-0 flex-1 border-0 bg-transparent px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:border-transparent focus:outline-hidden focus:ring-0"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Ask a question…"
@@ -984,14 +990,14 @@ export function ChatWindow({
               <button
                 type="submit"
                 disabled={sending || !input.trim()}
-                className="shrink-0 rounded-full bg-accent px-5 py-2 text-sm font-medium text-on-accent transition-colors hover:bg-accent-dark disabled:opacity-50"
+                className="shrink-0 rounded-full bg-accent px-4 py-2 text-xs font-semibold text-on-accent transition-all hover:bg-accent-dark active:scale-95 disabled:opacity-40 sm:px-5 sm:text-sm"
               >
                 Send
               </button>
             </div>
           </form>
         )}
-        <div className="pb-2 pt-1.5 text-center text-[11px] text-slate-400">
+        <div className="pb-1 pt-1 text-center text-[10px] text-slate-400">
           Powered by <span className="font-medium text-slate-500">Mira AI</span>
         </div>
 

@@ -26,13 +26,6 @@ export default function PrivacyPolicyPage() {
             </div>
           </nav>
 
-          {/* Legal Draft Notice */}
-          <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900 shadow-xs backdrop-blur-sm">
-            <p className="font-semibold">⚠️ Legal Disclaimer Notice</p>
-            <p className="mt-1 text-xs leading-relaxed text-amber-800">
-              This Privacy Policy is a starting draft provided for operational clarity for an early-stage SaaS product. It must be formally reviewed and tailored by a qualified Nigerian legal professional before being relied upon for strict legal compliance.
-            </p>
-          </div>
 
           {/* Content Card */}
           <article className="mt-8 rounded-4xl border border-white/80 bg-white/75 p-8 shadow-xl shadow-sky-100/60 backdrop-blur-2xl sm:p-12">

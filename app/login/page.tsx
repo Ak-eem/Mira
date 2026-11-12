@@ -149,9 +149,6 @@ return;
               Create one
             </Link>
           </p>
-          <Link href="/admin/login" className="mt-2 inline-flex min-h-10 items-center text-xs text-slate-500 transition hover:text-accent">
-            Platform admin sign-in
-          </Link>
         </div>
       </div>
     </main>
