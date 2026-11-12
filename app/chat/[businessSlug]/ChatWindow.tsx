@@ -1036,7 +1036,7 @@ export function ChatWindow({
         ) : (
           <form
             onSubmit={handleSend}
-            className={embedMode ? "flex w-full px-4 py-3" : `flex items-center gap-2 border-t border-line/80 py-3 ${padX}`}
+            className={embedMode ? "flex w-full px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]" : `flex items-center gap-2 border-t border-line/80 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] ${padX}`}
           >
             {embedMode ? (
               <div className="flex w-full min-w-0 items-center rounded-full border border-slate-200 bg-white px-2 py-1 focus-within:border-accent focus-within:ring-1 focus-within:ring-accent">

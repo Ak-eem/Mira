@@ -26,13 +26,6 @@ export default function TermsOfServicePage() {
             </div>
           </nav>
 
-          {/* Legal Draft Notice */}
-          <div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50/80 p-4 text-sm text-amber-900 shadow-xs backdrop-blur-sm">
-            <p className="font-semibold">⚠️ Legal Disclaimer Notice</p>
-            <p className="mt-1 text-xs leading-relaxed text-amber-800">
-              This Terms of Service document is an initial draft designed for early-stage operational guidance. It must be formally reviewed and finalized by a licensed legal counsel before being relied upon as a legally binding contract.
-            </p>
-          </div>
 
           {/* Content Card */}
           <article className="mt-8 rounded-4xl border border-white/80 bg-white/75 p-8 shadow-xl shadow-sky-100/60 backdrop-blur-2xl sm:p-12">

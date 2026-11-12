@@ -69,6 +69,10 @@ check(checkChatColors({ brand: "#1a7f5a", background: "#808080" }).ok === false,
 for (const bg of ["#000000", "#ffffff", "#f6f0e2", "#1a1a2e", "#ffe97f", "#fafafa", "#111111"]) {
   const v = chatThemeVars(null, bg);
   check(!!v && contrastRatio(v["--color-slate-700"], bg) >= 7, `vars: strongest grey is clearly readable on ${bg}`);
+  check(
+    !!v && contrastRatio(v["--color-teal-900"], v["--color-white"]) >= 4.5,
+    `vars: themed control foreground stays readable on its surface for ${bg}`,
+  );
 }
 
 // The full-screen business page is built from the website's own tokens (surface, mist, line, ink, muted,

@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f7f6f2">
+    <title>Fieldnote Supply — thoughtful things for everyday</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #202820;
+        --muted: #73796e;
+        --paper: #f7f6f2;
+        --card: #fffefa;
+        --green: #355b45;
+        --line: #e7e5dc;
+        font-family: "Segoe UI", Arial, sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body { margin: 0; color: var(--ink); background: var(--paper); }
+      a { color: inherit; }
+      .announcement {
+        padding: 10px 20px;
+        color: #fff;
+        background: var(--green);
+        text-align: center;
+        font-size: 12px;
+        letter-spacing: .07em;
+      }
+      header {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 20px;
+        padding: 18px max(24px, calc((100% - 1160px) / 2));
+        border-bottom: 1px solid var(--line);
+        background: rgb(247 246 242 / 94%);
+        backdrop-filter: blur(12px);
+      }
+      .wordmark {
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 23px;
+        font-weight: 700;
+        letter-spacing: -.05em;
+        text-decoration: none;
+      }
+      nav { display: flex; align-items: center; gap: 24px; }
+      nav a, .bag { font-size: 13px; text-decoration: none; }
+      nav a:hover, footer a:hover { text-decoration: underline; }
+      .bag { padding: 9px 13px; border: 1px solid var(--line); border-radius: 999px; }
+      main { max-width: 1160px; margin: auto; padding: 30px 24px 70px; }
+      .demo-note {
+        margin: 0 0 24px;
+        padding: 11px 14px;
+        border: 1px solid #e8d9b8;
+        border-radius: 8px;
+        color: #63522e;
+        background: #fbf5e8;
+        font-size: 12px;
+      }
+      .hero {
+        min-height: 350px;
+        display: flex;
+        align-items: center;
+        overflow: hidden;
+        padding: 56px;
+        border-radius: 14px;
+        color: #fffefa;
+        background:
+          radial-gradient(ellipse at 82% 28%, rgb(212 196 148 / 74%) 0 12%, transparent 12.5%),
+          radial-gradient(ellipse at 80% 34%, rgb(85 112 83 / 78%) 0 24%, transparent 24.5%),
+          linear-gradient(115deg, #263d31 0%, #405c47 56%, #9a9d77 100%);
+      }
+      .hero-copy { max-width: 490px; }
+      .eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .17em; text-transform: uppercase; }
+      h1, h2, h3, p { margin-top: 0; }
+      h1 {
+        margin: 16px 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(40px, 6vw, 66px);
+        font-weight: 400;
+        letter-spacing: -.055em;
+        line-height: .98;
+      }
+      .hero p { max-width: 380px; color: #e5e9dd; line-height: 1.65; }
+      .button {
+        display: inline-block;
+        margin-top: 10px;
+        padding: 13px 18px;
+        border-radius: 3px;
+        color: var(--ink);
+        background: #fffefa;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-decoration: none;
+      }
+      .section-heading {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 16px;
+        margin: 58px 0 22px;
+      }
+      h2 {
+        margin-bottom: 5px;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: 32px;
+        font-weight: 400;
+        letter-spacing: -.04em;
+      }
+      .section-heading p, .product-meta { margin-bottom: 0; color: var(--muted); font-size: 13px; }
+      .products { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+      .product { min-width: 0; }
+      .product-art {
+        position: relative;
+        display: grid;
+        height: 260px;
+        place-items: center;
+        overflow: hidden;
+        border-radius: 8px;
+      }
+      .art-sand { background: #e8e2d4; }
+      .art-sage { background: #dce1d4; }
+      .art-sky { background: #dce5e5; }
+      .art-rose { background: #eadbd2; }
+      .art-stone { background: #dfded7; }
+      .art-gold { background: #e9e3ce; }
+      .product-art img { width: 100%; height: 100%; object-fit: cover; }
+      .product-info { display: flex; justify-content: space-between; gap: 12px; padding: 12px 2px 0; }
+      .product-info h3 { margin-bottom: 5px; font-size: 14px; font-weight: 600; }
+      .price { white-space: nowrap; font-size: 13px; }
+      .product-meta { font-size: 11px; }
+      .story {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 35px;
+        align-items: center;
+        margin-top: 70px;
+        padding: 38px;
+        border: 1px solid var(--line);
+        border-radius: 10px;
+        background: var(--card);
+      }
+      .story h2 { max-width: 390px; }
+      .story p { max-width: 460px; margin-bottom: 0; color: var(--muted); font-size: 14px; line-height: 1.8; }
+      .story-mark {
+        min-height: 170px;
+        display: grid;
+        place-items: center;
+        border-radius: 6px;
+        color: #e6e8d9;
+        background: linear-gradient(145deg, #819176, #395442);
+        font: italic 48px Georgia, serif;
+      }
+      footer {
+        padding: 32px max(24px, calc((100% - 1160px) / 2));
+        border-top: 1px solid var(--line);
+        color: var(--muted);
+        background: var(--card);
+        font-size: 12px;
+      }
+      .footer-row { display: flex; justify-content: space-between; gap: 22px; }
+      .footer-links { display: flex; flex-wrap: wrap; gap: 18px; }
+      footer a { text-underline-offset: 3px; }
+      .legal {
+        max-width: 900px;
+        margin: 38px auto 10px;
+        padding-top: 24px;
+        border-top: 1px solid var(--line);
+      }
+      .legal h2 { margin: 28px 0 9px; font-size: 22px; }
+      .legal p { color: var(--muted); line-height: 1.7; }
+      .fine-print { margin-top: 22px; font-size: 11px; }
+
+      @media (max-width: 700px) {
+        header { padding: 14px 18px; }
+        nav { gap: 13px; }
+        nav a { font-size: 11px; }
+        .wordmark { font-size: 20px; }
+        main { padding: 18px 16px 48px; }
+        .hero { min-height: 330px; padding: 32px 24px; }
+        .products { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px 12px; }
+        .product-art { height: 190px; }
+        .section-heading { align-items: start; flex-direction: column; margin-top: 42px; }
+        .story { grid-template-columns: 1fr; gap: 22px; margin-top: 48px; padding: 24px; }
+        .story-mark { min-height: 130px; }
+        .footer-row { flex-direction: column; }
+      }
+      @media (max-width: 390px) {
+        nav { gap: 9px; }
+        nav a { font-size: 10px; }
+        .bag { padding: 7px 9px; font-size: 11px; }
+        .product-art { height: 160px; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="announcement">A little more thoughtful, every day · Complimentary shipping over $60</div>
+    <header>
+      <a class="wordmark" href="#top">Fieldnote Supply</a>
+      <nav aria-label="Main navigation">
+        <a href="#shop">Shop</a>
+        <a href="#story">Our story</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <span class="bag" aria-label="Shopping bag, demo only">Bag (0)</span>
+    </header>
+
+    <main id="top">
+      <p class="demo-note"><strong>Demo storefront:</strong> Product names and prices are fictional. Product images have been removed from this local test fixture. This page has no checkout and does not take orders.</p>
+      <section class="hero" aria-labelledby="hero-title">
+        <div class="hero-copy">
+          <span class="eyebrow">Objects for a slower routine</span>
+          <h1 id="hero-title">Make room for the everyday.</h1>
+          <p>Considered essentials for small rituals, open windows, and wherever the day takes you.</p>
+          <a class="button" href="#shop">EXPLORE THE COLLECTION</a>
+        </div>
+      </section>
+
+      <section id="shop" aria-labelledby="shop-title">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow">The Fieldnote edit</span>
+            <h2 id="shop-title">Everyday keepers</h2>
+          </div>
+          <p>Made-up things, made for this demo.</p>
+        </div>
+        <div class="products">
+          <article class="product">
+            <div class="product-art art-sand"></div>
+            <div class="product-info"><div><h3>Image Test Product 01</h3><p class="product-meta">Sample item · Not for sale</p></div><span class="price">$11</span></div>
+          </article>
+          <article class="product">
+            <div class="product-art art-sage"></div>
+            <div class="product-info"><div><h3>Image Test Product 02</h3><p class="product-meta">Sample item · Not for sale</p></div><span class="price">$12</span></div>
+          </article>
+          <article class="product">
+            <div class="product-art art-sky"></div>
+            <div class="product-info"><div><h3>Image Test Product 03</h3><p class="product-meta">Sample item · Not for sale</p></div><span class="price">$13</span></div>
+          </article>
+          <article class="product">
+            <div class="product-art art-rose"></div>
+            <div class="product-info"><div><h3>Image Test Product 04</h3><p class="product-meta">Sample item · Not for sale</p></div><span class="price">$14</span></div>
+          </article>
+          <article class="product">
+            <div class="product-art art-stone"></div>
+            <div class="product-info"><div><h3>Image Test Product 05</h3><p class="product-meta">Sample item · Not for sale</p></div><span class="price">$15</span></div>
+          </article>
+          <article class="product">
+            <div class="product-art art-gold"></div>
+            <div class="product-info"><div><h3>Image Test Product 06</h3><p class="product-meta">Sample item · Not for sale</p></div><span class="price">$16</span></div>
+          </article>
+          <article class="product">
+            <div class="product-art art-sand"></div>
+            <div class="product-info"><div><h3>Image Test Product 07</h3><p class="product-meta">Sample item · Not for sale</p></div><span class="price">$17</span></div>
+          </article>
+          <article class="product">
+            <div class="product-art art-sage"></div>
+            <div class="product-info"><div><h3>Image Test Product 08</h3><p class="product-meta">Sample item · Not for sale</p></div><span class="price">$18</span></div>
+          </article>
+          <article class="product">
+            <div class="product-art art-sky"></div>
+            <div class="product-info"><div><h3>Image Test Product 09</h3><p class="product-meta">Sample item · Not for sale</p></div><span class="price">$19</span></div>
+          </article>
+          <article class="product">
+            <div class="product-art art-rose"></div>
+            <div class="product-info"><div><h3>Image Test Product 10</h3><p class="product-meta">Sample item · Not for sale</p></div><span class="price">$20</span></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="story" id="story" aria-labelledby="story-title">
+        <div>
+          <span class="eyebrow">A note from our imaginary shop</span>
+          <h2 id="story-title">Fewer things. Better little moments.</h2>
+          <p>Fieldnote Supply is a fictional shop concept built to preview the Mira customer-service chat. Our pretend collection celebrates useful objects, enduring materials, and the everyday rituals that make a place feel like yours.</p>
+        </div>
+        <div class="story-mark" aria-hidden="true">Take it slowly.</div>
+      </section>
+    </main>
+
+    <footer id="contact">
+      <div class="footer-row">
+        <span>© 2026 Fieldnote Supply · Fictional demo store</span>
+        <div class="footer-links">
+          <a href="#terms">Terms of service</a>
+          <a href="#privacy">Privacy policy</a>
+          <a href="mailto:hello@example.invalid">Contact</a>
+        </div>
+      </div>
+      <section class="legal" id="terms" aria-labelledby="terms-title">
+        <h2 id="terms-title">Terms of service</h2>
+        <p>This demonstration website, its business, product names, descriptions, prices, and policies are fictional and are provided only to test the Mira chat widget. Nothing on this page is an offer to sell goods or a promise to provide services.</p>
+        <p>The product listings and prices are sample content. The bag control is decorative; there is no checkout, payment processing, shipping, returns service, or customer account on this demo page. Do not rely on this sample text as legal advice or as the terms of a real business.</p>
+      </section>
+      <section class="legal" id="privacy" aria-labelledby="privacy-title">
+        <h2 id="privacy-title">Privacy policy</h2>
+        <p>This fictional storefront does not have its own checkout, account system, analytics, or contact form. The email link is a non-functional example address. This page is for local widget testing, not for submitting real personal or payment information.</p>
+        <p>If you use the embedded Mira widget, your chat is handled by the locally running Mira application according to its own configuration. This demo storefront does not control or describe how that separate application handles chat data.</p>
+      </section>
+      <p class="fine-print">Fictional products, pricing, policies, and brand created solely for a local Mira widget test.</p>
+    </footer>
+
+    <script src="/embed.js"
+      data-business="efef"
+      data-title="Chat with Fieldnote Supply"
+      data-primary-color="#355b45"
+      defer></script>
+  </body>
+</html>

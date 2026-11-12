@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { isOpenNow } from "@/lib/hours";
 import { isCancelled, isLocked } from "@/lib/plans";
@@ -14,6 +14,15 @@ import { ChatWindow } from "./ChatWindow";
 // of getting served as a stale pre-rendered snapshot instead of
 // re-running the query on every request. Forcing it explicitly.
 export const dynamic = "force-dynamic";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  interactiveWidget: "resizes-content",
+  themeColor: "#ffffff",
+};
 
 // Runs separately from the page component below, so it does its own
 // small lookup rather than sharing state -- the cost is one tiny query,
@@ -45,6 +54,15 @@ export async function generateMetadata({
   return {
     title: `Chat with ${name}`,
     description: `Ask ${name} anything -- hours, prices, availability, and more.`,
+    appleWebApp: {
+      capable: true,
+      statusBarStyle: "default",
+      title: name,
+    },
+    openGraph: {
+      title: `Chat with ${name} · 24/7 Store Assistant`,
+      description: `Ask ${name} about available items, sizes, delivery and prices. Instant answers 24/7.`,
+    },
   };
 }
 
