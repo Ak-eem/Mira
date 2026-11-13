@@ -1,4 +1,5 @@
 -- "Ask your data" (Phase 6): read-only aggregate lookups the portal's data assistant is allowed to run.
+-- Version 0071 avoids the historical duplicate migration number.
 --
 -- Every function here is SECURITY INVOKER: it runs with the signed-in caller's own row-level security,
 -- exactly like get_ai_response_aggregate (0031) and get_popular_products (0032). Passing another

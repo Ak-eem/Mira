@@ -125,26 +125,14 @@ export async function createOrder(input: {
 
   if (validItems.length === 0) return { error: "At least one item with a name is required." };
 
-  const total = validItems.reduce((sum, item) => sum + (item.unit_price ?? 0) * item.quantity, 0);
-
-  const { data: order, error } = await supabase
-    .from("orders")
-    .insert({
-      business_id: input.businessId,
-      conversation_id: linkedConversationId,
-      customer_identifier: normalizedIdentifier,
-      status: input.status,
-      total,
-    })
-    .select("id")
-    .single();
-
-  if (error || !order) return { error: error?.message ?? "Failed to create order." };
-
-  const { error: itemsError } = await supabase
-    .from("order_items")
-    .insert(validItems.map((item) => ({ ...item, order_id: order.id })));
-  if (itemsError) return { error: itemsError.message };
+  const { data: orderId, error } = await supabase.rpc("create_manual_order_atomic", {
+    p_business_id: input.businessId,
+    p_conversation_id: linkedConversationId,
+    p_customer_identifier: normalizedIdentifier,
+    p_status: input.status,
+    p_items: validItems,
+  });
+  if (error || !orderId) return { error: error?.message ?? "Failed to create order." };
 
   revalidatePath(`/portal/${input.businessId}/orders`);
   return { error: null };

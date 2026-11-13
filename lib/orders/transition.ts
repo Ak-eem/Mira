@@ -196,6 +196,7 @@ export async function transitionOrderStatus(
           conversationId: conversation.id,
           businessId,
           endedBy: actor === "customer" ? "customer" : "operator",
+          preserveSupportHandoff: true,
         });
       }
     }

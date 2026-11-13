@@ -1,4 +1,5 @@
 -- Owner-chosen background colour for the customer-facing chat, next to brand_color (0064).
+-- Version 0070 avoids the historical duplicate migration number.
 -- NULL = Mira's default cream background. Lowercase #rrggbb only, enforced by a check
 -- constraint so nothing else can ever reach a CSS value.
 --

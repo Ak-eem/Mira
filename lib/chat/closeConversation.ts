@@ -10,9 +10,14 @@ import type { SupabaseClient } from "@supabase/supabase-js";
  */
 export async function closeConversation(
   supabase: SupabaseClient,
-  args: { conversationId: string; businessId: string; endedBy: "customer" | "operator" },
+  args: {
+    conversationId: string;
+    businessId: string;
+    endedBy: "customer" | "operator";
+    preserveSupportHandoff?: boolean;
+  },
 ): Promise<{ closed: boolean; error: unknown }> {
-  const { data, error } = await supabase
+  let query = supabase
     .from("conversations")
     .update({
       status: "closed",
@@ -24,9 +29,13 @@ export async function closeConversation(
     })
     .eq("id", args.conversationId)
     .eq("business_id", args.businessId)
-    .eq("status", "open")
-    .select("id")
-    .maybeSingle();
+    .eq("status", "open");
+
+  if (args.preserveSupportHandoff) {
+    query = query.or("needs_human.eq.false,handoff_reason.eq.order");
+  }
+
+  const { data, error } = await query.select("id").maybeSingle();
 
   if (error) {
     console.error("closeConversation failed:", error);

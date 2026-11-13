@@ -34,7 +34,7 @@ export type OrderTakingContext = {
 
 type RecapSnapshot = {
   orderRecap?: boolean;
-  items?: { product_id: string; quantity: number }[];
+  items?: { product_id: string; quantity: number; unit_price: number }[];
   note?: string | null;
 };
 
@@ -137,7 +137,11 @@ export async function processOrderRequest(
     content,
     snapshot: {
       orderRecap: true,
-      items: resolved.items.map((item) => ({ product_id: item.product_id, quantity: item.quantity })),
+      items: resolved.items.map((item) => ({
+        product_id: item.product_id,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+      })),
       note: request.note,
     },
   });
