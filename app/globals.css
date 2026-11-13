@@ -652,6 +652,8 @@ textarea.ui-field { min-height: 6rem; resize: vertical; }
 /* A row that scrolls sideways on small screens without showing a scrollbar. */
 .ui-scroll-x { max-width: 100%; overflow-x: auto; overscroll-behavior-x: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
 .ui-scroll-x::-webkit-scrollbar { display: none; }
+.ui-scroll-y { overflow-y: auto; overscroll-behavior-y: contain; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.ui-scroll-y::-webkit-scrollbar { display: none; }
 
 /* Sheets (depth level 3): content that needs focus floats above the page and slides up. */
 @keyframes ui-fade { from { opacity: 0; } to { opacity: 1; } }

@@ -821,7 +821,7 @@ export function ChatWindow({
           </div>
         )}
 
-        <div className={`min-h-0 flex-1 space-y-3 overflow-y-auto py-4 ${padX}`}>
+        <div className={`ui-scroll-y min-h-0 flex-1 space-y-3 py-4 ${padX}`}>
           {messages.length === 0 && (
             <div className={embedMode ? "flex h-full flex-col justify-center gap-5 pb-8" : "text-left"}>
               {embedMode && (
