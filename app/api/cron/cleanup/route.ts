@@ -4,6 +4,7 @@ import { purgeInboundQueues } from "@/lib/cron/purgeInboundQueues";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { sendAlert, sweepAndAlert } from "@/lib/alerts";
 import { sendExpiryReminders } from "@/lib/billing/expiryReminders";
+import { sendWeeklySummaries } from "@/lib/value/sendWeeklySummaries";
 
 // Daily retention job (see vercel.json). Safe to run concurrently or twice:
 // it only deletes rows past the cutoff, so there is no lock to manage.
@@ -26,7 +27,12 @@ export async function GET(request: NextRequest) {
       console.error("expiry reminders failed:", error);
       return "failed" as const;
     });
-    return NextResponse.json({ ...result, alertSweep: sweep, expiryReminders: reminders });
+    // Monday summary of what Mira did for each paying business. A failure here must never fail the cleanup.
+    const weeklySummaries = await sendWeeklySummaries().catch((error) => {
+      console.error("weekly summaries failed:", error);
+      return "failed" as const;
+    });
+    return NextResponse.json({ ...result, alertSweep: sweep, expiryReminders: reminders, weeklySummaries });
   } catch (error) {
     console.error("cleanup cron failed:", error);
     await sendAlert(client, { key: "cron-cleanup-failed", subject: "Daily cleanup job failed", lines: [error instanceof Error ? error.message : "Unknown error"] });
