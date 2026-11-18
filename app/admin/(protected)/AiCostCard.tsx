@@ -41,7 +41,7 @@ export async function AiCostCard() {
       <section className="glass-panel rounded-xl p-5">
         <p className="font-medium text-slate-900">AI cost this month</p>
         <p className="mt-1 text-sm text-slate-500">
-          Couldn&apos;t load the estimate. If this is new, run <code className="rounded bg-slate-100 px-1">0073_ai_usage_by_business.sql</code> in the Supabase SQL editor.
+          Couldn&apos;t load the estimate. If this is new, run <code className="rounded bg-slate-100 px-1">0074_ai_usage_by_business.sql</code> in the Supabase SQL editor.
         </p>
       </section>
     );

@@ -85,6 +85,21 @@ export async function saveOrderTaking(businessId: string, enabled: boolean) {
   return { error: null };
 }
 
+// Owner-only: this owner's own switch for the Monday summary email. The database function only ever
+// changes the signed-in owner's own row, whatever businessId is passed.
+export async function saveWeeklySummary(businessId: string, enabled: boolean) {
+  const { owner, role } = await requireMembership(businessId);
+  if (!owner || !role) return { error: "Not authorized." };
+  if (role !== "owner") return { error: "Only the business owner gets the weekly summary." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("set_weekly_summary", { p_business_id: businessId, p_enabled: enabled });
+  if (error) return { error: "Could not save that. Try again in a moment." };
+
+  revalidatePath(`/portal/${businessId}/settings`);
+  return { error: null };
+}
+
 // Owner-only: the colours customers see on the chat page and website widget (brand colour
 // and page background). Empty or null for either means Mira's default. Validated here as
 // well as in the database.

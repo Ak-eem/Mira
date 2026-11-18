@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
   const reference = new URL(request.url).searchParams.get('reference')?.trim();
-  if (!reference) return NextResponse.json({ error: 'reference is required' }, { status: 400 });
+  if (!reference) return NextResponse.json({ error: 'reference is required', terminal: true }, { status: 400 });
 
   let verification;
   try { verification = await verifyPaystackTransaction(reference); } catch (cause) { console.error('Paystack verification failed', cause); return NextResponse.json({ error: 'Unable to verify payment' }, { status: 502 }); }
@@ -21,10 +21,10 @@ export async function GET(request: Request) {
   if (!success) return NextResponse.json({ success: false, status, terminal });
 
   const metadata = (data.metadata && typeof data.metadata === 'object' ? data.metadata : {}) as Record<string, unknown>;
-  if (metadata.user_id !== user.id) return NextResponse.json({ error: 'Payment does not belong to this user' }, { status: 403 });
-  if (typeof metadata.business_id !== 'string' || !metadata.business_id) return NextResponse.json({ error: 'Missing business metadata' }, { status: 400 });
-  if (String(data.currency).toUpperCase() !== 'NGN' || String(data.reference) !== reference) return NextResponse.json({ error: 'Invalid payment details' }, { status: 400 });
-  if (metadata.plan !== 'base' || typeof metadata.promo !== 'boolean') return NextResponse.json({ error: 'Invalid payment plan metadata' }, { status: 400 });
+  if (metadata.user_id !== user.id) return NextResponse.json({ error: 'Payment does not belong to this user', terminal: true }, { status: 403 });
+  if (typeof metadata.business_id !== 'string' || !metadata.business_id) return NextResponse.json({ error: 'Missing business metadata', terminal: true }, { status: 400 });
+  if (String(data.currency).toUpperCase() !== 'NGN' || String(data.reference) !== reference) return NextResponse.json({ error: 'Invalid payment details', terminal: true }, { status: 400 });
+  if (metadata.plan !== 'base' || typeof metadata.promo !== 'boolean') return NextResponse.json({ error: 'Invalid payment plan metadata', terminal: true }, { status: 400 });
 
   const { data: ownership, error: ownershipError } = await supabase
     .from('business_owners')
@@ -36,7 +36,7 @@ export async function GET(request: Request) {
     console.error('Paystack ownership lookup failed', ownershipError);
     return NextResponse.json({ error: 'Unable to verify business ownership' }, { status: 500 });
   }
-  if (!ownership) return NextResponse.json({ error: 'Payment business does not belong to this user' }, { status: 403 });
+  if (!ownership) return NextResponse.json({ error: 'Payment business does not belong to this user', terminal: true }, { status: 403 });
 
   // metadata.promo is the price the user was quoted and accepted at
   // checkout, not re-derived from the current signup count: if the promo
@@ -45,9 +45,9 @@ export async function GET(request: Request) {
   // price applies (promo or not) matches data.amount below, so this can
   // only honor a real quoted price, never let the client pick an arbitrary one.
   let config;
-  try { config = getPlanConfig('base', metadata.promo); } catch { return NextResponse.json({ error: 'Invalid plan configuration' }, { status: 400 }); }
+  try { config = getPlanConfig('base', metadata.promo); } catch { return NextResponse.json({ error: 'Invalid plan configuration', terminal: true }, { status: 400 }); }
   const expectedKobo = quotedAmountKobo(metadata as Record<string, unknown>, config.amountKobo);
-  if (data.amount !== expectedKobo) return NextResponse.json({ error: 'Payment amount does not match plan' }, { status: 400 });
+  if (data.amount !== expectedKobo) return NextResponse.json({ error: 'Payment amount does not match plan', terminal: true }, { status: 400 });
 
   // Paying early adds the new period to the end of the current one instead of replacing it.
   const serviceRole = createServiceRoleClient();

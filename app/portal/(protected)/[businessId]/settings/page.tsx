@@ -9,6 +9,7 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { SegmentedLinks } from "@/components/ui/Segmented";
 import { PromptEditor } from "./PromptEditor";
 import { OrderTakingPanel } from "./OrderTakingPanel";
+import { WeeklySummaryPanel } from "./WeeklySummaryPanel";
 import { CourierPanel } from "./CourierPanel";
 import { BrandColorPanel } from "./BrandColorPanel";
 import { getChatColors } from "@/lib/brandSettings";
@@ -54,6 +55,15 @@ export default async function PortalSettingsPage({ params, searchParams }: PageP
       .eq("status", "active")
       .maybeSingle(),
   ]);
+  // This owner's own weekly-summary switch. If the read fails (the migration isn't applied yet) the
+  // panel is hidden rather than offering a switch that can't be saved.
+  const { data: weeklyRow, error: weeklyError } = await supabase
+    .from("business_owners")
+    .select("weekly_summary")
+    .eq("business_id", businessId)
+    .eq("user_id", owner.userId)
+    .maybeSingle();
+  const weeklySummary: boolean | null = !weeklyError && weeklyRow ? weeklyRow.weekly_summary !== false : null;
   // If this read fails (e.g. the migration isn't applied yet) the panel is
   // hidden rather than offering a connection that can't be saved.
   const courierAvailable = !courier.error;
@@ -126,6 +136,7 @@ export default async function PortalSettingsPage({ params, searchParams }: PageP
         {tab === "behaviour" && (
           <>
             <OrderTakingPanel businessId={businessId} initialEnabled={orderTakingEnabled} canEdit={isOwner} />
+            {isOwner && weeklySummary !== null && <WeeklySummaryPanel businessId={businessId} initialEnabled={weeklySummary} />}
             {courierAvailable && <CourierPanel businessId={businessId} connected={Boolean(courier.data)} webhookUrl={courierWebhookUrl} canEdit={isOwner} />}
             <GroundingPanel businessId={businessId} initialLevel={groundingSettings.reviewLevel} initialEscalate={groundingSettings.escalateRepeat} canEdit={isOwner} />
             <PromptEditor businessId={businessId} initialDraft={draft} active={active} history={history} canPublish={isOwner} />

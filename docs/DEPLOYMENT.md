@@ -22,7 +22,7 @@ You will touch five services. Only the first three are required.
 2. **Apply every file in `supabase/migrations/` in numeric order**, in the SQL editor or with
    the Supabase CLI (`supabase db push`). Don't skip any. Several features quietly fail
    without their migration (for example `0054` for owner settings, `0056` for cancelling a
-   subscription, `0060` for owners editing their own products and hours, `0073` for the admin dashboard's
+   subscription, `0060` for owners editing their own products and hours, `0074` for the admin dashboard's
    AI cost estimate).
 3. **Authentication → URL Configuration:** add `https://YOUR_DOMAIN/auth/callback` and
    `http://localhost:3000/auth/callback` to Redirect URLs. For Google sign-in, follow the
@@ -158,7 +158,7 @@ Prices change, so these are the things to price, not numbers to trust.
   It estimates, in naira, what each business's AI replies have cost you so far and where the
   month is heading, and flags a business at half and at the whole of its plan price. It is
   for you only, is not on the client portal, and never limits anything. It needs migration
-  `0073`. The prices it uses are defaults (Groq's list price, and an assumed higher rate for
+  `0074`. The prices it uses are defaults (Groq's list price, and an assumed higher rate for
   the Gemini backup); update the optional `AI_USD_TO_NGN` and `AI_*_USD_PER_M_*` settings in
   `.env.example` when prices or the exchange rate move.
 

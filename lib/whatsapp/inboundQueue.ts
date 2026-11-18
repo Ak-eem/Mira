@@ -71,6 +71,9 @@ export async function markSendRejected(client: Client, id: string): Promise<void
 /** Gives up on an ambiguous send that already had its one re-send. Not silent: it is logged and kept on the row. */
 export async function markSendAbandoned(client: Client, id: string): Promise<void> { const { error } = await client.from("whatsapp_inbound_queue").update({ status: "done", locked_at: null, last_error: "Delivery unconfirmed after an ambiguous send and one re-send; not retried again." }).eq("id", id); if (error) throw error; }
 export async function markInboundDone(client: Client, id: string): Promise<void> { const { error } = await client.from("whatsapp_inbound_queue").update({ status: "done", locked_at: null, last_error: null }).eq("id", id); if (error) throw error; }
+// Closes a message that is deliberately not answered (e.g. a number no business owns) but keeps the reason on the
+// row, so a disconnected number shows up in the queue and in the logs instead of vanishing.
+export async function markInboundIgnored(client: Client, id: string, reason: string): Promise<void> { const { error } = await client.from("whatsapp_inbound_queue").update({ status: "done", locked_at: null, last_error: reason.slice(0, 2000) }).eq("id", id); if (error) throw error; }
 export async function markInboundFailed(client: Client, id: string, message: string): Promise<void> { const { error } = await client.from("whatsapp_inbound_queue").update({ status: "failed", locked_at: null, available_at: new Date(Date.now() + 30_000).toISOString(), last_error: message.slice(0, 2000) }).eq("id", id); if (error) console.error("Could not mark WhatsApp queue row failed:", error); }
 
 // Fire-and-forget operator alert. Imported lazily so this module (and its unit tests) never load the email
