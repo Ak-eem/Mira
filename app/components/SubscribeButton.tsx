@@ -20,10 +20,10 @@ export default function SubscribeButton({ plan, businessId, businessName, email 
       for (let attempt = 0; attempt < 15 && !cancelled; attempt += 1) {
         try {
           const response = await fetch(`/api/paystack/verify?reference=${encodeURIComponent(paymentReference)}`, { cache: 'no-store' });
-          const result = await response.json() as { success?: boolean; status?: string; terminal?: boolean };
+          const result = await response.json() as { success?: boolean; status?: string; terminal?: boolean; error?: string };
           if (cancelled) return;
           if (response.ok && result.success) { setStatus('Payment confirmed. Your subscription is active.'); router.refresh(); return; }
-          if (result.terminal) { setStatus(`Payment ${result.status ?? 'could not be completed'}.`); return; }
+          if (result.terminal) { setStatus(result.error ?? `Payment ${result.status ?? 'could not be completed'}.`); return; }
           setStatus(`Payment status: ${result.status ?? 'pending'}…`);
         } catch { if (!cancelled) setStatus('Checking payment status…'); }
         if (attempt < 14) await new Promise((resolve) => setTimeout(resolve, 2000));

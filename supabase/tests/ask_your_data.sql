@@ -1,4 +1,4 @@
--- Tests for the "ask your data" lookups (migration 0068).
+-- Tests for the "ask your data" lookups (migration 0071).
 -- Everything runs inside a transaction that is rolled back. A failure raises (non-zero exit); a pass ends
 -- with "ASK YOUR DATA CHECKS PASSED".
 --

@@ -5,6 +5,7 @@ import { withConversationLease } from "@/lib/chat/durable";
 import type { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   markInboundDone,
+  markInboundIgnored,
   markInboundFailed,
   markInboundSent,
   saveInboundReply,
@@ -40,7 +41,9 @@ export async function processWhatsappQueued(client: Client, queued: QueueRow, it
     .maybeSingle();
   if (business.error) throw business.error;
   if (!business.data) {
-    await markInboundDone(client, queued.id);
+    // No active business owns this number (disconnected, changed or switched off). Nothing to answer, but say so.
+    console.warn(`WhatsApp message ${item.id} for unknown or inactive number ${item.phoneId} was ignored.`);
+    await markInboundIgnored(client, queued.id, `No active business uses WhatsApp number id ${item.phoneId}.`);
     return;
   }
 
