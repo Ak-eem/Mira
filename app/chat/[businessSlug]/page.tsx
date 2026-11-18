@@ -4,6 +4,9 @@ import { isOpenNow } from "@/lib/hours";
 import { isCancelled, isLocked } from "@/lib/plans";
 import { parseBrandColor } from "@/lib/brandColor";
 import { buildSuggestions } from "@/lib/chat/suggestions";
+import { buildProfile, MAX_PROFILE_PRODUCTS, type BusinessProfile } from "@/lib/chat/profile";
+import type { BusinessSocialLinks } from "@/lib/types";
+import type { HoursRow } from "@/lib/hours";
 import { BusinessNotFound } from "./BusinessNotFound";
 import { ChatWindow } from "./ChatWindow";
 
@@ -124,9 +127,10 @@ export default async function ChatPage({
   const brandColor = parseBrandColor(brand?.brand_color);
   const backgroundColor = parseBrandColor(background?.background_color);
 
-  // Only the full-screen page shows these (the embedded widget has its own fixed set).
-  // Best effort: any failure just means no chips.
-  const suggestions = embedMode ? [] : await loadSuggestions(supabase, business.id, (hours?.length ?? 0) > 0);
+  // Only the full-screen page shows the chips and the details panel (the embedded widget has its own set).
+  const { suggestions, profile } = embedMode
+    ? { suggestions: [] as string[], profile: null }
+    : await loadPageExtras(supabase, business.id, business.timezone, (hours ?? []) as HoursRow[]);
 
   return (
     <ChatWindow
@@ -137,35 +141,62 @@ export default async function ChatPage({
       brandColor={brandColor}
       backgroundColor={backgroundColor}
       suggestions={suggestions}
+      profile={profile}
     />
   );
 }
 
-// What this business actually has, so the one-tap questions only offer things it can answer.
-async function loadSuggestions(
+// Everything the full-screen page shows beyond the chat itself, in one round of queries: the one-tap
+// questions and the details panel. Best effort: any failure just means no chips and no panel.
+async function loadPageExtras(
   supabase: ReturnType<typeof createServiceRoleClient>,
   businessId: string,
-  hasHours: boolean,
-): Promise<string[]> {
+  timezone: string,
+  hours: HoursRow[],
+): Promise<{ suggestions: string[]; profile: BusinessProfile | null }> {
   try {
-    const [products, policies, faqs] = await Promise.all([
-      supabase.from("products").select("id").eq("business_id", businessId).eq("is_available", true).limit(1),
-      supabase.from("policies").select("title").eq("business_id", businessId).eq("is_active", true).limit(30),
+    const [details, products, policies, faqs, promotions] = await Promise.all([
+      supabase.from("businesses").select("description, currency, social_links").eq("id", businessId).maybeSingle(),
       supabase
-        .from("faqs")
-        .select("question")
+        .from("products")
+        .select("id, name, price, image_url")
+        .eq("business_id", businessId)
+        .eq("is_available", true)
+        .order("created_at", { ascending: true })
+        .limit(MAX_PROFILE_PRODUCTS),
+      supabase.from("policies").select("title").eq("business_id", businessId).eq("is_active", true).order("created_at", { ascending: true }).limit(30),
+      supabase.from("faqs").select("question").eq("business_id", businessId).eq("is_active", true).order("created_at", { ascending: true }).limit(12),
+      supabase
+        .from("promotions")
+        .select("description, starts_at, ends_at")
         .eq("business_id", businessId)
         .eq("is_active", true)
-        .order("created_at", { ascending: true })
-        .limit(8),
+        .order("created_at", { ascending: false })
+        .limit(10),
     ]);
-    return buildSuggestions({
-      hasProducts: (products.data?.length ?? 0) > 0,
-      hasHours,
-      policyTitles: (policies.data ?? []).map((row) => String(row.title ?? "")),
-      faqQuestions: (faqs.data ?? []).map((row) => String(row.question ?? "")),
-    });
+    const productRows = products.data ?? [];
+    const policyRows = (policies.data ?? []).map((row) => ({ title: String(row.title ?? "") }));
+    const faqRows = (faqs.data ?? []).map((row) => ({ question: String(row.question ?? "") }));
+    return {
+      suggestions: buildSuggestions({
+        hasProducts: productRows.length > 0,
+        hasHours: hours.length > 0,
+        policyTitles: policyRows.map((row) => row.title),
+        faqQuestions: faqRows.map((row) => row.question),
+      }),
+      profile: buildProfile({
+        description: details.data?.description,
+        currency: details.data?.currency,
+        timezone,
+        socialLinks: details.data?.social_links as BusinessSocialLinks | null | undefined,
+        hours,
+        products: productRows,
+        promotions: promotions.data ?? [],
+        faqs: faqRows,
+        policies: policyRows,
+      }),
+    };
   } catch {
-    return [];
+    return { suggestions: [], profile: null };
   }
 }
