@@ -7,10 +7,15 @@ type Props = {
   // /auth/callback. Same-origin relative path only.
   next?: string;
   label?: string;
+  // Signup pages keep the button off until the ownership agreement is ticked, and remember the tick
+  // (lib/legal.ts) before the page redirect to Google so the next step can record it.
+  disabled?: boolean;
+  onBeforeStart?: () => void;
 };
 
-export default function GoogleAuthButton({ next = "/portal", label = "Continue with Google" }: Props) {
+export default function GoogleAuthButton({ next = "/portal", label = "Continue with Google", disabled = false, onBeforeStart }: Props) {
   async function handleClick() {
+    onBeforeStart?.();
     const supabase = createClient();
     const redirectTo = new URL("/auth/callback", window.location.origin);
     redirectTo.searchParams.set("next", next);
@@ -31,6 +36,7 @@ export default function GoogleAuthButton({ next = "/portal", label = "Continue w
     <button
       type="button"
       onClick={handleClick}
+      disabled={disabled}
       className="ui-btn ui-btn-secondary w-full gap-3"
     >
       <svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true">

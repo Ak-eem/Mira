@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { TERMS_VERSION } from "@/lib/legal";
 import { INBOUND_QUEUE_RETENTION_DAYS } from "@/lib/retention";
 
 export const metadata = {
@@ -33,7 +34,7 @@ export default function TermsOfServicePage() {
               Terms of Service
             </h1>
             <p className="mt-2 text-xs font-medium uppercase tracking-wider text-slate-400">
-              Last updated: October 2026
+              Last updated: November 2026 · Version {TERMS_VERSION}
             </p>
 
             <div className="mt-8 space-y-8 text-sm leading-7 text-slate-600">
@@ -45,7 +46,26 @@ export default function TermsOfServicePage() {
               </section>
 
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold text-slate-900">2. Acceptable Use Policy</h2>
+                <h2 className="text-lg font-semibold text-slate-900">2. Ownership &amp; Authority</h2>
+                <p>
+                  When you create an account, and each time you connect a website, domain, WhatsApp Business number, email address or any other channel to Mira, you confirm and promise that:
+                </p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>you own the business you register, or you are legally authorised to act for it and to bind it to these Terms;</li>
+                  <li>you own, or have the owner&apos;s permission to manage, every website, domain, WhatsApp number and email address you connect;</li>
+                  <li>you have the right to use the information and materials you give Mira, including anything imported from a website, to operate the Service; and</li>
+                  <li>the details you give us are accurate and kept up to date.</li>
+                </ul>
+                <p>
+                  If you act for someone else (for example as a developer or agency), you confirm that you hold their authority to do so and that they have agreed to these Terms. We keep a record of your agreement to this section, including its version, the date and time, and technical details of how it was given.
+                </p>
+                <p>
+                  We may suspend or remove a connection, a chat widget or an account if we reasonably believe this section is untrue, or if the real owner of a website, number or business asks us to. You are responsible for any claim made against Mira, and for any loss we suffer, because you connected something you were not authorised to connect.
+                </p>
+              </section>
+
+              <section className="space-y-3">
+                <h2 className="text-lg font-semibold text-slate-900">3. Acceptable Use Policy</h2>
                 <p>
                   Mira provides AI-driven customer assistant tools over web widgets and WhatsApp integrations. Subscribers agree to use the Service in compliance with all applicable local and international laws.
                 </p>
@@ -60,7 +80,7 @@ export default function TermsOfServicePage() {
               </section>
 
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold text-slate-900">3. Subscriptions, Fees &amp; Renewals</h2>
+                <h2 className="text-lg font-semibold text-slate-900">4. Subscriptions, Fees &amp; Renewals</h2>
                 <p>
                   Mira is offered on a prepaid basis: each payment covers one billing period. Subscriptions do not renew automatically and we never charge you again without your action. When your paid period ends, Mira pauses on every channel (website chat, WhatsApp and email) until you pay again, and resumes as soon as your payment is confirmed. Messages your customers send while Mira is paused are not answered and are not replayed later. Your data is kept while Mira is paused.
                 </p>
@@ -70,7 +90,7 @@ export default function TermsOfServicePage() {
               </section>
 
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold text-slate-900">4. Service Limitations &amp; AI Disclaimer</h2>
+                <h2 className="text-lg font-semibold text-slate-900">5. Service Limitations &amp; AI Disclaimer</h2>
                 <p>
                   Mira utilizes artificial intelligence language models to generate automated responses based on knowledge uploaded by Subscribers. While we strive for high reliability and accuracy:
                 </p>
@@ -88,14 +108,14 @@ export default function TermsOfServicePage() {
               </section>
 
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold text-slate-900">5. Limitation of Liability</h2>
+                <h2 className="text-lg font-semibold text-slate-900">6. Limitation of Liability</h2>
                 <p>
                   To the maximum extent permitted by Nigerian law, Mira and its operators shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including loss of profits, revenue, customer goodwill, or data, arising out of or in connection with the use or inability to use the Service.
                 </p>
               </section>
 
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold text-slate-900">6. Cancellation &amp; Data Handling Upon Termination</h2>
+                <h2 className="text-lg font-semibold text-slate-900">7. Cancellation &amp; Data Handling Upon Termination</h2>
                 <p>
                   Subscribers may cancel their account subscription at any time through the business portal settings.
                 </p>
@@ -103,7 +123,7 @@ export default function TermsOfServicePage() {
                   Upon cancellation:
                 </p>
                 <ul className="list-disc pl-5 space-y-1">
-                  <li>Cancellation takes effect immediately, with no notice or waiting period. Mira stops responding on every channel (website chat, WhatsApp and email) and the chat widget is removed from your website. Fees already paid are not refunded (see Section 3).</li>
+                  <li>Cancellation takes effect immediately, with no notice or waiting period. Mira stops responding on every channel (website chat, WhatsApp and email) and the chat widget is removed from your website. Fees already paid are not refunded (see Section 4).</li>
                   <li>Subscribers may request an export of their customer conversation logs and knowledge base within 30 days of cancellation.</li>
                   <li>After the 30-day grace period, all business knowledge data, uploaded catalogs, and associated customer chat histories will be permanently deleted from active production systems.</li>
                 </ul>
@@ -113,14 +133,14 @@ export default function TermsOfServicePage() {
               </section>
 
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold text-slate-900">7. Governing Law</h2>
+                <h2 className="text-lg font-semibold text-slate-900">8. Governing Law</h2>
                 <p>
                   These Terms of Service are governed by and construed in accordance with the laws of the Federal Republic of Nigeria.
                 </p>
               </section>
 
               <section className="space-y-3">
-                <h2 className="text-lg font-semibold text-slate-900">8. Contact Us</h2>
+                <h2 className="text-lg font-semibold text-slate-900">9. Contact Us</h2>
                 <p>
                   For inquiries regarding these Terms of Service or subscription management, please contact support@mira.ng.
                 </p>

@@ -6,6 +6,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import GoogleAuthButton from "@/app/components/GoogleAuthButton";
 import CodeSlots, { type CodeSlotsStatus } from "@/components/site/CodeSlots";
+import { TermsAgreement } from "@/components/legal/TermsAgreement";
+import { AGREEMENT_REQUIRED_MESSAGE, TERMS_VERSION, rememberAgreement } from "@/lib/legal";
 
 function getApiErrorMessage(value: unknown, fallback: string): string {
   if (
@@ -33,6 +35,7 @@ export default function SignupForm({ initialEmail = "", inviteNext = null }: { i
   const [otpStatus, setOtpStatus] = useState<CodeSlotsStatus>("idle");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [agreed, setAgreed] = useState(false);
 
   async function sendVerification() {
     setError(null);
@@ -94,6 +97,12 @@ export default function SignupForm({ initialEmail = "", inviteNext = null }: { i
     e.preventDefault();
     setError(null);
 
+    // Agreed BEFORE the account exists (unless joining a team by invite: see above).
+    if (!inviteNext && !agreed) {
+      setError(AGREEMENT_REQUIRED_MESSAGE);
+      return;
+    }
+
     if (!emailVerified) {
       setError("Verify your email before creating an account.");
       return;
@@ -150,8 +159,17 @@ export default function SignupForm({ initialEmail = "", inviteNext = null }: { i
         }
       }
 
-      // Joining someone's team: straight back to the invite. No business of their own,
-      // no trial. Otherwise this page doesn't collect a business name, so the next step does.
+      // Joining someone's team: straight back to the invite. No business of their own, no trial, and nothing to
+      // confirm ownership of, so no ownership agreement either (that is for people creating a business).
+      if (!inviteNext) {
+        // The business is created on the next step, which records the agreement before it provisions anything. Record
+        // it now too, while we know exactly who just agreed (recording twice is harmless), and remember the tick in case
+        // this attempt fails and the person reaches the next step by another route.
+        rememberAgreement("signup");
+        await supabase.rpc("record_terms_acceptance", { p_terms_version: TERMS_VERSION, p_source: "signup" });
+      }
+
+      // Otherwise this page doesn't collect a business name, so the next step does.
       router.push(inviteNext ?? "/portal/signup/business-name");
       router.refresh();
     } catch (submitError) {
@@ -181,7 +199,15 @@ export default function SignupForm({ initialEmail = "", inviteNext = null }: { i
         </div>
 
         <div className="ui-card ui-enter space-y-5 !p-6 sm:!p-8">
-          <GoogleAuthButton next={inviteNext ?? "/portal/signup/complete"} label="Sign up with Google" />
+          {/* People joining a team through an invite are not creating a business, so the ownership agreement is not asked. */}
+          {!inviteNext && <TermsAgreement checked={agreed} onChange={setAgreed} />}
+
+          <GoogleAuthButton
+            next={inviteNext ?? "/portal/signup/complete"}
+            label="Sign up with Google"
+            disabled={!inviteNext && !agreed}
+            onBeforeStart={inviteNext ? undefined : () => rememberAgreement("google_signup")}
+          />
 
           <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-500">
             <span className="h-px flex-1 bg-slate-200" />
@@ -317,7 +343,7 @@ export default function SignupForm({ initialEmail = "", inviteNext = null }: { i
 
           <button
             type="submit"
-            disabled={submitting || !emailVerified}
+            disabled={submitting || !emailVerified || (!inviteNext && !agreed)}
             className="ui-btn ui-btn-primary w-full"
           >
             {submitting ? "Creating account…" : "Create account"}

@@ -21,7 +21,8 @@ declare
   server_only text[] := array[
     'whatsapp_inbound_queue','email_inbound_queue','rate_limit_buckets',
     'conversation_processing_leases','whatsapp_processed_messages',
-    'email_verification_codes','email_verification_rate_limits'
+    'email_verification_codes','email_verification_rate_limits',
+    'terms_acceptances'
   ];
 begin
   -- A1. every public table has RLS enabled
