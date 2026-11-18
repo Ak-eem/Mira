@@ -6,6 +6,7 @@ import type { Business } from "@/lib/types";
 import type { BusinessSubscription, SubscriptionStatus } from "@/lib/plans";
 import { AnalyticsStripAsync } from "./AnalyticsStripAsync";
 import { SystemIssues, SystemIssuesSkeleton } from "./SystemIssues";
+import { AiCostCard, AiCostCardSkeleton } from "./AiCostCard";
 import { countSubscriptions } from "@/lib/admin/subscriptionCounts";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ErrorNotice } from "@/components/ErrorNotice";
@@ -75,6 +76,10 @@ export default async function AdminDashboardPage() {
 
       <Suspense fallback={<AnalyticsStripSkeleton />}>
         <AnalyticsStripAsync />
+      </Suspense>
+
+      <Suspense fallback={<AiCostCardSkeleton />}>
+        <AiCostCard />
       </Suspense>
 
       <div className="glass-panel rounded-xl p-5">
