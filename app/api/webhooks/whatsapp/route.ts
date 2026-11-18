@@ -5,7 +5,9 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import {
   enqueueInboundMessage,
   claimInboundMessage,
+  markInboundDone,
 } from "@/lib/whatsapp/inboundQueue";
+import { sendWhatsappReply } from "@/lib/whatsapp/sendMessage";
 import { processWhatsappQueued } from "@/lib/whatsapp/processQueued";
 import { sweepUnrepliedWhatsApp } from "@/lib/whatsapp/sweepUnreplied";
 
@@ -73,13 +75,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Malformed payload." }, { status: 400 });
   }
   const messages = inbound(payload);
-  if (messages.some((item) => item.text.length > MAX_MESSAGE_LENGTH)) {
-    return NextResponse.json(
-      { error: `WhatsApp messages must be ${MAX_MESSAGE_LENGTH} characters or fewer.` },
-      { status: 400 },
-    );
-  }
-
   const client = createServiceRoleClient();
   const ip = getRequestIp(request);
   try {
@@ -107,6 +102,16 @@ export async function POST(request: NextRequest) {
       }
 
       if (!(await claimInboundMessage(client, queued))) continue;
+
+      // An oversized message must not reject the whole delivery (Meta would retry it and block the
+      // other customers in the same batch). Answer just this one politely and close it.
+      if (item.text.length > MAX_MESSAGE_LENGTH) {
+        await sendWhatsappReply(item.phoneId, item.from, "That message is too long for me to read. Could you send it in a shorter form, or in a few parts?").catch((error) =>
+          console.error("Could not send the too-long-message reply:", error),
+        );
+        await markInboundDone(client, queued.id);
+        continue;
+      }
 
       await processWhatsappQueued(client, queued, item);
     }
