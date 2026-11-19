@@ -1,5 +1,6 @@
 import { ImageResponse } from "next/og";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
+import { DEFAULT_BRAND_COLOR, parseBrandColor, readableTextOn } from "@/lib/brandColor";
 
 export const size = {
   width: 1200,
@@ -21,9 +22,14 @@ export default async function Image({
     .eq("slug", businessSlug)
     .maybeSingle();
 
-  const name = business?.name ?? "Store Assistant";
-  const initial = name.trim().charAt(0).toUpperCase() || "M";
-  const brandColor = business?.brand_color || "#0f2a22";
+  const rawName = typeof business?.name === "string" ? business.name.trim() : "";
+  const fullName = rawName || "Customer Assistant";
+  // Keep very long names from breaking the layout: shorten, and shrink the type as it grows.
+  const name = fullName.length > 44 ? `${fullName.slice(0, 43).trimEnd()}…` : fullName;
+  const nameSize = name.length > 30 ? 42 : name.length > 20 ? 50 : 58;
+  const initial = Array.from(fullName)[0]?.toUpperCase() || "M";
+  const brandColor = parseBrandColor(business?.brand_color) ?? DEFAULT_BRAND_COLOR;
+  const initialColor = readableTextOn(brandColor);
 
   return new ImageResponse(
     (
@@ -87,7 +93,7 @@ export default async function Image({
               }}
             />
             <span style={{ fontSize: "20px", fontWeight: 600, color: "#1b5e20" }}>
-              Online · 24/7 Instant Assistant
+              Online · 24/7 Assistant
             </span>
           </div>
         </div>
@@ -103,7 +109,7 @@ export default async function Image({
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              color: "#ffffff",
+              color: initialColor,
               fontSize: "64px",
               fontWeight: 800,
               boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.15)",
@@ -115,7 +121,7 @@ export default async function Image({
           <div style={{ display: "flex", flexDirection: "column", gap: "10px", flex: 1 }}>
             <h1
               style={{
-                fontSize: "58px",
+                fontSize: `${nameSize}px`,
                 fontWeight: 800,
                 color: "#18181b",
                 margin: 0,
@@ -133,7 +139,7 @@ export default async function Image({
                 margin: 0,
               }}
             >
-              Ask about available items, sizes, prices & order 24/7
+              Ask about products, prices, hours & orders, answered instantly
             </p>
           </div>
         </div>
@@ -154,7 +160,7 @@ export default async function Image({
               fontWeight: 600,
             }}
           >
-            👗 Live Dress & Shoe Stock
+            Live product & price info
           </div>
           <div
             style={{
@@ -170,7 +176,7 @@ export default async function Image({
               fontWeight: 600,
             }}
           >
-            ⚡ Instant Price & Size Check
+            Instant answers, day or night
           </div>
           <div
             style={{
@@ -186,7 +192,7 @@ export default async function Image({
               fontWeight: 600,
             }}
           >
-            📦 Direct Orders & Tracking
+            Orders & support in one chat
           </div>
         </div>
 
@@ -202,7 +208,7 @@ export default async function Image({
           }}
         >
           <span style={{ fontSize: "22px", color: "#71717a", fontWeight: 500 }}>
-            💬 Tap to chat in your browser with zero wait time
+            Tap to chat in your browser, no app needed
           </span>
           <div
             style={{
@@ -214,7 +220,7 @@ export default async function Image({
               fontWeight: 700,
             }}
           >
-            Chat with {name} →
+            Chat now →
           </div>
         </div>
       </div>
