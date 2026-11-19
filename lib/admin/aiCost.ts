@@ -1,5 +1,9 @@
-// Turns recorded AI token counts into an estimated naira cost, so the admin dashboard
+// Turns recorded AI token counts into an estimated US-dollar cost, so the admin dashboard
 // can show which businesses are getting expensive relative to what they pay.
+//
+// Costs are kept in dollars because that is what the AI providers bill in, so the figures
+// don't drift with the naira exchange rate. The exchange rate is only used to convert the
+// naira plan price into dollars for the "share of plan" comparison.
 //
 // This is an ESTIMATE shown to the platform admin only. It never limits, slows or
 // blocks anything, and it is not shown on the client portal.
@@ -63,17 +67,20 @@ export type UsageRow = {
   outputTokens: number;
 };
 
-export function rowCostNgn(row: UsageRow, rates: AiRates): number {
+export function rowCostUsd(row: UsageRow, rates: AiRates): number {
   const rate = rates[row.provider];
-  const usd = (row.inputTokens * rate.inUsdPerMillion + row.outputTokens * rate.outUsdPerMillion) / 1_000_000;
-  return usd * rates.usdToNgn;
+  return (row.inputTokens * rate.inUsdPerMillion + row.outputTokens * rate.outUsdPerMillion) / 1_000_000;
+}
+
+export function planPriceUsd(planPriceNgn: number, rates: AiRates): number {
+  return planPriceNgn / rates.usdToNgn;
 }
 
 export type UsageLevel = "ok" | "watch" | "over";
 
-export function usageLevel(costNgn: number, planPriceNgn: number): UsageLevel {
-  if (planPriceNgn <= 0) return "ok";
-  const ratio = costNgn / planPriceNgn;
+export function usageLevel(costUsd: number, planUsd: number): UsageLevel {
+  if (planUsd <= 0) return "ok";
+  const ratio = costUsd / planUsd;
   if (ratio >= OVER_RATIO) return "over";
   if (ratio >= WATCH_RATIO) return "watch";
   return "ok";
@@ -97,8 +104,8 @@ export function lagosMonthWindow(now: Date = new Date()): MonthWindow {
 export type BusinessCost = {
   businessId: string;
   messages: number;
-  costToDateNgn: number;
-  projectedNgn: number | null; // null until enough days have passed to extrapolate honestly
+  costToDateUsd: number;
+  projectedUsd: number | null; // null until enough days have passed to extrapolate honestly
   level: UsageLevel;
   geminiShare: number; // 0..1 of messages served by the backup provider
 };
@@ -108,11 +115,12 @@ export function summarizeUsage(rows: UsageRow[], rates: AiRates, planPriceNgn: n
   for (const row of rows) {
     const entry = byBusiness.get(row.businessId) ?? { messages: 0, cost: 0, gemini: 0 };
     entry.messages += row.calls;
-    entry.cost += rowCostNgn(row, rates);
+    entry.cost += rowCostUsd(row, rates);
     if (row.provider === "gemini") entry.gemini += row.calls;
     byBusiness.set(row.businessId, entry);
   }
 
+  const planUsd = planPriceUsd(planPriceNgn, rates);
   const canProject = window.daysElapsed >= MIN_DAYS_FOR_PROJECTION;
   const result: BusinessCost[] = [];
   for (const [businessId, entry] of byBusiness) {
@@ -120,17 +128,25 @@ export function summarizeUsage(rows: UsageRow[], rates: AiRates, planPriceNgn: n
     result.push({
       businessId,
       messages: entry.messages,
-      costToDateNgn: entry.cost,
-      projectedNgn: projected,
+      costToDateUsd: entry.cost,
+      projectedUsd: projected,
       // Judge by the larger of what has been spent and where the month is heading.
-      level: usageLevel(Math.max(entry.cost, projected ?? 0), planPriceNgn),
+      level: usageLevel(Math.max(entry.cost, projected ?? 0), planUsd),
       geminiShare: entry.messages > 0 ? entry.gemini / entry.messages : 0,
     });
   }
-  return result.sort((a, b) => b.costToDateNgn - a.costToDateNgn);
+  return result.sort((a, b) => b.costToDateUsd - a.costToDateUsd);
 }
 
 export function formatNgn(value: number): string {
   if (value < 1) return "₦0";
   return `₦${Math.round(value).toLocaleString("en-NG")}`;
+}
+
+// Dollars and cents. Anything above zero but under a cent shows as "<$0.01" so a business
+// with a handful of messages doesn't look like it costs nothing.
+export function formatUsd(value: number): string {
+  if (!(value > 0)) return "$0.00";
+  if (value < 0.01) return "<$0.01";
+  return `$${value.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }

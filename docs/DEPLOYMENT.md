@@ -155,7 +155,8 @@ Prices change, so these are the things to price, not numbers to trust.
   and Meta's per-conversation WhatsApp fees. Work out your cost per business per month from
   those before you set your price.
 - **Watching AI cost per business:** the admin dashboard has an **AI cost this month** card.
-  It estimates, in naira, what each business's AI replies have cost you so far and where the
+  It estimates, in US dollars (so it doesn't move with the exchange rate), what each
+  business's AI replies have cost you so far and where the
   month is heading, and flags a business at half and at the whole of its plan price. It is
   for you only, is not on the client portal, and never limits anything. It needs migration
   `0074`. The prices it uses are defaults (Groq's list price, and an assumed higher rate for

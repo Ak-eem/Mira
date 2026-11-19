@@ -3,8 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { Skeleton } from "@/components/Skeleton";
 import {
   formatNgn,
+  formatUsd,
   lagosMonthWindow,
   planPriceFromEnv,
+  planPriceUsd,
   ratesFromEnv,
   summarizeUsage,
   type AiProvider,
@@ -12,14 +14,12 @@ import {
   type UsageRow,
 } from "@/lib/admin/aiCost";
 
-// Admin-only. An estimate of what each business's AI usage costs us this month, so a
+// Admin-only. An estimate, in US dollars, of what each business's AI usage costs us this month, so a
 // business that is getting expensive relative to its plan is visible before it matters.
 // It restricts nothing, and it is intentionally not on the client portal.
 //
 // Uses the RLS-respecting client: get_ai_usage_by_business is SECURITY INVOKER, so rows
 // only come back because the current session passes is_platform_admin().
-
-const MAX_ROWS = 8;
 
 type RpcRow = { business_id: string; provider: string; calls: number | string; input_tokens: number | string; output_tokens: number | string };
 
@@ -32,6 +32,7 @@ export async function AiCostCard() {
   const supabase = await createClient();
   const rates = ratesFromEnv();
   const planPrice = planPriceFromEnv();
+  const planUsd = planPriceUsd(planPrice, rates);
   const window = lagosMonthWindow();
 
   const { data, error } = await supabase.rpc("get_ai_usage_by_business", { p_from: window.fromIso });
@@ -58,14 +59,15 @@ export async function AiCostCard() {
     }));
 
   const summary = summarizeUsage(rows, rates, planPrice, window);
-  const shown = summary.slice(0, MAX_ROWS);
 
-  const { data: businesses } = shown.length
-    ? await supabase.from("businesses").select("id, name").in("id", shown.map((s) => s.businessId))
+  // Names for every business in the list. Fetched by table (not by a long list of ids)
+  // so the request stays small however many businesses there are.
+  const { data: businesses } = summary.length
+    ? await supabase.from("businesses").select("id, name")
     : { data: [] as { id: string; name: string }[] };
   const nameById = new Map((businesses ?? []).map((b) => [b.id, b.name]));
 
-  const totalToDate = summary.reduce((sum, s) => sum + s.costToDateNgn, 0);
+  const totalToDate = summary.reduce((sum, s) => sum + s.costToDateUsd, 0);
   const flagged = summary.filter((s) => s.level !== "ok").length;
 
   return (
@@ -75,17 +77,17 @@ export async function AiCostCard() {
         <p className="text-sm text-slate-500">
           {summary.length === 0
             ? "No AI replies yet this month"
-            : `${formatNgn(totalToDate)} so far${flagged > 0 ? ` · ${flagged} to watch` : ""}`}
+            : `${formatUsd(totalToDate)} so far${flagged > 0 ? ` · ${flagged} to watch` : ""}`}
         </p>
       </div>
       <p className="mt-1 text-xs text-slate-500">
-        Estimate for you only; businesses don&apos;t see this. Day {window.daysElapsed} of {window.daysInMonth}, compared with the {formatNgn(planPrice)} monthly plan.
+        Estimate for you only; businesses don&apos;t see this. In US dollars, so it doesn&apos;t move with the naira. Day {window.daysElapsed} of {window.daysInMonth}.
       </p>
 
-      {shown.length > 0 && (
-        <div className="mt-3 overflow-x-auto">
+      {summary.length > 0 && (
+        <div className="mt-3 max-h-72 overflow-auto rounded-lg" tabIndex={0} role="region" aria-label="AI cost by business, scrollable">
           <table className="w-full min-w-[480px] text-sm">
-            <thead>
+            <thead className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm">
               <tr className="text-left text-xs text-slate-500">
                 <th className="py-2 pr-3 font-medium">Business</th>
                 <th className="py-2 pr-3 text-right font-medium">Messages</th>
@@ -96,8 +98,8 @@ export async function AiCostCard() {
               </tr>
             </thead>
             <tbody>
-              {shown.map((s) => {
-                const basis = s.projectedNgn ?? s.costToDateNgn;
+              {summary.map((s) => {
+                const basis = s.projectedUsd ?? s.costToDateUsd;
                 const badge = s.level === "ok" ? null : LEVEL_BADGE[s.level];
                 return (
                   <tr key={s.businessId} className="border-t border-slate-200/70">
@@ -107,9 +109,9 @@ export async function AiCostCard() {
                       </Link>
                     </td>
                     <td className="py-2 pr-3 text-right tabular-nums text-slate-600">{s.messages.toLocaleString("en-NG")}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums text-slate-900">{formatNgn(s.costToDateNgn)}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums text-slate-600">{s.projectedNgn === null ? "–" : formatNgn(s.projectedNgn)}</td>
-                    <td className="py-2 pr-3 text-right tabular-nums text-slate-600">{Math.round((basis / planPrice) * 100)}%</td>
+                    <td className="py-2 pr-3 text-right tabular-nums text-slate-900">{formatUsd(s.costToDateUsd)}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums text-slate-600">{s.projectedUsd === null ? "–" : formatUsd(s.projectedUsd)}</td>
+                    <td className="py-2 pr-3 text-right tabular-nums text-slate-600">{Math.round((basis / planUsd) * 100)}%</td>
                     <td className="py-2 text-right">
                       {badge && <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.className}`}>{badge.label}</span>}
                     </td>
@@ -120,13 +122,10 @@ export async function AiCostCard() {
           </table>
         </div>
       )}
-      {summary.length > shown.length && (
-        <p className="mt-2 text-xs text-slate-500">+ {summary.length - shown.length} more with lower usage.</p>
-      )}
 
       <p className="mt-3 text-xs text-slate-500">
-        Priced at {`\u20A6${rates.usdToNgn.toLocaleString("en-NG")}`} to the dollar using Groq&apos;s published rate; the Gemini backup uses an assumed rate. Businesses on the promo price or a 6 or 12 month plan pay you less per month, so their share is higher than shown.
-        &ldquo;Of plan&rdquo; uses the projected month-end figure once there are 3 days of data.
+        Costs use Groq&apos;s published token prices; the Gemini backup uses an assumed rate. &ldquo;Of plan&rdquo; compares with the {formatNgn(planPrice)} plan at {`\u20A6${rates.usdToNgn.toLocaleString("en-NG")}`} to the dollar (about {formatUsd(planUsd)}), using the projected month-end figure once there are 3 days of data; change the rate with AI_USD_TO_NGN.
+        Businesses on the promo price or a 6 or 12 month plan pay you less per month, so their share is higher than shown.
       </p>
     </section>
   );
