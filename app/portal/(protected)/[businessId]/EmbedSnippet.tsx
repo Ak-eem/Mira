@@ -20,13 +20,51 @@ export function EmbedSnippet({ slug, businessName }: { slug: string; businessNam
   // render pass match exactly (both show the placeholder).
   const [origin, setOrigin] = useState("");
   const [placement, setPlacement] = useState<Placement>("right");
+
+  const defaultMessage = `👗 Shop ${businessName}! Check available sizes, prices & order 24/7:`;
+  const [customText, setCustomText] = useState(defaultMessage);
+
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setOrigin(window.location.origin);
-  }, []);
+    try {
+      const saved = window.localStorage.getItem(`mira_bio_template_${slug}`);
+      if (saved) setCustomText(saved);
+    } catch {
+      // ignore storage unavailability
+    }
+  }, [slug]);
 
   const directChatUrl = origin ? `${origin}/chat/${slug}` : "";
-  const instagramBioText = `👗 Shop 24/7 & check live sizes with our instant AI: ${directChatUrl}`;
+  const fullBioText = `${customText.trim()}\n👉 ${directChatUrl}`;
+
+  function handleTextChange(val: string) {
+    setCustomText(val);
+    try {
+      window.localStorage.setItem(`mira_bio_template_${slug}`, val);
+    } catch {
+      // ignore
+    }
+  }
+
+  const presets = [
+    {
+      label: "👗 Fashion & Wears",
+      text: `👗 Shop ${businessName}! Check available sizes, prices & order 24/7:`,
+    },
+    {
+      label: "👠 Shoes & Accessories",
+      text: `👠 Looking for your size? Check available footwear & order with our 24/7 assistant:`,
+    },
+    {
+      label: "💬 WhatsApp / Status",
+      text: `Got questions on items, sizes or delivery? Chat with our instant store assistant:`,
+    },
+    {
+      label: "⚡ Quick Sales",
+      text: `Tap below to browse our catalog & get instant answers with zero wait time:`,
+    },
+  ];
 
   const safeSlug = escapeHtml(slug);
   const safeBusinessName = escapeHtml(businessName);
@@ -95,21 +133,58 @@ export function EmbedSnippet({ slug, businessName }: { slug: string; businessNam
           </div>
         </div>
 
-        {/* Ready-to-use Bio template */}
-        <div className="mt-4 rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
-          <div className="flex items-center justify-between gap-2 mb-1.5">
-            <span className="font-semibold text-slate-700">Instagram / WhatsApp Bio Template</span>
+        {/* Customizable Bio & Social Share Template */}
+        <div className="mt-5 rounded-xl border border-slate-200/80 bg-slate-50/70 p-4 text-xs text-slate-700 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <span className="font-semibold text-slate-900">Customizable Bio & Status Template</span>
+              <p className="text-[11px] text-slate-500">Edit the message below — your direct chat link is automatically attached.</p>
+            </div>
             <button
               type="button"
-              onClick={() => copyText(instagramBioText, setCopiedBio)}
-              className="text-[11px] font-medium text-accent hover:underline"
+              onClick={() => copyText(fullBioText, setCopiedBio)}
+              className="ui-btn ui-btn-primary ui-btn-sm"
             >
-              {copiedBio ? "Copied bio text!" : "Copy bio template"}
+              {copiedBio ? "Copied bio to clipboard!" : "Copy complete bio"}
             </button>
           </div>
-          <p className="font-mono text-[11px] text-slate-500 bg-white border border-slate-200 rounded px-2.5 py-1.5">
-            {instagramBioText}
-          </p>
+
+          {/* Quick Presets */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+            <span className="text-[11px] font-medium text-slate-500">Quick presets:</span>
+            {presets.map((preset) => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => handleTextChange(preset.text)}
+                className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-slate-600 transition-colors hover:border-accent hover:text-accent active:scale-95"
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Editable text area */}
+          <div>
+            <textarea
+              rows={2}
+              value={customText}
+              onChange={(e) => handleTextChange(e.target.value)}
+              aria-label="Editable social bio text"
+              className="ui-field w-full text-xs text-slate-800 font-sans"
+              placeholder="Type your custom greeting or promotion message..."
+            />
+          </div>
+
+          {/* Live Preview Card */}
+          <div className="rounded-lg bg-white border border-slate-200 p-3 shadow-2xs">
+            <span className="text-[10px] uppercase tracking-wider font-bold text-slate-400">Live Preview</span>
+            <p className="mt-1 whitespace-pre-wrap font-sans text-xs text-slate-800">
+              {customText.trim()}
+              {"\n"}
+              <span className="font-mono text-accent underline break-all">{directChatUrl || "https://miraapp.com.ng/chat/..."}</span>
+            </p>
+          </div>
         </div>
       </section>
 
