@@ -123,7 +123,8 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
   const token = typeof rawToken === "string" ? rawToken.trim() : "";
   const invitePath = token ? `/invite/${encodeURIComponent(token)}` : "/invite";
   const loginHref = `/portal/login?next=${encodeURIComponent(invitePath)}`;
-  const signupHref = `/portal/signup?next=${encodeURIComponent(invitePath)}`;
+  // /signup (not /portal/signup): the legacy page also creates a business for the new user.
+  const signupHref = `/signup?next=${encodeURIComponent(invitePath)}`;
   const now = getRequestNow();
 
   let state: InviteState = "invalid";
