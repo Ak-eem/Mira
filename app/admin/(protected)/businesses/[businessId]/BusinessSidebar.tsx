@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useState } from "react";
 import { Menu } from "lucide-react";
 import { isRouteGroupActive } from "@/lib/adminRoutes";
+import GlideSelect from "@/components/ui/GlideSelect";
 
 type BusinessOption = { id: string; name: string };
 
@@ -51,17 +52,22 @@ export function BusinessSidebar({
           <Link href="/admin/businesses" onClick={() => setOpen(false)} className="text-xs text-slate-500 hover:underline">
             ← All businesses
           </Link>
-          <select
-            value={businessId}
-            onChange={(e) => { setOpen(false); router.push(`/admin/businesses/${e.target.value}`); }}
-            className="mt-1.5 w-full truncate rounded-lg border border-teal-900/10 bg-white/70 px-2 py-1.5 text-sm font-medium text-slate-900"
-          >
-            {allBusinesses.map((b) => (
-              <option key={b.id} value={b.id}>
-                {b.id === businessId ? businessName : b.name}
-              </option>
-            ))}
-          </select>
+          <div className="mt-1.5">
+            <GlideSelect
+              fullWidth
+              ariaLabel="Switch business"
+              value={businessId}
+              options={allBusinesses.map((b) => ({ value: b.id, label: b.id === businessId ? businessName : b.name }))}
+              onChange={(id) => { setOpen(false); router.push(`/admin/businesses/${id}`); }}
+              size="md"
+              radius={12}
+              menuWidth={0}
+              surfaceColor="#ffffff"
+              highlightColor="#d7ebe4"
+              textColor="#0f172a"
+              accentColor="#0f766e"
+            />
+          </div>
         </div>
 
         <div className="flex flex-col gap-1">
