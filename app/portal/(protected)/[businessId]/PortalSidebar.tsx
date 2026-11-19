@@ -180,6 +180,9 @@ export function PortalSidebar({
         </div>
         <div className="px-1">
           <p className="truncate text-xs text-muted">{email}</p>
+          <Link href="/portal/signup/business-name" className="mt-1 block text-xs text-muted underline-offset-2 hover:underline">
+            Create my own business
+          </Link>
           <SignOutButton />
         </div>
       </div>
