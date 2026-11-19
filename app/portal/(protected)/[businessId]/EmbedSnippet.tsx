@@ -21,7 +21,7 @@ export function EmbedSnippet({ slug, businessName }: { slug: string; businessNam
   const [origin, setOrigin] = useState("");
   const [placement, setPlacement] = useState<Placement>("right");
 
-  const defaultMessage = `👗 Shop ${businessName}! Check available sizes, prices & order 24/7:`;
+  const defaultMessage = `💬 Chat with ${businessName} 24/7. Ask about prices, availability & orders:`;
   const [customText, setCustomText] = useState(defaultMessage);
 
   useEffect(() => {
@@ -49,16 +49,20 @@ export function EmbedSnippet({ slug, businessName }: { slug: string; businessNam
 
   const presets = [
     {
+      label: "💬 General",
+      text: `💬 Chat with ${businessName} 24/7. Ask about prices, availability & orders:`,
+    },
+    {
       label: "👗 Fashion & Wears",
       text: `👗 Shop ${businessName}! Check available sizes, prices & order 24/7:`,
     },
     {
-      label: "👠 Shoes & Accessories",
-      text: `👠 Looking for your size? Check available footwear & order with our 24/7 assistant:`,
+      label: "🍽️ Food & Orders",
+      text: `🍽️ Hungry? See today's menu, prices & place your order with ${businessName}:`,
     },
     {
-      label: "💬 WhatsApp / Status",
-      text: `Got questions on items, sizes or delivery? Chat with our instant store assistant:`,
+      label: "📅 Bookings & Services",
+      text: `📅 Book a service or ask about prices & opening hours with ${businessName}:`,
     },
     {
       label: "⚡ Quick Sales",
