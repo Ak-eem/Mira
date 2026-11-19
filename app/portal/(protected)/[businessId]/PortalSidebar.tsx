@@ -109,7 +109,7 @@ export function PortalSidebar({
 
   const panel = (
     <div className="flex h-full min-h-0 flex-col gap-4">
-      <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-line bg-surface p-3 shadow-soft">
+      <div className="flex shrink-0 items-center gap-3 border-b border-line px-2 pb-3">
         <span
           aria-hidden="true"
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-marigold text-sm font-semibold text-ink"
@@ -169,7 +169,7 @@ export function PortalSidebar({
       </nav>
 
       <div className="shrink-0 space-y-3 border-t border-line pt-3">
-        <div className="rounded-xl bg-lime/70 p-3 text-xs text-ink">
+        <div className="text-xs text-ink">
           <p className="font-medium">{planLabel}</p>
           {showUpgrade && (
             <Link
@@ -208,14 +208,14 @@ export function PortalSidebar({
         </button>
       </div>
 
-      <aside className="hidden w-56 shrink-0 lg:block">
-        <div className="glass-panel-strong sticky top-24 h-[calc(100vh-7rem)] rounded-xl p-3">{panel}</div>
+      <aside className="fixed inset-y-0 left-0 z-20 hidden h-dvh w-56 shrink-0 border-r border-line bg-surface lg:block">
+        <div className="h-full p-3">{panel}</div>
       </aside>
 
       {open && (
         <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
           <button type="button" aria-label="Close navigation" onClick={() => setOpen(false)} className="absolute inset-0 bg-ink/40" />
-          <div className="relative h-full w-72 max-w-[85vw] bg-canvas p-4 shadow-float">
+          <div className="relative h-full w-72 max-w-[85vw] border-r border-line bg-canvas p-4">
             <button
               type="button"
               onClick={() => setOpen(false)}

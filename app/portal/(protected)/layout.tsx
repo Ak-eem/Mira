@@ -23,8 +23,8 @@ export default async function PortalLayout({
   return (
     <ThemeProvider>
       <FeedbackProvider>
-      <div className="mira-wash min-h-screen">
-      <header className="glass-panel-strong sticky top-0 z-10">
+      <div className="portal-shell mira-wash min-h-screen">
+      <header className="portal-header glass-panel-strong sticky top-0 z-10">
         <div className="flex w-full items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
           <DashboardLink scope="portal" className="flex items-center gap-2 text-ink">
             <Logo />

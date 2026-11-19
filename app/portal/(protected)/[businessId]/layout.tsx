@@ -28,7 +28,7 @@ export default async function PortalBusinessLayout({ children, params }: { child
   const trialing = access.subscription?.status === "trialing";
 
   return (
-    <div className="w-full px-4 py-6 sm:px-6 lg:flex lg:gap-6 lg:px-8 lg:py-8">
+    <div className="portal-business-layout min-w-0 px-4 py-6 sm:px-6 lg:ml-56 lg:px-8 lg:py-6">
       <PortalSidebar
         businessId={businessId}
         businessName={business.name}

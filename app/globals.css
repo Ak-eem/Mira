@@ -183,6 +183,12 @@ html {
   border: 1px solid var(--mira-line, rgba(15, 42, 34, 0.14));
 }
 
+@media (min-width: 64rem) {
+  .portal-shell:has(.portal-business-layout) > .portal-header {
+    margin-left: 14rem;
+  }
+}
+
 .glass-hover {
   transition:
     background-color 200ms ease,
