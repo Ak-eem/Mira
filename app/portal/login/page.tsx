@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import GoogleAuthButton from "@/app/components/GoogleAuthButton";
+import { safeInvitePath } from "@/lib/inviteNext";
 
 function getSafeRedirect(search: string) {
   const next = new URLSearchParams(search).get("next");
@@ -23,6 +24,20 @@ function getLoginErrorMessage(message?: string | null) {
   }
 
   return message || "Unable to sign in. Check your email and password and try again.";
+}
+
+// "Create account" normally starts a new business (/portal/signup). Someone arriving from a team
+// invite must not get one, so their sign-up goes to /signup and returns to the invite afterwards.
+function CreateAccountLink() {
+  const invite = safeInvitePath(useSearchParams().get("next"));
+  return (
+    <Link
+      href={invite ? `/signup?next=${encodeURIComponent(invite)}` : "/portal/signup"}
+      className="ui-btn ui-btn-primary w-full"
+    >
+      Create account
+    </Link>
+  );
 }
 
 export default function PortalLoginPage() {
@@ -117,12 +132,15 @@ export default function PortalLoginPage() {
 
         <div className="mt-4 space-y-2 text-center">
           <p className="text-sm text-slate-500">Need an account?</p>
-          <Link
-            href="/portal/signup"
-            className="ui-btn ui-btn-primary w-full"
+          <Suspense
+            fallback={
+              <Link href="/portal/signup" className="ui-btn ui-btn-primary w-full">
+                Create account
+              </Link>
+            }
           >
-            Create account
-          </Link>
+            <CreateAccountLink />
+          </Suspense>
         </div>
 
         <p className="mt-4 text-center text-xs text-slate-500">
