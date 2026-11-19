@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { BarChart3, LineChart } from "lucide-react";
 import { naira } from "@/lib/site/format";
 
@@ -11,12 +11,117 @@ export type ChartMetric = { id: string; title: string; kind: "count" | "money"; 
 
 const W = 640;
 const H = 160;
-const PAD = { top: 12, right: 8, bottom: 8, left: 8 };
+const PAD = { top: 12, right: 8, bottom: 24, left: 8 };
 
 const formatters = {
   count: (n: number) => n.toLocaleString("en-NG"),
   money: (n: number) => naira(n),
 };
+
+type PlotPoint = { x: number; y: number };
+
+function drawSmoothPolyline(
+  ctx: CanvasRenderingContext2D,
+  points: PlotPoint[],
+  progress: number,
+  strokeColor = "#38bdf8",
+) {
+  if (points.length < 2) return;
+  let totalLen = 0;
+  const segs: { p0: PlotPoint; p1: PlotPoint; len: number }[] = [];
+  for (let i = 0; i < points.length - 1; i++) {
+    const len = Math.hypot(points[i + 1].x - points[i].x, points[i + 1].y - points[i].y);
+    segs.push({ p0: points[i], p1: points[i + 1], len });
+    totalLen += len;
+  }
+  const targetLen = totalLen * Math.max(0, Math.min(progress, 1));
+  let acc = 0;
+  ctx.beginPath();
+  ctx.moveTo(points[0].x, points[0].y);
+  for (const s of segs) {
+    if (acc + s.len <= targetLen) {
+      ctx.lineTo(s.p1.x, s.p1.y);
+      acc += s.len;
+    } else {
+      const t = (targetLen - acc) / s.len;
+      ctx.lineTo(s.p0.x + (s.p1.x - s.p0.x) * t, s.p0.y + (s.p1.y - s.p0.y) * t);
+      break;
+    }
+  }
+  ctx.lineWidth = 2.5;
+  ctx.lineJoin = "round";
+  ctx.lineCap = "round";
+  ctx.strokeStyle = strokeColor;
+  ctx.stroke();
+}
+
+function ActivityLineCanvas({ points }: { points: PlotPoint[] }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) {
+      console.error("Activity chart could not initialize a 2D canvas context.");
+      return;
+    }
+
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const duration = 1100;
+    let startTime: number | null = null;
+    let frame = 0;
+
+    const draw = (timestamp: number) => {
+      const bounds = canvas.getBoundingClientRect();
+      const width = Math.max(bounds.width, 1);
+      const height = Math.max(bounds.height, 1);
+      const pixelRatio = window.devicePixelRatio || 1;
+      const pixelWidth = Math.round(width * pixelRatio);
+      const pixelHeight = Math.round(height * pixelRatio);
+
+      if (canvas.width !== pixelWidth || canvas.height !== pixelHeight) {
+        canvas.width = pixelWidth;
+        canvas.height = pixelHeight;
+      }
+
+      ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      if (startTime === null) startTime = timestamp;
+      const progress = reducedMotion.matches ? 1 : Math.min((timestamp - startTime) / duration, 1);
+      const scaledPoints = points.map((point) => ({
+        x: (point.x / W) * width,
+        y: (point.y / H) * height,
+      }));
+      const strokeColor = getComputedStyle(canvas).getPropertyValue("--color-ink").trim() || "#0f2a22";
+      drawSmoothPolyline(ctx, scaledPoints, progress, strokeColor);
+
+      if (progress < 1) frame = requestAnimationFrame(draw);
+    };
+
+    const scheduleDraw = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(draw);
+    };
+    const resizeObserver = new ResizeObserver(scheduleDraw);
+    const onMotionChange = () => {
+      startTime = null;
+      scheduleDraw();
+    };
+
+    resizeObserver.observe(canvas);
+    reducedMotion.addEventListener("change", onMotionChange);
+    scheduleDraw();
+
+    return () => {
+      cancelAnimationFrame(frame);
+      resizeObserver.disconnect();
+      reducedMotion.removeEventListener("change", onMotionChange);
+    };
+  }, [points]);
+
+  return <canvas ref={canvasRef} aria-hidden="true" className="pointer-events-none absolute inset-0 z-[1] h-full w-full" />;
+}
 
 function Segmented<T extends string>({
   label,
@@ -53,15 +158,24 @@ export function ActivityPanel({ metrics }: { metrics: ChartMetric[] }) {
   const [hover, setHover] = useState<number | null>(null);
 
   const metric = metrics.find((m) => m.id === metricId) ?? metrics[0];
-  if (!metric) return null;
-  const format = formatters[metric.kind];
-  const points = range === "7" ? metric.points.slice(-7) : metric.points;
-
+  const points = useMemo(() => {
+    const metricPoints = metric?.points ?? [];
+    return range === "7" ? metricPoints.slice(-7) : metricPoints;
+  }, [metric?.points, range]);
   const total = points.reduce((sum, p) => sum + p.value, 0);
   const max = Math.max(...points.map((p) => p.value), 1);
   const innerW = W - PAD.left - PAD.right;
   const innerH = H - PAD.top - PAD.bottom;
   const step = points.length > 1 ? innerW / (points.length - 1) : 0;
+  const linePoints = useMemo(
+    () => points.map((point, index) => ({
+      x: PAD.left + index * step,
+      y: PAD.top + innerH - (point.value / max) * innerH,
+    })),
+    [points, step, innerH, max],
+  );
+  if (!metric) return null;
+  const format = formatters[metric.kind];
   const x = (i: number) => PAD.left + i * step;
   const y = (v: number) => PAD.top + innerH - (v / max) * innerH;
   const barSlot = innerW / points.length;
@@ -159,20 +273,6 @@ export function ActivityPanel({ metrics }: { metrics: ChartMetric[] }) {
             {view === "line" ? (
               <>
                 <path d={area} fill={`url(#${gradientId})`} className="animate-area motion-reduce:animate-none" />
-                <path
-                  d={line}
-                  pathLength={1}
-                  strokeDasharray={1}
-                  strokeDashoffset={0}
-                  fill="none"
-                  stroke="var(--color-ink)"
-                  strokeWidth={2}
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  vectorEffect="non-scaling-stroke"
-                  className="animate-draw motion-reduce:animate-none"
-                />
-                {hover !== null && <line x1={x(hover)} x2={x(hover)} y1={PAD.top} y2={PAD.top + innerH} stroke="var(--color-ink)" strokeOpacity={0.25} vectorEffect="non-scaling-stroke" />}
               </>
             ) : (
               points.map((p, i) => {
@@ -193,6 +293,20 @@ export function ActivityPanel({ metrics }: { metrics: ChartMetric[] }) {
               })
             )}
           </svg>
+          {view === "line" && (
+            <ActivityLineCanvas key={`${metric.id}-${range}`} points={linePoints} />
+          )}
+          {view === "line" && hover !== null && (
+            <span
+              aria-hidden="true"
+              className="pointer-events-none absolute z-[2] border-l border-ink/25"
+              style={{
+                left: `${(x(hover) / W) * 100}%`,
+                top: `${(PAD.top / H) * 100}%`,
+                bottom: `${(PAD.bottom / H) * 100}%`,
+              }}
+            />
+          )}
           {view === "line" && hover !== null && points[hover] && (
             <span
               aria-hidden="true"
