@@ -52,6 +52,9 @@ async function PortalHomeContent() {
           </li>
         ))}
       </ul>
+      <Link href="/portal/signup/business-name" className="mt-6 inline-flex text-sm text-muted underline-offset-2 hover:underline">
+        Create my own business
+      </Link>
     </div>
   );
 }
