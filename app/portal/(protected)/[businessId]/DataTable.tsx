@@ -62,6 +62,9 @@ export function DataTable({
   rows,
   filterPlaceholder,
   emptyMessage,
+  embedded = false,
+  tableOnMobile = false,
+  className = "",
 }: {
   title: string;
   action?: { href: string; label: string };
@@ -69,6 +72,9 @@ export function DataTable({
   rows: Row[];
   filterPlaceholder: string;
   emptyMessage: string;
+  embedded?: boolean;
+  tableOnMobile?: boolean;
+  className?: string;
 }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
@@ -94,8 +100,8 @@ export function DataTable({
   const hasLinks = rows.some((row) => row.href);
 
   return (
-    <section className="glass-panel overflow-hidden rounded-2xl" aria-label={title}>
-      <div className="flex items-center justify-between gap-3 px-5 pt-5">
+    <section className={`${embedded ? "min-w-0" : "glass-panel overflow-hidden rounded-2xl"} ${className}`} aria-label={title}>
+      <div className={`flex items-center justify-between gap-3 ${embedded ? "px-0 pt-3" : "px-5 pt-5"}`}>
         <h2 className="font-medium text-ink">{title}</h2>
         {action && (
           <Link href={action.href} className="text-sm font-medium text-ink hover:underline">
@@ -105,10 +111,10 @@ export function DataTable({
       </div>
 
       {rows.length === 0 ? (
-        <p className="px-5 pb-6 pt-3 text-sm text-muted">{emptyMessage}</p>
+        <p className={`${embedded ? "px-0 pb-2" : "px-5 pb-6"} pt-3 text-sm text-muted`}>{emptyMessage}</p>
       ) : (
         <>
-          <div className="px-5 pt-3">
+          <div className={`${embedded ? "px-0" : "px-5"} pt-3`}>
             <label className="relative block">
               <span className="sr-only">{filterPlaceholder}</span>
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted" aria-hidden="true" />
@@ -122,8 +128,8 @@ export function DataTable({
             </label>
           </div>
 
-          {/* Phones: one stacked card per row, so no column is hidden behind a sideways scroll. */}
-          <ul className="mt-3 divide-y divide-line border-t border-line sm:hidden">
+          {!tableOnMobile && (
+            <ul className="mt-3 divide-y divide-line border-t border-line sm:hidden">
             {visible.map((row) => {
               const [primary, ...rest] = columns;
               const statusColumn = rest.find((c) => c.kind === "status");
@@ -164,10 +170,11 @@ export function DataTable({
                 </li>
               );
             })}
-          </ul>
+            </ul>
+          )}
 
-          <div className="mt-3 hidden overflow-x-auto sm:block">
-            <table className="w-full min-w-[420px] text-left text-sm">
+          <div className={`mt-3 overflow-x-auto ${tableOnMobile ? "" : "hidden sm:block"}`}>
+            <table className={`w-full ${tableOnMobile ? "min-w-[560px]" : "min-w-[420px]"} text-left text-sm`}>
               <thead>
                 <tr className="border-y border-line text-xs text-muted">
                   {columns.map((column) => {

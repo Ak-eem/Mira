@@ -12,12 +12,14 @@ export function RubberSegment<T extends string>({
   onChange,
   label,
   orientation = "horizontal",
+  className = "",
 }: {
   options: Array<Option<T>>;
   value: T | null;
   onChange: (value: T) => void;
   label: string;
   orientation?: "horizontal" | "vertical";
+  className?: string;
 }) {
   const reducedMotion = useReducedMotion();
   const animation = useAnimationControls();
@@ -79,7 +81,7 @@ export function RubberSegment<T extends string>({
       role="radiogroup"
       aria-label={label}
       aria-orientation={orientation}
-      className="ui-rubber-segment"
+      className={`ui-rubber-segment${className ? ` ${className}` : ""}`}
       data-orientation={orientation}
       style={{ "--option-count": options.length } as React.CSSProperties}
       data-empty={selectedIndex < 0 ? "" : undefined}

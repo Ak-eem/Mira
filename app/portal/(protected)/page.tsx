@@ -45,13 +45,19 @@ async function PortalHomeContent() {
           <li key={business.id}>
             <Link
               href={`/portal/${business.id}`}
-              className="ui-card"
+              className="ui-card block transition hover:shadow-[0_0_0_1px_rgb(15_42_34/0.12)]"
             >
               {business.name}
             </Link>
           </li>
         ))}
       </ul>
+      {/* One free trial per account: once someone owns a business, a second needs billing set up. */}
+      {owner.businesses.some((b) => b.role === "owner") ? null : (
+        <Link href="/portal/signup/business-name" className="mt-6 inline-flex text-sm text-muted underline-offset-2 hover:underline">
+          Create my own business
+        </Link>
+      )}
     </div>
   );
 }

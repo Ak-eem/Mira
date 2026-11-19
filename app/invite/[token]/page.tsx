@@ -123,7 +123,8 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
   const token = typeof rawToken === "string" ? rawToken.trim() : "";
   const invitePath = token ? `/invite/${encodeURIComponent(token)}` : "/invite";
   const loginHref = `/portal/login?next=${encodeURIComponent(invitePath)}`;
-  const signupHref = `/portal/signup?next=${encodeURIComponent(invitePath)}`;
+  // /signup (not /portal/signup): the legacy page also creates a business for the new user.
+  const signupHref = `/signup?next=${encodeURIComponent(invitePath)}`;
   const now = getRequestNow();
 
   let state: InviteState = "invalid";
@@ -202,7 +203,8 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
                 : "The invitation may be invalid or no longer available.";
 
   return (
-    <main className="flex min-h-screen items-center justify-center bg-canvas px-4 py-12 text-slate-900">
+    <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-canvas px-4 py-12 text-slate-900">
+      <div aria-hidden className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.35),transparent_45%),radial-gradient(circle_at_bottom_right,rgba(242,169,0,0.18),transparent_42%)]" />
       <div className="relative w-full max-w-md">
         <div className="mb-8 text-center">
           <Link href="/" className="text-2xl font-semibold tracking-tight text-slate-900">
@@ -211,15 +213,20 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
           <p className="mt-3 text-sm text-slate-600">Team invitation</p>
         </div>
 
-        <section className="ui-card ui-enter !p-6 sm:!p-9">
+        <section className="ui-card ui-enter !p-6 shadow-[0_0_0_1px_rgb(15_42_34/0.06),0_24px_60px_-24px_rgb(15_42_34/0.3)] sm:!p-9">
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900">{title}</h1>
           <p className="mt-3 leading-6 text-slate-600">{description}</p>
 
           {businessName && (state === "ready" || state === "unauthenticated" || state === "mismatch") ? (
-            <div className="mt-6 rounded-2xl bg-slate-50 px-4 py-3">
-              <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Business</p>
-              <p className="mt-1 font-medium text-slate-900">{businessName}</p>
-              {invitedEmail ? <p className="mt-1 text-sm text-slate-600">Invited email: {invitedEmail}</p> : null}
+            <div className="mt-6 flex items-center gap-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-4">
+              <span aria-hidden className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-accent text-lg font-semibold text-on-accent">
+                {Array.from(businessName.trim())[0]?.toUpperCase() ?? "M"}
+              </span>
+              <div className="min-w-0">
+                <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Joining team</p>
+                <p className="truncate text-lg font-semibold text-slate-900">{businessName}</p>
+                {invitedEmail ? <p className="truncate text-sm text-slate-600">Invited email: {invitedEmail}</p> : null}
+              </div>
             </div>
           ) : null}
 
@@ -244,9 +251,20 @@ export default async function InvitePage({ params, searchParams }: InvitePagePro
 
           {state === "unauthenticated" ? (
             <div className="mt-7 grid gap-3 sm:grid-cols-2">
-              <Link href={loginHref} className="ui-btn ui-btn-secondary">Sign in</Link>
+              <Link href={loginHref} className="ui-btn bg-white text-slate-900 shadow-[inset_0_0_0_1.5px_rgb(15_42_34/0.22)] hover:bg-slate-50">Sign in</Link>
               <Link href={signupHref} className="ui-btn ui-btn-primary">Create account</Link>
             </div>
+          ) : null}
+
+          {state === "unauthenticated" ? (
+            <ol className="mt-7 space-y-2.5 border-t border-slate-200 pt-5 text-sm text-slate-600">
+              {["Create an account or sign in with the invited email", "Accept the invitation", "Start helping customers with the team"].map((step, i) => (
+                <li key={step} className="flex items-center gap-3">
+                  <span aria-hidden className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-semibold text-slate-700">{i + 1}</span>
+                  {step}
+                </li>
+              ))}
+            </ol>
           ) : null}
 
           {!isActionable && state !== "unauthenticated" && state !== "mismatch" ? (

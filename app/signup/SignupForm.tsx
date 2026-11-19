@@ -20,7 +20,7 @@ function getApiErrorMessage(value: unknown, fallback: string): string {
   return fallback;
 }
 
-export default function SignupForm({ initialEmail = "" }: { initialEmail?: string }) {
+export default function SignupForm({ initialEmail = "", inviteNext = null }: { initialEmail?: string; inviteNext?: string | null }) {
   const router = useRouter();
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
@@ -145,13 +145,14 @@ export default function SignupForm({ initialEmail = "" }: { initialEmail?: strin
       if (!data.session) {
         const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
         if (signInError) {
-          router.push("/portal/login");
+          router.push(inviteNext ? `/portal/login?next=${encodeURIComponent(inviteNext)}` : "/portal/login");
           return;
         }
       }
 
-      // This page doesn't collect a business name, so the next step does.
-      router.push("/portal/signup/business-name");
+      // Joining someone's team: straight back to the invite. No business of their own,
+      // no trial. Otherwise this page doesn't collect a business name, so the next step does.
+      router.push(inviteNext ?? "/portal/signup/business-name");
       router.refresh();
     } catch (submitError) {
       setError(
@@ -172,11 +173,15 @@ export default function SignupForm({ initialEmail = "" }: { initialEmail?: strin
             Mira <span className="font-normal text-accent">for Business</span>
           </Link>
           <h1 className="mt-4 text-3xl font-semibold tracking-tight text-slate-900">Create your account</h1>
-          <p className="mt-2 text-sm text-slate-600">Get your business ready for what’s next.</p>
+          <p className="mt-2 text-sm text-slate-600">
+            {inviteNext
+              ? "Use the email address your invite was sent to. You'll go straight back to your invitation."
+              : "Get your business ready for what’s next."}
+          </p>
         </div>
 
         <div className="ui-card ui-enter space-y-5 !p-6 sm:!p-8">
-          <GoogleAuthButton next="/portal/signup/complete" label="Sign up with Google" />
+          <GoogleAuthButton next={inviteNext ?? "/portal/signup/complete"} label="Sign up with Google" />
 
           <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-500">
             <span className="h-px flex-1 bg-slate-200" />
@@ -322,7 +327,7 @@ export default function SignupForm({ initialEmail = "" }: { initialEmail?: strin
 
         <p className="mt-5 text-center text-sm text-slate-500">
           Already have an account?{" "}
-          <Link href="/portal/login" className="font-semibold text-accent transition hover:underline">
+          <Link href={inviteNext ? `/portal/login?next=${encodeURIComponent(inviteNext)}` : "/portal/login"} className="font-semibold text-accent transition hover:underline">
             Sign in
           </Link>
         </p>

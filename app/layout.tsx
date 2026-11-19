@@ -8,7 +8,10 @@ export const viewport: Viewport = {
   themeColor: "#f3ecdd",
 };
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://miraapp.com.ng";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(siteUrl),
   title: "Mira | Customer service for your business, day and night",
   description: "A 24/7 assistant on your website, WhatsApp and email that answers from your own products, policies and orders.",
 };

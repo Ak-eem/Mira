@@ -50,18 +50,30 @@ export async function generateMetadata({
   }
 
   const name = business.name ?? "Mira";
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://miraapp.com.ng";
+  const title = `Chat with ${name} · 24/7 Assistant`;
+  const description = `Ask ${name} about products, prices, availability and orders. Instant answers 24/7.`;
 
   return {
+    metadataBase: new URL(siteUrl),
     title: `Chat with ${name}`,
-    description: `Ask ${name} anything -- hours, prices, availability, and more.`,
+    description,
     appleWebApp: {
       capable: true,
       statusBarStyle: "default",
       title: name,
     },
     openGraph: {
-      title: `Chat with ${name} · 24/7 Store Assistant`,
-      description: `Ask ${name} about available items, sizes, delivery and prices. Instant answers 24/7.`,
+      type: "website",
+      url: `${siteUrl}/chat/${businessSlug}`,
+      title,
+      description,
+      siteName: `${name} on Mira`,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
     },
   };
 }
