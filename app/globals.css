@@ -183,9 +183,21 @@ html {
   border: 1px solid var(--mira-line, rgba(15, 42, 34, 0.14));
 }
 
-@media (min-width: 64rem) {
-  .portal-shell:has(.portal-business-layout) > .portal-header {
-    margin-left: 14rem;
+.portal-shell:has(.portal-business-layout) > .portal-header {
+  display: none;
+}
+
+.portal-business-layout {
+  display: block;
+  min-height: 100dvh;
+  overflow-x: clip;
+  padding: 24px 20px;
+}
+
+@media (min-width: 900px) {
+  .portal-business-layout {
+    margin-left: 240px;
+    padding: 36px 44px;
   }
 }
 
@@ -641,6 +653,13 @@ textarea.ui-field { min-height: 6rem; resize: vertical; }
 .ui-rubber-segment[data-orientation="vertical"] .ui-rubber-segment-option { justify-content: space-between; padding: 0.625rem 1rem; }
 .ui-rubber-segment-option[aria-checked="true"] { color: var(--color-slate-900); }
 .ui-rubber-segment-option:focus-visible { outline: 2px solid var(--color-accent); outline-offset: 2px; }
+.ui-rubber-segment-compact { width: max-content; max-width: 100%; }
+.ui-rubber-segment-compact .ui-rubber-segment-option { min-height: 2rem; padding: 0.3rem 0.65rem; font-size: 0.75rem; }
+.ui-rubber-segment-chart { --ui-rubber-thumb: var(--color-ink); border-radius: 9999px; background: var(--color-mist); }
+.ui-rubber-segment-chart .ui-rubber-segment-thumb,
+.ui-rubber-segment-chart .ui-rubber-segment-option { border-radius: 9999px; }
+.ui-rubber-segment-chart .ui-rubber-segment-option { color: var(--color-muted); }
+.ui-rubber-segment-chart .ui-rubber-segment-option[aria-checked="true"] { color: #fff; }
 
 /* On phones the options are content-sized and can scroll sideways, so equal-width columns and a gliding
    thumb (sized as 1/n of the control) would not line up. The chosen segment carries its own highlight. */

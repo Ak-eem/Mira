@@ -2,31 +2,24 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SignOutButton } from "../SignOutButton";
 import { useState } from "react";
 import {
   Bell,
-  Briefcase,
-  Clock,
-  GraduationCap,
   ClipboardCheck,
-  HelpCircle,
-  Tag,
-  ScrollText,
   LayoutDashboard,
   Menu,
-  MessageCircleQuestion,
   MessageSquare,
   Package,
   Settings,
   ShoppingBag,
   Sparkles,
-  Users,
   X,
   type LucideIcon,
 } from "lucide-react";
+import { Logo } from "@/components/site/ui";
+import { SignOutButton } from "../SignOutButton";
 
-type Item = { href: string; label: string; icon: LucideIcon; exact?: boolean; badge?: number; ownerOnly?: boolean; schoolOnly?: boolean };
+type Item = { href: string; label: string; icon: LucideIcon; exact?: boolean; badge?: number };
 type Group = { label: string; items: Item[] };
 
 function initials(name: string): string {
@@ -36,28 +29,20 @@ function initials(name: string): string {
 
 export function PortalSidebar({
   businessId,
-  businessName,
+  displayName,
   roleLabel,
-  isOwner,
-  isSchool,
   hasMultipleBusinesses,
-  canCreateBusiness,
   needsYou,
   email,
   planLabel,
-  showUpgrade,
 }: {
   businessId: string;
-  businessName: string;
+  displayName: string;
   roleLabel: string;
-  isOwner: boolean;
-  isSchool: boolean;
   hasMultipleBusinesses: boolean;
-  canCreateBusiness: boolean;
   needsYou: number;
   email: string;
   planLabel: string;
-  showUpgrade: boolean;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
@@ -79,51 +64,38 @@ export function PortalSidebar({
       ],
     },
     {
-      label: "Your business",
-      items: [
-        { href: `${base}/products`, label: "Products", icon: Tag, ownerOnly: true },
-        { href: `${base}/services`, label: "Services", icon: Briefcase, ownerOnly: true },
-        { href: `${base}/faqs`, label: "FAQs", icon: HelpCircle, ownerOnly: true },
-        { href: `${base}/policies`, label: "Policies", icon: ScrollText, ownerOnly: true },
-        { href: `${base}/hours`, label: "Hours", icon: Clock, ownerOnly: true },
-        { href: `${base}/school`, label: "School", icon: GraduationCap, ownerOnly: true, schoolOnly: true },
-      ],
-    },
-    {
       label: "Grow",
       items: [
         { href: `${base}/nudges`, label: "Nudges", icon: Bell },
-        { href: `${base}/ask`, label: "Ask your data", icon: MessageCircleQuestion, ownerOnly: true },
         { href: `${base}/review`, label: "Review", icon: ClipboardCheck },
         { href: `${base}/requests`, label: "Requests", icon: Sparkles },
       ],
     },
     {
       label: "Admin",
-      items: [
-        { href: `${base}/team`, label: "Team", icon: Users, ownerOnly: true },
-        { href: `${base}/settings`, label: "Settings", icon: Settings },
-      ],
+      items: [{ href: `${base}/settings`, label: "Settings", icon: Settings }],
     },
   ];
 
   const panel = (
-    <div className="flex h-full min-h-0 flex-col gap-4">
-      <div className="flex shrink-0 items-center gap-3 border-b border-line px-2 pb-3">
-        <span
-          aria-hidden="true"
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-marigold text-sm font-semibold text-ink"
-        >
-          {initials(businessName)}
+    <div className="flex h-full min-h-0 flex-col">
+      <Link href={base} aria-label="Mira for Business dashboard" className="flex shrink-0 items-center gap-2.5 px-2 pb-4">
+        <Logo wordmark={false} className="shrink-0" />
+        <span className="text-sm font-semibold tracking-tight text-ink">Mira <span className="font-normal text-muted">for Business</span></span>
+      </Link>
+
+      <div className="mb-4 flex shrink-0 items-center gap-3 rounded-[10px] border border-line bg-surface px-3 py-2.5">
+        <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mist text-xs font-semibold text-ink">
+          {initials(displayName)}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-semibold text-ink">{businessName}</p>
-          <p className="truncate text-xs text-muted">
-            {roleLabel}
+          <p className="truncate text-sm font-medium text-ink">{displayName}</p>
+          <p className="flex items-center gap-1 text-[11px] text-muted">
+            <span>{roleLabel}</span>
             {hasMultipleBusinesses && (
               <>
-                {" · "}
-                <Link href="/portal" className="underline-offset-2 hover:underline">
+                <span aria-hidden="true">·</span>
+                <Link href="/portal" onClick={() => setOpen(false)} className="underline-offset-2 hover:underline">
                   Switch
                 </Link>
               </>
@@ -132,61 +104,42 @@ export function PortalSidebar({
         </div>
       </div>
 
-      <nav aria-label="Business navigation" className="min-h-0 flex-1 space-y-4 overflow-y-auto pr-1">
-        {groups.map((group) => {
-          const items = group.items.filter((item) => (!item.ownerOnly || isOwner) && (!item.schoolOnly || isSchool));
-          if (items.length === 0) return null;
-          return (
-            <div key={group.label}>
-              <p className="ui-section-label !mb-1 !ml-3">{group.label}</p>
-              <ul className="space-y-0.5">
-                {items.map((item) => {
-                  const active = item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
-                  const Icon = item.icon;
-                  return (
-                    <li key={item.href}>
-                      <Link
-                        href={item.href}
-                        onClick={() => setOpen(false)}
-                        aria-current={active ? "page" : undefined}
-                        className={`flex min-h-10 items-center gap-3 rounded-xl px-3 py-2 text-[15px] transition-colors duration-200 ${
-                          active ? "bg-ink font-semibold text-white shadow-soft" : "text-ink-2 hover:bg-slate-900/5 hover:text-ink"
-                        }`}
-                      >
-                        <Icon className={`h-[18px] w-[18px] shrink-0 ${active ? "text-marigold" : "text-muted"}`} aria-hidden="true" />
-                        <span className="flex-1 truncate">{item.label}</span>
-                        {item.badge ? (
-                          <span className="rounded-full bg-marigold px-2 py-0.5 text-[11px] font-semibold text-ink">{item.badge}</span>
-                        ) : null}
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          );
-        })}
+      <nav aria-label="Business navigation" className="min-h-0 flex-1 space-y-2 overflow-hidden">
+        {groups.map((group) => (
+          <div key={group.label}>
+            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{group.label}</p>
+            <ul className="space-y-0.5">
+              {group.items.map((item) => {
+                const active = item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
+                const Icon = item.icon;
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={() => setOpen(false)}
+                      aria-current={active ? "page" : undefined}
+                      className={`flex min-h-[34px] items-center gap-2.5 rounded-[10px] px-3 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                        active ? "bg-ink font-semibold text-white" : "text-ink-2 hover:bg-mist hover:text-ink"
+                      }`}
+                    >
+                      <Icon className={`h-4 w-4 shrink-0 ${active ? "text-marigold" : "text-muted"}`} aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                      {item.badge ? (
+                        <span className="rounded-full bg-lime px-2 py-0.5 text-[10px] font-semibold text-marigold">{item.badge}</span>
+                      ) : null}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ))}
       </nav>
 
-      <div className="shrink-0 space-y-3 border-t border-line pt-3">
-        <div className="text-xs text-ink">
-          <p className="font-medium">{planLabel}</p>
-          {showUpgrade && (
-            <Link
-              href={`/portal/upgrade?businessId=${encodeURIComponent(businessId)}`}
-              className="mt-2 inline-flex rounded-full bg-marigold px-3 py-1 text-xs font-semibold text-ink transition hover:brightness-95"
-            >
-              Upgrade
-            </Link>
-          )}
-        </div>
-        <div className="px-1">
-          <p className="truncate text-xs text-muted">{email}</p>
-          {canCreateBusiness ? (
-            <Link href="/portal/signup/business-name" className="mt-1 block text-xs text-muted underline-offset-2 hover:underline">
-              Create my own business
-            </Link>
-          ) : null}
+      <div className="mt-3 shrink-0 border-t border-line pt-3">
+        <span className="inline-flex rounded-full bg-lime px-3 py-1 text-xs font-semibold text-marigold">{planLabel}</span>
+        <p className="mt-2 truncate px-1 text-[11px] text-muted">{email}</p>
+        <div className="mt-1 px-1">
           <SignOutButton />
         </div>
       </div>
@@ -195,32 +148,32 @@ export function PortalSidebar({
 
   return (
     <>
-      <div className="mb-4 flex items-center justify-between lg:hidden">
+      <div className="mb-4 flex items-center justify-between min-[900px]:hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open navigation"
-          className="inline-flex items-center gap-2 rounded-xl border border-line bg-surface px-3 py-2 text-sm text-ink shadow-soft"
+          className="inline-flex items-center gap-2 rounded-[10px] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
           <Menu className="h-4 w-4" aria-hidden="true" />
           Menu
-          {needsYou > 0 && <span className="rounded-full bg-marigold px-2 py-0.5 text-[11px] font-semibold text-ink">{needsYou}</span>}
+          {needsYou > 0 && <span className="rounded-full bg-lime px-2 py-0.5 text-[11px] font-semibold text-marigold">{needsYou}</span>}
         </button>
       </div>
 
-      <aside className="fixed inset-y-0 left-0 z-20 hidden h-dvh w-56 shrink-0 border-r border-line bg-surface lg:block">
-        <div className="h-full p-3">{panel}</div>
+      <aside className="fixed inset-y-0 left-0 z-30 hidden h-dvh w-[240px] border-r border-line bg-surface min-[900px]:block">
+        <div className="h-full overflow-hidden px-3 py-4">{panel}</div>
       </aside>
 
       {open && (
-        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
+        <div className="fixed inset-0 z-40 min-[900px]:hidden" role="dialog" aria-modal="true" aria-label="Navigation">
           <button type="button" aria-label="Close navigation" onClick={() => setOpen(false)} className="absolute inset-0 bg-ink/40" />
-          <div className="relative h-full w-72 max-w-[85vw] border-r border-line bg-canvas p-4">
+          <div className="relative h-full w-[280px] max-w-[85vw] border-r border-line bg-canvas px-3 py-4">
             <button
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close navigation"
-              className="absolute right-3 top-3 rounded-lg p-1.5 text-muted hover:bg-mist hover:text-ink"
+              className="absolute right-3 top-3 rounded-lg p-1.5 text-muted hover:bg-mist hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
             >
               <X className="h-4 w-4" aria-hidden="true" />
             </button>

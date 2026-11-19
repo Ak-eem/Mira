@@ -25,24 +25,21 @@ export default async function PortalBusinessLayout({ children, params }: { child
   if (!access.entitled) redirect(`/portal/upgrade?businessId=${encodeURIComponent(businessId)}`);
 
   const isOwner = business.role === "owner";
-  const trialing = access.subscription?.status === "trialing";
+  const emailName = user.email.split("@")[0]?.split(/[._+-]/)[0]?.replace(/\d+$/, "") ?? "";
+  const displayName = emailName ? `${emailName[0].toLocaleUpperCase()}${emailName.slice(1)}` : "there";
 
   return (
-    <div className="portal-business-layout min-w-0 px-4 py-6 sm:px-6 lg:ml-56 lg:px-8 lg:py-6">
+    <div className="portal-business-layout min-w-0">
       <PortalSidebar
         businessId={businessId}
-        businessName={business.name}
+        displayName={displayName}
         roleLabel={isOwner ? "Owner" : "Team member"}
-        isOwner={isOwner}
-        isSchool={business.businessType === "school"}
         hasMultipleBusinesses={owner.businesses.length > 1}
-        canCreateBusiness={!owner.businesses.some((b) => b.role === "owner")}
         needsYou={needsYou ?? 0}
         email={user.email}
         planLabel={subscriptionLabel(access.subscription)}
-        showUpgrade={isOwner && trialing}
       />
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0">
         {children}
       </div>
     </div>

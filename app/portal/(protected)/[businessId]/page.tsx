@@ -6,6 +6,7 @@ import { ArrowRight, ArrowUpRight, Check, Circle } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { timed } from "@/lib/perf";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
+import { getRequestUser } from "@/lib/supabase/request";
 import { getOrderTakingEnabled } from "@/lib/orderSettings";
 import { ActivityPanel, type ChartPoint, type ChartMetric } from "./ActivityChart";
 import { DataTable, type Column, type Row } from "./DataTable";
@@ -53,14 +54,10 @@ function dailySeries(now: number, entries: { at: string; value: number }[]): Cha
 const CHANNEL_LABEL: Record<string, string> = { web: "Website", whatsapp: "WhatsApp", email: "Email" };
 
 function DeltaPill({ current, previous }: { current: number; previous: number }) {
-  if (previous === 0 && current === 0) return null;
-  if (previous === 0) return <span className="rounded-full bg-lime px-2 py-0.5 text-xs font-medium text-ink">New</span>;
-  const pct = Math.round(((current - previous) / previous) * 100);
-  if (pct === 0) return <span className="rounded-full bg-mist px-2 py-0.5 text-xs font-medium text-muted">No change</span>;
-  const up = pct > 0;
+  const delta = current - previous;
   return (
-    <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${up ? "bg-lime text-ink" : "bg-[#fbeae6] text-danger"}`}>
-      {up ? "▲" : "▼"} {Math.abs(pct)}%
+    <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${delta > 0 ? "bg-lime text-ink" : "bg-mist text-muted"}`}>
+      {delta > 0 ? `+${delta} new` : delta < 0 ? `${delta} vs prior` : "No change"}
     </span>
   );
 }
@@ -118,6 +115,9 @@ export default async function PortalDashboardPage({
 }) {
   const { businessId } = await params;
   const supabase = await createClient();
+  const user = await getRequestUser();
+  const emailName = user?.email.split("@")[0]?.split(/[._+-]/)[0]?.replace(/\d+$/, "") ?? "";
+  const firstName = emailName ? `${emailName[0].toLocaleUpperCase()}${emailName.slice(1)}` : "there";
   const owner = await getCurrentBusinessOwner();
   const isOwner = owner?.businesses.find((b) => b.id === businessId)?.role === "owner";
 
@@ -222,17 +222,13 @@ export default async function PortalDashboardPage({
       points: conversationSeries,
       emptyMessage: "Your activity shows up here once customers start chatting with Mira.",
     },
-    ...(showOrders
-      ? [
-          {
-            id: "sales",
-            title: "Sales",
-            kind: "money" as const,
-            points: orderSeries,
-            emptyMessage: "Order value appears here after Mira takes your first order.",
-          },
-        ]
-      : []),
+    {
+      id: "sales",
+      title: "Sales",
+      kind: "money",
+      points: orderSeries,
+      emptyMessage: "No sales yet. Orders will show up here.",
+    },
   ];
 
   const orderTableRows: Row[] = [...orderRows].reverse().slice(0, 8).map((order) => {
@@ -314,78 +310,103 @@ export default async function PortalDashboardPage({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="dashboard-page min-w-0 space-y-5">
       {(businessError ?? recentError ?? conversationCountError) && <ErrorNotice what="load your dashboard" error={businessError ?? recentError ?? conversationCountError} />}
-      <div className="flex flex-wrap items-start justify-between gap-3">
+      <div className="flex flex-col items-start justify-between gap-5 md:flex-row md:items-start">
         <div>
-          <h1 className="ui-title">Welcome back</h1>
-          <p className="ui-subtitle">Here&apos;s how {business?.name ?? "your business"} did in the last 30 days.</p>
+          <h1 className="text-[34px] font-bold leading-tight tracking-[-0.035em] text-ink sm:text-[40px]">
+            Welcome, <span className="text-marigold">{firstName}</span>
+          </h1>
+          <p className="mt-2 max-w-3xl text-[17px] leading-relaxed text-muted">
+            {conversationCount ?? 0} conversations in the last 30 days,{" "}
+            {needsYou > 0 ? `${needsYou} need you right now.` : "and nothing needs you right now."}
+          </p>
         </div>
         {business?.slug && (
           <a
             href={`/chat/${business.slug}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-medium text-white shadow-soft transition hover:bg-ink-2"
+            className="inline-flex shrink-0 items-center gap-2 rounded-full bg-ink px-5 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-ink-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
           >
-            Try your Mira <ArrowUpRight className="h-4 w-4 text-marigold" aria-hidden="true" />
+            Try your Mira <ArrowUpRight className="h-4 w-4" aria-hidden="true" />
           </a>
         )}
       </div>
 
       <OnboardingCard steps={steps} />
 
-      <div className="grid gap-4 sm:grid-cols-3">
-        <div className="glass-panel rounded-2xl p-5">
-          <p className="text-sm text-muted">Conversations</p>
-          <div className="mt-2 flex items-center gap-2">
-            <p className="text-3xl font-semibold tracking-tight text-ink">{conversationCount ?? 0}</p>
-            <DeltaPill current={conversationCount ?? 0} previous={previousConversationCount ?? 0} />
-          </div>
-          <p className="mt-2 text-xs text-muted">vs the 30 days before</p>
-        </div>
-
+      <div className="grid min-w-0 gap-5 min-[1200px]:grid-cols-12">
+        <ActivityPanel metrics={chartMetrics} className="min-w-0 min-[1200px]:col-span-8 min-[1200px]:row-span-2" />
         <Link
           href={`${base}/conversations`}
-          className={`glass-hover rounded-2xl p-5 transition ${needsYou > 0 ? "glass-alert-pulse border border-marigold/50 bg-lime/70" : "glass-panel"}`}
+          data-urgent={needsYou > 0}
+          className={`glass-panel glass-hover flex min-w-0 flex-col justify-center rounded-[18px] border p-5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent min-[1200px]:col-span-4 ${
+            needsYou > 0
+              ? "border-marigold/60 bg-lime/70"
+              : "border-line"
+          }`}
         >
-          <p className="text-sm text-muted">Need you now</p>
-          <p className="mt-2 text-3xl font-semibold tracking-tight text-ink">{needsYou}</p>
-          <p className="mt-2 flex items-center gap-1 text-xs text-ink-2">
-            {needsYou > 0 ? "Open the inbox" : "Nothing waiting"}
-            {needsYou > 0 && <ArrowRight className="h-3 w-3" aria-hidden="true" />}
+          <div className="flex items-center gap-2 text-sm font-medium text-muted">
+            <span className={`h-2.5 w-2.5 rounded-full ${needsYou > 0 ? "bg-marigold" : "bg-accent"}`} aria-hidden="true" />
+            Need you now
+          </div>
+          <p className="mt-2 text-[44px] font-semibold leading-none tracking-tight text-ink">{needsYou}</p>
+          <p className={`mt-3 text-sm leading-relaxed ${needsYou > 0 ? "text-marigold" : "text-muted"}`}>
+            {needsYou > 0 ? `${needsYou} conversation${needsYou === 1 ? "" : "s"} need attention.` : "Nothing waiting. Mira has it covered."}
           </p>
         </Link>
 
-        <Link href={nudgesActive ? `${base}/nudges` : `${base}/requests`} className="glass-panel glass-hover rounded-2xl p-5">
-          <p className="text-sm text-muted">Nudges sent</p>
-          {nudgesActive ? (
-            <>
-              <p className="mt-2 text-3xl font-semibold tracking-tight text-ink">{nudgesSent ?? 0}</p>
-              <p className="mt-2 text-xs text-muted">{nudgesDelivered ?? 0} delivered · {nudgesReplied ?? 0} replied</p>
-            </>
-          ) : (
-            <>
-              <p className="mt-2 text-xl font-medium text-muted">Not turned on</p>
-              <p className="mt-2 flex items-center gap-1 text-xs text-ink-2">
-                Request the Nudges add-on <ArrowUpRight className="h-3 w-3" aria-hidden="true" />
-              </p>
-            </>
-          )}
-        </Link>
+        <div className="glass-panel min-w-0 rounded-[18px] min-[1200px]:col-span-4">
+          <div className="flex items-center justify-between gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
+            <h2 className="text-sm font-semibold text-ink">Conversations</h2>
+            <DeltaPill current={conversationCount ?? 0} previous={previousConversationCount ?? 0} />
+          </div>
+          <p className="px-4 pb-4 pt-1 text-[28px] font-semibold leading-tight tracking-tight text-ink sm:px-5 sm:pb-5">
+            {(conversationCount ?? 0).toLocaleString("en-NG")}
+          </p>
+        </div>
       </div>
 
-      <ActivityPanel metrics={chartMetrics} />
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-[18px] border border-dashed border-marigold/40 bg-lime/20 px-4 py-3.5 sm:px-5">
+        <div className="min-w-0">
+          <p className="text-sm font-medium text-ink">{nudgesActive ? "Nudges sent" : "Nudges aren't turned on."}</p>
+          {nudgesActive ? (
+            <p className="mt-1 text-xs text-muted">
+              <span className="font-semibold text-ink">{nudgesSent ?? 0} sent</span> in the last 30 days
+              <span className="hidden sm:inline"> · {nudgesDelivered ?? 0} delivered · {nudgesReplied ?? 0} replied · {nudgesOptedOut ?? 0} opted out</span>
+            </p>
+          ) : (
+            <p className="mt-1 text-sm text-muted">Follow up with customers automatically.</p>
+          )}
+        </div>
+        {!nudgesActive && (
+          <Link
+            href={`${base}/requests`}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-lime px-4 py-2 text-xs font-semibold text-marigold transition-colors hover:bg-lime-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          >
+            Request add-on <ArrowUpRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </Link>
+        )}
+      </div>
 
       {showOrders && (
-        <div className="grid gap-4 lg:grid-cols-2">
+        <section className="glass-panel min-w-0 overflow-hidden rounded-[18px]" aria-labelledby="orders-and-sellers-title">
+          <div className="flex items-center justify-between gap-3 px-5 pt-4 sm:pt-5">
+            <h2 id="orders-and-sellers-title" className="text-sm font-semibold text-ink">Recent orders &amp; best sellers</h2>
+            <Link href={`${base}/orders`} className="shrink-0 text-sm font-medium text-marigold hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent">
+              View all
+            </Link>
+          </div>
+          <div className="dashboard-order-comparison-columns grid min-w-0 divide-y divide-line md:grid-cols-2 md:divide-x md:divide-y-0">
           <DataTable
             title="Recent orders"
-            action={{ href: `${base}/orders`, label: "View all" }}
             columns={orderColumns}
             rows={orderTableRows}
             filterPlaceholder="Filter orders…"
             emptyMessage="No orders in the last 30 days."
+            embedded
+            className="min-w-0 px-4 pb-4 sm:px-5 sm:pb-5"
           />
           <DataTable
             title="Best sellers"
@@ -393,8 +414,11 @@ export default async function PortalDashboardPage({
             rows={bestSellerRows}
             filterPlaceholder="Filter products…"
             emptyMessage="Your top products show up here once orders come in."
+            embedded
+            className="min-w-0 px-4 pb-4 sm:px-5 sm:pb-5"
           />
-        </div>
+          </div>
+        </section>
       )}
 
       <DataTable
@@ -404,25 +428,8 @@ export default async function PortalDashboardPage({
         rows={conversationTableRows}
         filterPlaceholder="Filter conversations…"
         emptyMessage="No conversations yet. Once a customer messages your chat widget, WhatsApp or email address, it shows up here."
+        tableOnMobile
       />
-
-      {nudgesActive && (
-        <div className="glass-panel rounded-2xl p-5">
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            {[
-              ["Sent", nudgesSent],
-              ["Delivered", nudgesDelivered],
-              ["Replied", nudgesReplied],
-              ["Opted out, all time", nudgesOptedOut],
-            ].map(([label, value]) => (
-              <div key={label as string}>
-                <p className="text-xl font-semibold text-ink">{(value as number | null) ?? 0}</p>
-                <p className="text-xs text-muted">{label as string}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
