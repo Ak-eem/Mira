@@ -3,7 +3,8 @@
 import { uuidV4FromRandomValues } from "@/lib/chat/visitor";
 import { embedStrongHoverClass, embedStrongTextClass, embedUsesTransparentSurface } from "@/lib/embed/surface";
 import { Icon } from "@/components/site/icons";
-import { useState, useRef, useEffect, useMemo, type ReactNode } from "react";
+import { useState, useRef, useEffect, useMemo, type MutableRefObject, type ReactNode } from "react";
+import { computeReveal, distanceFromBottom, FOLLOW_THRESHOLD } from "@/lib/chat/scrollReveal";
 import { chatThemeVars } from "@/lib/brandColor";
 import { BusinessNotFound } from "./BusinessNotFound";
 import { Nunito } from "next/font/google";
@@ -119,6 +120,19 @@ function randomVisitorId(): string {
   return uuidV4FromRandomValues((bytes) => crypto.getRandomValues(bytes));
 }
 
+// Moves the chat to `top`. Smooth for the one-off jumps, instant while a reply is streaming in
+// (so it never lags behind), and instant for anyone who prefers reduced motion. Smooth scrolls
+// briefly mark themselves so the scroll handler doesn't mistake them for the visitor scrolling.
+function scrollChatTo(container: HTMLElement, top: number, smooth: boolean, ignoreScrollUntil: MutableRefObject<number>) {
+  const reduceMotion = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+  if (smooth && !reduceMotion) {
+    ignoreScrollUntil.current = performance.now() + 600;
+    container.scrollTo({ top, behavior: "smooth" });
+  } else {
+    container.scrollTop = top;
+  }
+}
+
 export function ChatWindow({
   businessSlug,
   businessName,
@@ -223,12 +237,55 @@ export function ChatWindow({
       body.style.backgroundImage = previousBackgroundImage;
     };
   }, [transparentEmbed]);
-  const containerRef = useRef<HTMLDivElement>(null);
+  // --- Keeping the newest reply in view ---------------------------------------------------
+  // The scroll position is set on the message list itself (scrollRef). Replies stream in token by
+  // token, so this runs many times per reply.
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const followingRef = useRef(true); // false once the visitor scrolls up to read; true again at the bottom
+  const ignoreScrollUntilRef = useRef(0);
+  const previousCountRef = useRef(0);
+  const settledTallIndexRef = useRef(-1); // a tall reply already lined up at the top: don't yank it again
+
+  const handleChatScroll = () => {
+    if (performance.now() < ignoreScrollUntilRef.current) return;
+    const el = scrollRef.current;
+    if (el) followingRef.current = distanceFromBottom(el) < FOLLOW_THRESHOLD;
+  };
 
   useEffect(() => {
-    if (messages.length === 0) return;
-    const el = containerRef.current;
-    if (el) el.scrollTop = el.scrollHeight;
+    const container = scrollRef.current;
+    const count = messages.length;
+    const previousCount = previousCountRef.current;
+    previousCountRef.current = count;
+    if (!container || count === 0) return;
+
+    // A returning visitor's conversation just loaded: go straight to the latest message.
+    if (previousCount === 0 && count > 1) {
+      container.scrollTop = container.scrollHeight;
+      return;
+    }
+
+    const newest = messages[count - 1];
+    if (newest.role === "customer") {
+      // The visitor just sent something: show it, and the typing dots under it.
+      followingRef.current = true;
+      settledTallIndexRef.current = -1;
+      scrollChatTo(container, container.scrollHeight, true, ignoreScrollUntilRef);
+      return;
+    }
+    if (!followingRef.current || settledTallIndexRef.current === count - 1) return;
+
+    const nodes = container.querySelectorAll<HTMLElement>("[data-chat-message]");
+    const el = nodes[nodes.length - 1];
+    if (!el) return;
+    const { top, mode } = computeReveal({
+      containerHeight: container.clientHeight,
+      scrollHeight: container.scrollHeight,
+      elTop: el.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop,
+      elHeight: el.getBoundingClientRect().height,
+    });
+    if (mode === "top") settledTallIndexRef.current = count - 1;
+    scrollChatTo(container, top, count > previousCount, ignoreScrollUntilRef);
   }, [messages]);
 
   useEffect(() => {
@@ -821,7 +878,7 @@ export function ChatWindow({
           </div>
         )}
 
-        <div className={`ui-scroll-y min-h-0 flex-1 space-y-3 py-4 ${padX}`}>
+        <div ref={scrollRef} onScroll={handleChatScroll} className={`ui-scroll-y min-h-0 flex-1 space-y-3 py-4 ${padX}`}>
           {messages.length === 0 && (
             <div className={embedMode ? "flex h-full flex-col justify-center gap-5 pb-8" : "text-left"}>
               {embedMode && (
@@ -857,7 +914,7 @@ export function ChatWindow({
           )}
           {messagesWithUniqueImages.map((m, i) =>
             m.role === "system" ? (
-              <div key={i} className="message-enter text-center">
+              <div key={i} data-chat-message className="message-enter text-center">
                 <span className={`${embedMode ? "glass-panel text-slate-500" : "bg-mist text-muted"} inline-block rounded-full px-3 py-1 text-xs`}>
                   {m.content}
                 </span>
@@ -865,6 +922,7 @@ export function ChatWindow({
             ) : (
             <div
               key={i}
+              data-chat-message
               className={`message-enter ${m.role === "customer" ? "text-right" : "text-left"}`}
             >
               {m.role === "assistant" ? (
@@ -975,7 +1033,6 @@ export function ChatWindow({
               </div>
             ))}
           {error && <p className="text-sm text-red-600">{error}</p>}
-          <div ref={containerRef} />
         </div>
 
         {showSiteChips && (
