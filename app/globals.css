@@ -281,6 +281,11 @@ html {
   --color-lime-3: #f2a900;
   --color-danger: #c9472f;
 
+  /* Activity chart: one fixed colour per channel. */
+  --color-chart-web: #2a78d6;
+  --color-chart-whatsapp: #1baf7a;
+  --color-chart-email: #eda100;
+
   --radius-pill: 999px;
   --radius-card: 28px;
   --radius-panel: 40px;
