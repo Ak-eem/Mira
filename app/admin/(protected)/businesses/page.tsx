@@ -3,6 +3,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { createClient } from "@/lib/supabase/server";
 import type { Business } from "@/lib/types";
 import { subscriptionLabel, type BusinessSubscription, type SubscriptionStatus } from "@/lib/plans";
+import { AdminSelect } from "@/components/ui/AdminSelect";
 
 const STATUS_STYLES: Record<SubscriptionStatus, string> = {
   trialing: "bg-sky-50 text-sky-700 border-sky-200",
@@ -62,9 +63,7 @@ export default async function AdminBusinessesPage({ searchParams }: { searchPara
 
       <form className="mb-5 flex flex-wrap gap-2" method="get">
         <input name="q" defaultValue={search} placeholder="Search businesses" aria-label="Search businesses" className="min-w-52 flex-1 rounded-lg border border-teal-900/10 bg-white/70 px-3 py-2 text-sm" />
-        <select name="status" defaultValue={status} aria-label="Filter businesses by status" className="rounded-lg border border-teal-900/10 bg-white/70 px-3 py-2 text-sm">
-          <option value="all">All statuses</option><option value="active">Active</option><option value="inactive">Inactive</option>
-        </select>
+        <AdminSelect name="status" defaultValue={status} ariaLabel="Filter businesses by status" size="lg" menuWidth={176} options={[{ value: "all", label: "All statuses" }, { value: "active", label: "Active" }, { value: "inactive", label: "Inactive" }]} />
         <button type="submit" className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white">Filter</button>
       </form>
 
