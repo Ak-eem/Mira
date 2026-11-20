@@ -79,13 +79,13 @@ export function PortalSidebar({
 
   const panel = (
     <div className="flex h-full min-h-0 flex-col">
-      <Link href={base} aria-label="Mira for Business dashboard" className="flex shrink-0 items-center gap-2.5 px-2 pb-4">
+      <Link href={base} aria-label="Mira for Business dashboard" className="flex shrink-0 items-center gap-2.5 px-2 pb-3">
         <Logo wordmark={false} className="shrink-0" />
         <span className="text-sm font-semibold tracking-tight text-ink">Mira <span className="font-normal text-muted">for Business</span></span>
       </Link>
 
-      <div className="mb-4 flex shrink-0 items-center gap-3 rounded-[10px] border border-line bg-surface px-3 py-2.5">
-        <span aria-hidden="true" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-mist text-xs font-semibold text-ink">
+      <div className="mb-3 flex shrink-0 items-center gap-3 rounded-[10px] border border-line bg-surface px-3 py-2">
+        <span aria-hidden="true" className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-mist text-xs font-semibold text-ink">
           {initials(displayName)}
         </span>
         <div className="min-w-0 flex-1">
@@ -104,10 +104,10 @@ export function PortalSidebar({
         </div>
       </div>
 
-      <nav aria-label="Business navigation" className="min-h-0 flex-1 space-y-2 overflow-hidden">
+      <nav aria-label="Business navigation" className="min-h-0 flex-1 space-y-1.5 overflow-y-auto overscroll-contain pr-0.5 [scrollbar-width:thin]">
         {groups.map((group) => (
           <div key={group.label}>
-            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{group.label}</p>
+            <p className="mb-0.5 px-3 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">{group.label}</p>
             <ul className="space-y-0.5">
               {group.items.map((item) => {
                 const active = item.exact ? pathname === item.href : pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -118,7 +118,7 @@ export function PortalSidebar({
                       href={item.href}
                       onClick={() => setOpen(false)}
                       aria-current={active ? "page" : undefined}
-                      className={`flex min-h-[34px] items-center gap-2.5 rounded-[10px] px-3 py-2 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                      className={`flex min-h-[32px] items-center gap-2.5 rounded-[10px] px-3 py-1.5 text-sm transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
                         active ? "bg-ink font-semibold text-white" : "text-ink-2 hover:bg-mist hover:text-ink"
                       }`}
                     >
@@ -136,12 +136,12 @@ export function PortalSidebar({
         ))}
       </nav>
 
-      <div className="mt-3 shrink-0 border-t border-line pt-3">
-        <span className="inline-flex rounded-full bg-lime px-3 py-1 text-xs font-semibold text-marigold">{planLabel}</span>
-        <p className="mt-2 truncate px-1 text-[11px] text-muted">{email}</p>
-        <div className="mt-1 px-1">
+      <div className="mt-2 shrink-0 border-t border-line pt-2.5">
+        <div className="flex items-center justify-between gap-2 px-1">
+          <span className="inline-flex rounded-full bg-lime px-3 py-1 text-xs font-semibold text-marigold">{planLabel}</span>
           <SignOutButton />
         </div>
+        <p className="mt-1.5 truncate px-1 text-[11px] text-muted" title={email}>{email}</p>
       </div>
     </div>
   );
