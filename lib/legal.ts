@@ -1,7 +1,7 @@
 // The agreement every new account must accept before Mira creates its business: that the person owns the business
 // (or is authorised to act for it) and owns or may manage every website, WhatsApp number and email address they
 // connect. The same words are shown on every signup path and are stored, verbatim, with the acceptance record
-// (supabase/migrations/0073_terms_acceptance.sql keeps the text for each version, and legal.test.ts fails if the
+// (supabase/migrations/0075_terms_acceptance.sql keeps the text for each version, and legal.test.ts fails if the
 // two ever differ). When the wording or the Terms change, add a NEW version in a migration; never edit an old one.
 
 export const TERMS_VERSION = "2026-11-08";

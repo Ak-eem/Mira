@@ -67,16 +67,21 @@ async function main() {
   const recordAt = (source: string) => callAt(source, "record_terms_acceptance");
   const provisionAt = (source: string) => callAt(source, "provision_new_business");
 
+  // The quick signup form also serves people joining a team by invite; they are not creating a business, so they are
+  // exempt (and the email signup page, which always creates a business, is never exempt).
+  const guard = /if \((?:!inviteNext && )?!agreed\)/;
   for (const [name, source] of [["email signup", portal], ["quick signup", quick]] as const) {
     check(`${name}: shows the agreement checkbox`, /<TermsAgreement/.test(source));
-    check(`${name}: refuses to submit unless it is ticked`, /if \(!agreed\)/.test(source) && /disabled=\{[^}]*!agreed/.test(source));
-    check(`${name}: the tick is checked BEFORE the account is created`, at(source, "if (!agreed)") > 0 && at(source, "if (!agreed)") < at(source, "auth.signUp("));
-    check(`${name}: the Google button is off until it is ticked, and the tick is remembered before the redirect`, /<GoogleAuthButton[\s\S]*?disabled=\{!agreed\}[\s\S]*?onBeforeStart=\{\(\) => rememberAgreement\("google_signup"\)\}/.test(source));
+    check(`${name}: refuses to submit unless it is ticked`, guard.test(source) && /disabled=\{[^}]*!agreed/.test(source));
+    check(`${name}: the tick is checked BEFORE the account is created`, source.search(guard) > 0 && source.search(guard) < at(source, "auth.signUp("));
+    check(`${name}: the Google button is off until it is ticked, and the tick is remembered before the redirect`, /<GoogleAuthButton[\s\S]*?disabled=\{(?:!inviteNext && )?!agreed\}[\s\S]*?onBeforeStart=\{(?:inviteNext \? undefined : )?\(\) => rememberAgreement\("google_signup"\)\}/.test(source));
     check(`${name}: uses the shared required-message`, source.includes("AGREEMENT_REQUIRED_MESSAGE"));
   }
+  check("email signup is never exempt: no invite exemption on the page that always creates a business", !/inviteNext/.test(portal));
+  check("quick signup: only people joining a team by invite are exempt (checkbox hidden, nothing recorded)", /\{!inviteNext && <TermsAgreement/.test(quick) && /if \(!inviteNext\) \{[\s\S]*?record_terms_acceptance/.test(quick) && /\(!inviteNext && !agreed\)/.test(quick));
   check("email signup: records the agreement before it provisions the business", recordAt(portal) > 0 && provisionAt(portal) > 0 && recordAt(portal) < provisionAt(portal));
   check("email signup: records the current TERMS_VERSION", /p_terms_version: TERMS_VERSION/.test(portal));
-  check("quick signup: records and remembers the agreement before moving on", at(quick, "rememberAgreement(\"signup\")") > 0 && recordAt(quick) > 0 && recordAt(quick) < at(quick, "router.push(\"/portal/signup/business-name\")"));
+  check("quick signup: records and remembers the agreement before moving on", at(quick, "rememberAgreement(\"signup\")") > 0 && recordAt(quick) > 0 && recordAt(quick) < at(quick, "router.push(inviteNext ?? \"/portal/signup/business-name\")"));
   check("business-name step: records the agreement before it provisions the business", recordAt(businessName) > 0 && provisionAt(businessName) > 0 && recordAt(businessName) < provisionAt(businessName));
   check("business-name step: asks for the tick unless one was remembered", /readRememberedAgreement\(\)/.test(businessName) && /!remembered && !agreed/.test(businessName) && /<TermsAgreement/.test(businessName));
   check("business-name step: the submit button needs an agreement", /disabled=\{submitting \|\| \(!alreadyAgreed && !agreed\)\}/.test(businessName));
@@ -114,7 +119,7 @@ async function main() {
   check("the Privacy Policy discloses the agreement record, including IP address and browser", /Agreement Records/.test(privacy) && /IP address and browser/.test(privacy));
 
   // ---- enforcement migration ----
-  const enforce = read("supabase/migrations/0074_require_terms_acceptance.sql");
+  const enforce = read("supabase/migrations/0076_require_terms_acceptance.sql");
   check("the enforcement migration refuses with TERMS_NOT_ACCEPTED and ties the agreement to the business", /TERMS_NOT_ACCEPTED/.test(enforce) && /update terms_acceptances/.test(enforce));
   check("the enforcement migration warns it must be applied only after the new site is live", /ONLY AFTER/.test(enforce));
 }
