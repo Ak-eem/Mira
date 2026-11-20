@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { updatePromotion, deletePromotion } from "./actions";
 import { utcToZonedWallDate } from "@/lib/timezone";
 import { useConfirm, useSnackbar } from "@/components/ui/Feedback";
+import { AdminSelect } from "@/components/ui/AdminSelect";
 
 type Promotion = {
   id: string;
@@ -127,12 +128,14 @@ function EditPromotionRow({
     <li className="space-y-2 rounded-sm border border-accent bg-white p-3">
       <input className="w-full ui-field" value={description} onChange={(e) => setDescription(e.target.value)} />
       {services.length > 0 && (
-        <select className="w-full ui-field" value={serviceId} onChange={(e) => setServiceId(e.target.value)}>
-          <option value="">Applies to all services</option>
-          {services.map((s) => (
-            <option key={s.id} value={s.id}>{s.name} only</option>
-          ))}
-        </select>
+        <AdminSelect
+          fullWidth
+          ariaLabel="Service this promotion applies to"
+          size="lg"
+          value={serviceId}
+          onChange={setServiceId}
+          options={[{ value: "", label: "Applies to all services" }, ...services.map((s) => ({ value: s.id, label: `${s.name} only` }))]}
+        />
       )}
       <div className="flex gap-2">
         <input type="date" className="flex-1 ui-field" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />

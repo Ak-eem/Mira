@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { safeTimeZone } from "@/lib/ask/range";
+import { AdminSelect } from "@/components/ui/AdminSelect";
 
 export default async function ConversationsPage({
   params,
@@ -35,8 +36,8 @@ export default async function ConversationsPage({
 
       <form className="mb-5 flex flex-wrap gap-2" method="get">
         <input name="q" defaultValue={search} placeholder="Search customer identifier" aria-label="Search conversations" className="min-w-52 flex-1 rounded-lg border border-teal-900/10 bg-white/70 px-3 py-2 text-sm" />
-        <select name="filter" defaultValue={filter} aria-label="Filter conversations" className="rounded-lg border border-teal-900/10 bg-white/70 px-3 py-2 text-sm"><option value="all">All</option><option value="unread">Unread</option><option value="human">Needs human</option><option value="active">Active</option><option value="resolved">Resolved</option></select>
-        <select name="sort" defaultValue={sort} aria-label="Sort conversations" className="rounded-lg border border-teal-900/10 bg-white/70 px-3 py-2 text-sm"><option value="newest">Newest</option><option value="oldest">Oldest</option></select>
+        <AdminSelect name="filter" defaultValue={filter} ariaLabel="Filter conversations" size="lg" menuWidth={176} options={[{ value: "all", label: "All" }, { value: "unread", label: "Unread" }, { value: "human", label: "Needs human" }, { value: "active", label: "Active" }, { value: "resolved", label: "Resolved" }]} />
+        <AdminSelect name="sort" defaultValue={sort} ariaLabel="Sort conversations" size="lg" menuWidth={140} options={[{ value: "newest", label: "Newest" }, { value: "oldest", label: "Oldest" }]} />
         <button type="submit" className="rounded-lg bg-accent px-3 py-2 text-sm font-medium text-white">Filter</button>
       </form>
 

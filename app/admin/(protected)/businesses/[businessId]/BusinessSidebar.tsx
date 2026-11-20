@@ -62,10 +62,10 @@ export function BusinessSidebar({
               size="md"
               radius={12}
               menuWidth={0}
-              surfaceColor="#ffffff"
-              highlightColor="#d7ebe4"
-              textColor="#0f172a"
-              accentColor="#0f766e"
+              surfaceColor="var(--color-surface)"
+              highlightColor="var(--color-mist)"
+              textColor="var(--color-ink)"
+              accentColor="var(--color-marigold)"
             />
           </div>
         </div>
