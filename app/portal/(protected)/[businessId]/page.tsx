@@ -9,6 +9,7 @@ import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { getRequestUser } from "@/lib/supabase/request";
 import { getOrderTakingEnabled } from "@/lib/orderSettings";
 import { ActivityPanel, type ChartPoint, type ChartMetric } from "./ActivityChart";
+import { SalesCard } from "./SalesCard";
 import { DataTable, type Column, type Row } from "./DataTable";
 
 type OrderRow = {
@@ -238,6 +239,10 @@ export default async function PortalDashboardPage({
   );
   const orderSeries = dailySeries(now, chartOrderRows.map((r) => ({ at: r.created_at, value: Number(r.total ?? 0) })));
   const showOrders = orderTakingEnabled || chartOrderRows.length > 0;
+  const sumValues = (points: ChartPoint[]) => points.reduce((total, point) => total + point.value, 0);
+  const salesNow = sumValues(orderSeries.slice(-30));
+  const salesBefore = sumValues(orderSeries.slice(-60, -30));
+  const ordersNow = chartOrderRows.filter((row) => row.created_at >= thirtyDaysAgo).length;
 
   const chartMetrics: ChartMetric[] = [
     {
@@ -367,34 +372,43 @@ export default async function PortalDashboardPage({
       <OnboardingCard steps={steps} />
 
       <div className="grid min-w-0 gap-5 min-[1200px]:grid-cols-12">
-        <ActivityPanel metrics={chartMetrics} className="min-w-0 min-[1200px]:col-span-8 min-[1200px]:row-span-2" />
-        <Link
-          href={`${base}/conversations`}
-          data-urgent={needsYou > 0}
-          className={`glass-panel glass-hover flex min-w-0 flex-col justify-center rounded-[18px] border p-5 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent min-[1200px]:col-span-4 ${
-            needsYou > 0
-              ? "border-marigold/60 bg-lime/70"
-              : "border-line"
-          }`}
-        >
-          <div className="flex items-center gap-2 text-sm font-medium text-muted">
-            <span className={`h-2.5 w-2.5 rounded-full ${needsYou > 0 ? "bg-marigold" : "bg-accent"}`} aria-hidden="true" />
-            Need you now
-          </div>
-          <p className="mt-2 text-[44px] font-semibold leading-none tracking-tight text-ink">{needsYou}</p>
-          <p className={`mt-3 text-sm leading-relaxed ${needsYou > 0 ? "text-marigold" : "text-muted"}`}>
-            {needsYou > 0 ? `${needsYou} conversation${needsYou === 1 ? "" : "s"} need attention.` : "Nothing waiting. Mira has it covered."}
-          </p>
-        </Link>
+        <ActivityPanel metrics={chartMetrics} className="min-w-0 min-[1200px]:col-span-8" />
 
-        <div className="glass-panel min-w-0 rounded-[18px] min-[1200px]:col-span-4">
-          <div className="flex items-center justify-between gap-3 px-4 pt-4 sm:px-5 sm:pt-5">
-            <h2 className="text-sm font-semibold text-ink">Conversations</h2>
-            <DeltaPill current={conversationCount ?? 0} previous={previousConversationCount ?? 0} />
+        <div className="flex min-w-0 flex-col gap-4 min-[1200px]:col-span-4">
+          <SalesCard
+            enabled={showOrders}
+            total={salesNow}
+            previous={salesBefore}
+            orders={ordersNow}
+            daily={orderSeries.slice(-30).map((point) => point.value)}
+            ordersHref={`${base}/orders`}
+            settingsHref={`${base}/settings`}
+          />
+
+          <Link
+            href={`${base}/conversations`}
+            data-urgent={needsYou > 0}
+            className={`glass-panel glass-hover flex min-w-0 items-center justify-between gap-4 rounded-[18px] border px-5 py-4 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+              needsYou > 0 ? "border-marigold/60 bg-lime/70" : "border-line"
+            }`}
+          >
+            <span className="flex items-center gap-3 text-sm font-medium text-ink">
+              <span className={`h-2.5 w-2.5 rounded-full ${needsYou > 0 ? "bg-marigold" : "bg-muted/50"}`} aria-hidden="true" />
+              Need you now
+            </span>
+            <span className="flex items-center gap-2 text-2xl font-semibold tabular-nums text-ink">
+              {needsYou}
+              {needsYou > 0 ? <ArrowRight className="h-4 w-4 text-marigold" aria-hidden="true" /> : null}
+            </span>
+          </Link>
+
+          <div className="glass-panel flex min-w-0 items-center justify-between gap-4 rounded-[18px] px-5 py-4">
+            <span className="text-sm font-medium text-ink">Conversations</span>
+            <span className="flex items-center gap-3">
+              <DeltaPill current={conversationCount ?? 0} previous={previousConversationCount ?? 0} />
+              <span className="text-2xl font-semibold tabular-nums text-ink">{(conversationCount ?? 0).toLocaleString("en-NG")}</span>
+            </span>
           </div>
-          <p className="px-4 pb-4 pt-1 text-[28px] font-semibold leading-tight tracking-tight text-ink sm:px-5 sm:pb-5">
-            {(conversationCount ?? 0).toLocaleString("en-NG")}
-          </p>
         </div>
       </div>
 
