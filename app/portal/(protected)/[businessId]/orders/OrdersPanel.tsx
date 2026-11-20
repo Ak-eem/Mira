@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { createOrder, updateOrderStatus } from "./actions";
 import { linkCourierReference } from "../settings/courier-actions";
 import { ORDER_STATUSES, OPEN_ORDER_STATUSES, type OrderStatus } from "@/lib/orders/status";
+import { AdminSelect } from "@/components/ui/AdminSelect";
 
 type OrderItem = { name: string; quantity: number; unit_price: number | null };
 type Order = {
@@ -129,20 +130,18 @@ function NewOrderForm({
 
       <div>
         <label className="block text-xs font-medium text-slate-600">Customer</label>
-        <select
-          className="mt-1 w-full ui-field"
+        <AdminSelect
+          className="mt-1"
+          fullWidth
+          size="lg"
+          ariaLabel="Customer"
           value={selectedConversation}
-          onChange={(e) => setSelectedConversation(e.target.value)}
-        >
-          <option value="">
-            {recentConversations.length > 0 ? "Pick a recent chat…" : "No recent chats yet"}
-          </option>
-          {recentConversations.map((c) => (
-            <option key={c.identifier} value={c.identifier}>
-              {c.label}
-            </option>
-          ))}
-        </select>
+          onChange={setSelectedConversation}
+          options={[
+            { value: "", label: recentConversations.length > 0 ? "Pick a recent chat…" : "No recent chats yet" },
+            ...recentConversations.map((c) => ({ value: c.identifier, label: c.label })),
+          ]}
+        />
         {/* Web-chat customers (no WhatsApp number at all) can only be
             linked to an order by picking their chat above -- there's
             nothing to type in for them. The phone field below only
@@ -192,17 +191,15 @@ function NewOrderForm({
 
       <div>
         <label className="block text-xs font-medium text-slate-600">Status</label>
-        <select
-          className="mt-1 ui-field"
+        <AdminSelect
+          className="mt-1"
+          size="lg"
+          menuWidth={176}
+          ariaLabel="Status"
           value={status}
-          onChange={(e) => setStatus(e.target.value as OrderStatus)}
-        >
-          {STATUS_OPTIONS.map((s) => (
-            <option key={s} value={s}>
-              {s}
-            </option>
-          ))}
-        </select>
+          onChange={(next) => setStatus(next as OrderStatus)}
+          options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
+        />
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}
@@ -274,18 +271,16 @@ function OrderRow({
               Confirm order
             </button>
           )}
-          <select
+          <AdminSelect
             value={status}
             disabled={updating}
-            onChange={(e) => handleStatusChange(e.target.value as OrderStatus)}
-            className="ui-btn ui-btn-secondary ui-btn-sm"
-          >
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+            onChange={(next) => handleStatusChange(next as OrderStatus)}
+            ariaLabel="Order status"
+            size="sm"
+            menuWidth={160}
+            align="right"
+            options={STATUS_OPTIONS.map((s) => ({ value: s, label: s }))}
+          />
         </div>
       </div>
       <p className="mt-1 text-sm text-slate-700">

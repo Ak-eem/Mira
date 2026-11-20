@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AdminSelect } from "@/components/ui/AdminSelect";
 
 const CATEGORIES = ["New feature", "Change to my assistant", "Integration", "Something else"];
 
@@ -50,11 +51,14 @@ export function RequestForm({ businessId }: { businessId: string }) {
     <form onSubmit={submit} className="ui-card !p-5">
       <label className="flex flex-col gap-1.5 text-sm text-slate-600">
         What kind of request?
-        <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-lg border border-slate-200 px-3 py-2 text-slate-900">
-          {CATEGORIES.map((c) => (
-            <option key={c}>{c}</option>
-          ))}
-        </select>
+        <AdminSelect
+          fullWidth
+          size="lg"
+          ariaLabel="What kind of request?"
+          value={category}
+          onChange={setCategory}
+          options={CATEGORIES.map((c) => ({ value: c, label: c }))}
+        />
       </label>
       <label className="flex flex-col gap-1.5 text-sm text-slate-600">
         Title
