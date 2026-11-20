@@ -53,7 +53,7 @@ export function AdminSidebar() {
         Menu
       </button>
       {open && <button type="button" aria-label="Close navigation" onClick={() => setOpen(false)} className="fixed inset-0 z-20 bg-slate-900/30 md:hidden" />}
-      <nav className={`glass-panel-strong fixed inset-y-0 left-0 z-30 flex w-64 flex-col gap-1 rounded-none p-4 transition-transform overflow-y-auto md:static md:z-auto md:w-56 md:shrink-0 md:self-start md:rounded-2xl md:p-3 ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
+      <nav className={`glass-panel-strong !border-0 shadow-[0_1px_2px_rgba(15,42,34,0.06),0_12px_28px_-18px_rgba(15,42,34,0.35)] fixed inset-y-0 left-0 z-30 flex w-64 flex-col gap-1 rounded-none p-4 transition-transform overflow-y-auto md:static md:z-auto md:w-56 md:shrink-0 md:self-start md:rounded-2xl md:p-3 ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         <button type="button" onClick={() => setOpen(false)} className="mb-3 self-end text-sm text-slate-500 md:hidden">Close</button>
         {NAV_GROUPS.map((group) => (
           <div key={group.label} className="mb-2">
