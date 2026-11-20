@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { escapeHtml } from "@/lib/escapeHtml";
+import { AdminSelect } from "@/components/ui/AdminSelect";
 
 type Placement = "right" | "left" | "right-raised" | "left-raised";
 const PLACEMENTS: Array<{ value: Placement; label: string }> = [
@@ -198,17 +199,17 @@ export function EmbedSnippet({ slug, businessName }: { slug: string; businessNam
         <p className="mb-3 text-xs text-slate-500">
           If you have your own website, paste this one snippet just before the closing <code className="rounded-sm bg-slate-100 px-1 py-0.5">&lt;/body&gt;</code> tag on your site.
         </p>
-        <label htmlFor="widget-placement" className="mb-1 block text-xs font-medium text-slate-700">Where should the chat button sit?</label>
-        <select
-          id="widget-placement"
-          value={placement}
-          onChange={(e) => setPlacement(e.target.value as Placement)}
-          className="ui-field"
-        >
-          {PLACEMENTS.map((option) => (
-            <option key={option.value} value={option.value}>{option.label}</option>
-          ))}
-        </select>
+        <label id="widget-placement-label" className="mb-1 block text-xs font-medium text-slate-700">Where should the chat button sit?</label>
+        <div className="mb-3">
+          <AdminSelect
+            ariaLabel="Where should the chat button sit?"
+            size="lg"
+            menuWidth={220}
+            value={placement}
+            onChange={(next) => setPlacement(next as Placement)}
+            options={PLACEMENTS.map((option) => ({ value: option.value, label: option.label }))}
+          />
+        </div>
         <pre className="overflow-x-auto rounded-lg bg-slate-900 p-3 text-xs leading-relaxed text-slate-100">
           <code>{snippet || "Loading…"}</code>
         </pre>

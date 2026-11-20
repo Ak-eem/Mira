@@ -16,6 +16,8 @@ export function AdminSelect({
   fullWidth = false,
   size = "md",
   menuWidth = 0,
+  align = "left",
+  disabled = false,
   className = "",
 }: {
   options: AdminSelectOption[];
@@ -27,6 +29,8 @@ export function AdminSelect({
   fullWidth?: boolean;
   size?: "sm" | "md" | "lg";
   menuWidth?: number;
+  align?: "left" | "right";
+  disabled?: boolean;
   className?: string;
 }) {
   return (
@@ -41,6 +45,8 @@ export function AdminSelect({
       size={size}
       radius={12}
       menuWidth={menuWidth}
+      align={align}
+      disabled={disabled}
       surfaceColor="var(--color-surface)"
       highlightColor="var(--color-mist)"
       textColor="var(--color-ink)"
