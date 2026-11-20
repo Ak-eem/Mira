@@ -140,6 +140,8 @@ export function ActivityPanel({ metrics, className = "" }: { metrics: ChartMetri
   const canSplit = channels.length > 0;
   const splitting = split && canSplit;
   const comparing = compare && view === "line" && !splitting;
+  // Three overlapping lines are unreadable for small businesses, so a channel split is always stacked bars.
+  const shape = splitting ? "bars" : view;
 
   const days = Number(range);
   const cur = metric.points.slice(-days);
@@ -147,12 +149,10 @@ export function ActivityPanel({ metrics, className = "" }: { metrics: ChartMetri
   const total = cur.reduce((s, p) => s + p.value, 0);
   const before = prev.reduce((s, p) => s + p.value, 0);
   const pct = before === 0 ? null : Math.round(((total - before) / before) * 100);
-  const average = cur.length ? total / cur.length : 0;
   let best = 0;
   cur.forEach((p, i) => {
     if (p.value > cur[best].value) best = i;
   });
-  const quiet = cur.filter((p) => (metric.kind === "money" ? p.value === 0 : p.value <= 3)).length;
 
   // ---- geometry
   const n = cur.length;
@@ -168,7 +168,7 @@ export function ActivityPanel({ metrics, className = "" }: { metrics: ChartMetri
   const slot = iw / Math.max(n, 1);
   const xLine = (i: number) => left + (n <= 1 ? iw / 2 : (i / (n - 1)) * iw);
   const xBar = (i: number) => left + slot * (i + 0.5);
-  const xAt = view === "bars" ? xBar : xLine;
+  const xAt = shape === "bars" ? xBar : xLine;
   const pathOf = (values: number[]) => values.map((v, i) => `${i ? "L" : "M"}${xLine(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
 
   const wantTicks = width < 480 ? 4 : 6;
@@ -179,7 +179,7 @@ export function ActivityPanel({ metrics, className = "" }: { metrics: ChartMetri
   function indexFromEvent(event: React.PointerEvent<SVGSVGElement>) {
     const rect = event.currentTarget.getBoundingClientRect();
     const px = ((event.clientX - rect.left) / rect.width) * width;
-    const i = view === "bars" ? Math.floor((px - left) / slot) : Math.round(((px - left) / iw) * (n - 1));
+    const i = shape === "bars" ? Math.floor((px - left) / slot) : Math.round(((px - left) / iw) * (n - 1));
     return Math.min(n - 1, Math.max(0, i));
   }
   function onKey(event: React.KeyboardEvent<SVGSVGElement>) {
@@ -203,25 +203,22 @@ export function ActivityPanel({ metrics, className = "" }: { metrics: ChartMetri
   const pillText = pct === null ? (total > 0 ? "New" : "No change") : pct > 0 ? `+${pct}%` : pct < 0 ? `${pct}%` : "No change";
 
   return (
-    <section className={`glass-panel min-w-0 rounded-[18px] p-4 sm:p-5 ${className}`} aria-label="Activity">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          {metrics.length > 1 ? (
-            <Segmented
-              label="Metric"
-              value={metric.id}
-              options={metrics.map((m) => ({ id: m.id, text: m.title }))}
-              onChange={(id) => {
-                setMetricId(id);
-                setHover(null);
-              }}
-            />
-          ) : (
-            <h2 className="font-medium text-ink">{metric.title}</h2>
-          )}
-          {canSplit ? <Toggle label="Split by channel" checked={splitting} onChange={(next) => { setSplit(next); setHover(null); }} /> : null}
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <section className={`glass-panel min-w-0 rounded-[18px] p-5 sm:p-6 ${className}`} aria-label="Activity">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+        {metrics.length > 1 ? (
+          <Segmented
+            label="Metric"
+            value={metric.id}
+            options={metrics.map((m) => ({ id: m.id, text: m.title }))}
+            onChange={(id) => {
+              setMetricId(id);
+              setHover(null);
+            }}
+          />
+        ) : (
+          <h2 className="text-sm font-semibold text-ink">{metric.title}</h2>
+        )}
+        <div className="flex flex-wrap items-center gap-3">
           <Segmented
             label="Range"
             value={range}
@@ -231,82 +228,64 @@ export function ActivityPanel({ metrics, className = "" }: { metrics: ChartMetri
               setHover(null);
             }}
           />
-          <Segmented
-            label="Chart type"
-            value={view}
-            options={[
-              { id: "line" as const, text: "Line" },
-              { id: "bars" as const, text: "Bars" },
-            ]}
-            onChange={(id) => {
-              setView(id);
-              setHover(null);
-            }}
-          />
+          {splitting ? null : (
+            <Segmented
+              label="Chart type"
+              value={view}
+              options={[
+                { id: "line" as const, text: "Line" },
+                { id: "bars" as const, text: "Bars" },
+              ]}
+              onChange={(id) => {
+                setView(id);
+                setHover(null);
+              }}
+            />
+          )}
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1" aria-live="polite">
-        <span className="text-3xl font-semibold tracking-tight text-ink tabular-nums">{format(total)}</span>
-        <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold tabular-nums ${pillClass}`}>
+      <div className="mt-7 flex flex-wrap items-center gap-x-3 gap-y-1" aria-live="polite">
+        <span className="text-4xl font-semibold tracking-tight text-ink tabular-nums">{format(total)}</span>
+        <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold tabular-nums ${pillClass}`}>
           {pct !== null && pct > 0 ? <ArrowUp className="h-3 w-3" aria-hidden="true" /> : pct !== null && pct < 0 ? <ArrowDown className="h-3 w-3" aria-hidden="true" /> : null}
           {pillText}
         </span>
-        <span className="text-xs text-muted">last {range} days, compared with the {range} days before</span>
+        <span className="text-xs text-muted">last {range} days</span>
       </div>
 
-      {total > 0 ? (
-        <dl className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <div className="min-w-0 border-t border-line pt-2">
-            <dt className="text-xs text-muted">Daily average</dt>
-            <dd className="mt-0.5 text-sm font-semibold text-ink tabular-nums">{metric.kind === "money" ? naira(average) : (Math.round(average * 10) / 10).toLocaleString("en-NG")}</dd>
-          </div>
-          <div className="min-w-0 border-t border-line pt-2">
-            <dt className="text-xs text-muted">Best day</dt>
-            <dd className="mt-0.5 text-sm font-semibold text-ink tabular-nums">
-              {format(cur[best].value)} <span className="font-normal text-muted">on {dayFmt.format(cur[best].t)}</span>
-            </dd>
-          </div>
-          <div className="col-span-2 min-w-0 border-t border-line pt-2 sm:col-span-1">
-            <dt className="text-xs text-muted">{metric.kind === "money" ? "Days without a sale" : "Quiet days (3 or fewer)"}</dt>
-            <dd className="mt-0.5 text-sm font-semibold text-ink tabular-nums">
-              {quiet} {quiet === 1 ? "day" : "days"}
-            </dd>
-          </div>
-        </dl>
-      ) : null}
-
       {total === 0 ? (
-        <div className="mt-4 flex h-[160px] items-center justify-center rounded-xl border border-dashed border-line text-center text-sm text-muted">
+        <div className="mt-6 flex h-[200px] items-center justify-center rounded-xl border border-dashed border-line text-center text-sm text-muted">
           <p className="max-w-xs px-4">{metric.emptyMessage}</p>
         </div>
       ) : (
         <>
-          <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-            <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-2">
+          <div className="mt-7 flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+            <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-ink-2">
               {splitting ? (
                 channels.map((c) => (
-                  <li key={c.id} className="inline-flex items-center gap-1.5">
-                    <span aria-hidden className={view === "bars" ? "h-2 w-2 rounded-sm" : "h-0 w-3.5 rounded-full border-t-2"} style={view === "bars" ? { background: channelColor(c.id) } : { borderColor: channelColor(c.id) }} />
+                  <li key={c.id} className="inline-flex items-center gap-2">
+                    <span aria-hidden className="h-2 w-2 rounded-sm" style={{ background: channelColor(c.id) }} />
                     {c.label}
                   </li>
                 ))
-              ) : (
+              ) : comparing ? (
                 <>
-                  <li className="inline-flex items-center gap-1.5">
-                    <span aria-hidden className="h-0 w-3.5 rounded-full border-t-2 border-ink" />
-                    This period
+                  <li className="inline-flex items-center gap-2">
+                    <span aria-hidden className="h-0 w-4 rounded-full border-t-2 border-ink" />
+                    Now
                   </li>
-                  {comparing ? (
-                    <li className="inline-flex items-center gap-1.5">
-                      <span aria-hidden className="h-0 w-3.5 border-t-2 border-dashed border-muted" />
-                      Previous period
-                    </li>
-                  ) : null}
+                  <li className="inline-flex items-center gap-2">
+                    <span aria-hidden className="h-0 w-4 border-t-2 border-dashed border-muted" />
+                    Before
+                  </li>
                 </>
-              )}
+              ) : null}
             </ul>
-            {view === "line" && !splitting ? <Toggle label="Compare with previous period" checked={compare} onChange={setCompare} /> : null}
+            <div className="flex flex-wrap items-center gap-2">
+              {canSplit ? <Toggle label="By channel" checked={splitting} onChange={(next) => { setSplit(next); setHover(null); }} /> : null}
+              {view === "line" && !splitting ? <Toggle label="Compare" checked={compare} onChange={setCompare} /> : null}
+            </div>
           </div>
 
           {table ? (
@@ -360,21 +339,13 @@ export function ActivityPanel({ metrics, className = "" }: { metrics: ChartMetri
                   </g>
                 ))}
                 {xTicks.map((i) => (
-                  <text key={i} x={xAt(i)} y={H - 8} textAnchor={i === 0 && view === "line" ? "start" : "middle"} fontSize={11} fill="var(--color-muted)">
+                  <text key={i} x={xAt(i)} y={H - 8} textAnchor={i === 0 && shape === "line" ? "start" : "middle"} fontSize={11} fill="var(--color-muted)">
                     {shortFmt.format(cur[i].t)}
                   </text>
                 ))}
 
-                {view === "line" ? (
-                  splitting ? (
-                    channels.map((c) => (
-                      <g key={c.id}>
-                        <path d={pathOf(cur.map((p) => p.parts?.[c.id] ?? 0))} pathLength={1} strokeDasharray={1} strokeDashoffset={0} fill="none" stroke={channelColor(c.id)} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="animate-draw motion-reduce:animate-none" />
-                        <circle cx={xLine(n - 1)} cy={y(cur[n - 1].parts?.[c.id] ?? 0)} r={6} fill="var(--color-surface)" />
-                        <circle cx={xLine(n - 1)} cy={y(cur[n - 1].parts?.[c.id] ?? 0)} r={4} fill={channelColor(c.id)} />
-                      </g>
-                    ))
-                  ) : (
+                {shape === "line" ? (
+                  (
                     <>
                       {comparing ? <path d={pathOf(prev.map((p) => p.value))} fill="none" stroke="var(--color-muted)" strokeOpacity={0.8} strokeWidth={1.5} strokeDasharray="4 4" strokeLinecap="round" strokeLinejoin="round" /> : null}
                       <path d={`${pathOf(cur.map((p) => p.value))} L${xLine(n - 1).toFixed(1)},${y(0)} L${xLine(0).toFixed(1)},${y(0)} Z`} fill="var(--color-ink)" fillOpacity={0.08} className="animate-area motion-reduce:animate-none" />
@@ -426,21 +397,12 @@ export function ActivityPanel({ metrics, className = "" }: { metrics: ChartMetri
                 {hover !== null && active ? (
                   <g pointerEvents="none">
                     <line x1={hoverX} x2={hoverX} y1={M.top} y2={M.top + ih} stroke="var(--color-ink)" strokeOpacity={0.3} />
-                    {view === "line" && splitting
-                      ? channels.map((c) => (
-                          <g key={c.id}>
-                            <circle cx={hoverX} cy={y(active.parts?.[c.id] ?? 0)} r={6} fill="var(--color-surface)" />
-                            <circle cx={hoverX} cy={y(active.parts?.[c.id] ?? 0)} r={4} fill={channelColor(c.id)} />
-                          </g>
-                        ))
-                      : view === "line"
-                        ? (
-                          <>
-                            <circle cx={hoverX} cy={y(active.value)} r={6} fill="var(--color-surface)" />
-                            <circle cx={hoverX} cy={y(active.value)} r={4} fill="var(--color-ink)" />
-                          </>
-                        )
-                        : null}
+                    {shape === "line" ? (
+                      <>
+                        <circle cx={hoverX} cy={y(active.value)} r={6} fill="var(--color-surface)" />
+                        <circle cx={hoverX} cy={y(active.value)} r={4} fill="var(--color-ink)" />
+                      </>
+                    ) : null}
                   </g>
                 ) : null}
               </svg>
