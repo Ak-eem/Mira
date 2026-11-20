@@ -98,9 +98,9 @@ export default async function BusinessDetailPage({
   }
 
   const statusStyles: Record<MiraStatus, string> = {
-    online: "text-emerald-600",
-    needs_attention: "text-amber-600",
-    offline: "text-slate-400",
+    online: "bg-lime text-ink",
+    needs_attention: "bg-marigold/25 text-ink",
+    offline: "bg-mist text-muted",
   };
   const statusLabels: Record<MiraStatus, string> = {
     online: "Online",
@@ -112,27 +112,23 @@ export default async function BusinessDetailPage({
     miraStatus !== "offline" ? isOpenNow(hours ?? [], business.timezone) : null;
 
   return (
-    <div>
-      <div className="mb-2 mt-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+    <div className="space-y-6">
+      <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
         <div className="min-w-0">
-          <h1 className="break-words text-xl font-semibold">{business.name}</h1>
-          <p className="break-all font-mono text-sm text-slate-500">
+          <h1 className="break-words text-2xl font-semibold tracking-tight text-ink">{business.name}</h1>
+          <p className="break-all font-mono text-sm text-muted">
             /chat/{business.slug} · {business.currency} · {business.timezone}
           </p>
         </div>
 
         <div className="flex shrink-0 flex-col gap-2 sm:items-end">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:flex-col sm:items-end sm:gap-1">
-            <span className={`text-xs font-medium ${statusStyles[miraStatus]}`}>
+            <span className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${statusStyles[miraStatus]}`}>
               {statusLabels[miraStatus]}
             </span>
             {openNow !== null && (
               <span
-                className={
-                  openNow
-                    ? "text-xs font-medium text-emerald-600"
-                    : "text-xs font-medium text-slate-400"
-                }
+                className={`rounded-full px-2.5 py-1 text-[11px] font-medium ${openNow ? "bg-lime text-ink" : "bg-mist text-muted"}`}
               >
                 {openNow ? "Open now" : "Closed now"}
               </span>
@@ -155,49 +151,43 @@ export default async function BusinessDetailPage({
       {flaggedCount > 0 && (
         <Link
           href={`/admin/businesses/${businessId}/conversations`}
-          className="mb-4 flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 hover:border-amber-400"
+          className="glass-panel glass-hover flex items-center justify-between rounded-[18px] border border-marigold px-5 py-4"
         >
-          <span className="text-sm font-medium text-amber-800">
-            🚩 {flaggedCount} conversation{flaggedCount === 1 ? "" : "s"} need{flaggedCount === 1 ? "s" : ""} you
+          <span className="text-sm font-medium text-ink">
+            {flaggedCount} conversation{flaggedCount === 1 ? "" : "s"} need{flaggedCount === 1 ? "s" : ""} you
           </span>
-          <span className="text-xs text-amber-700">View →</span>
+          <span className="text-xs font-medium text-accent">View →</span>
         </Link>
       )}
 
-      {statusReason && <p className="mb-6 text-sm text-amber-600">{statusReason}</p>}
-      {!statusReason && <div className="mb-6" />}
+      {statusReason && <p className="text-sm text-ink-2">{statusReason}</p>}
 
-      <div className="mb-6 flex flex-wrap gap-x-6 gap-y-2 rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm">
-        <span>
-          <span className="font-mono font-medium">{services?.length ?? 0}</span> services
-        </span>
-        <span>
-          <span className="font-mono font-medium">{products?.length ?? 0}</span> products
-        </span>
-        <span>
-          <span className="font-mono font-medium">{activePromotionsCount}</span> active promotions
-        </span>
-        <span>
-          <span className="font-mono font-medium">{faqs?.length ?? 0}</span> FAQs
-        </span>
-        <span>
-          <span className="font-mono font-medium">{policies?.length ?? 0}</span> policies
-        </span>
-        <span className="text-slate-400">
-          {business.ai_tone ? "custom tone" : "default tone"}
-        </span>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 min-[1200px]:grid-cols-5">
+        {[
+          ["Services", services?.length ?? 0],
+          ["Products", products?.length ?? 0],
+          ["Active promotions", activePromotionsCount],
+          ["FAQs", faqs?.length ?? 0],
+          ["Policies", policies?.length ?? 0],
+        ].map(([label, value]) => (
+          <div key={label} className="glass-panel rounded-[18px] px-5 py-4">
+            <p className="text-3xl font-semibold tracking-tight text-ink">{value}</p>
+            <p className="mt-1 text-xs text-muted">{label}</p>
+          </div>
+        ))}
       </div>
+      <p className="-mt-3 text-xs text-muted">{business.ai_tone ? "Custom tone" : "Default tone"}</p>
 
-      <div className="mb-6">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-700">Recent activity</h2>
-          <Link href={`/admin/businesses/${businessId}/activity`} className="text-xs text-accent hover:underline">
+      <section className="glass-panel rounded-[18px] p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink">Recent activity</h2>
+          <Link href={`/admin/businesses/${businessId}/activity`} className="text-xs font-medium text-accent hover:underline">
             View all
           </Link>
         </div>
 
         {(!recentActivity || recentActivity.length === 0) && (
-          <p className="text-sm text-slate-500">Nothing changed yet.</p>
+          <p className="text-sm text-muted">Nothing changed yet.</p>
         )}
 
         {recentActivity && recentActivity.length > 0 && (
@@ -205,35 +195,35 @@ export default async function BusinessDetailPage({
             {recentActivity.map((a) => (
               <li
                 key={a.id}
-                className="flex items-center justify-between rounded-sm border border-slate-200 bg-white px-3 py-2 text-sm"
+                className="flex items-center justify-between gap-3 rounded-xl bg-mist/60 px-3 py-2 text-sm text-ink"
               >
                 <span>
                   {a.summary}
                   {a.source === "command_center" && (
-                    <span className="ml-2 rounded-sm bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-500">
+                    <span className="ml-2 rounded-full bg-mist px-2 py-0.5 text-[10px] font-medium text-muted">
                       via Command Center
                     </span>
                   )}
                 </span>
-                <span className="whitespace-nowrap pl-3 text-xs text-slate-500">
+                <span className="whitespace-nowrap pl-3 text-xs text-muted">
                   {formatRelativeTime(a.created_at)}
                 </span>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </section>
 
-      <div className="mb-6">
-        <div className="mb-2 flex items-center justify-between">
-          <h2 className="text-sm font-semibold text-slate-700">Recent conversations</h2>
-          <Link href={`/admin/businesses/${businessId}/conversations`} className="text-xs text-accent hover:underline">
+      <section className="glass-panel rounded-[18px] p-5">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold text-ink">Recent conversations</h2>
+          <Link href={`/admin/businesses/${businessId}/conversations`} className="text-xs font-medium text-accent hover:underline">
             View all
           </Link>
         </div>
 
         {(!recentConversations || recentConversations.length === 0) && (
-          <p className="text-sm text-slate-500">No conversations yet — they&apos;ll show up here once someone chats.</p>
+          <p className="text-sm text-muted">No conversations yet — they&apos;ll show up here once someone chats.</p>
         )}
 
         {recentConversations && recentConversations.length > 0 && (
@@ -242,26 +232,26 @@ export default async function BusinessDetailPage({
               <li key={c.id}>
                 <Link
                   href={`/admin/businesses/${businessId}/conversations/${c.id}`}
-                  className="flex items-center justify-between rounded-sm border border-slate-200 bg-white px-3 py-2 text-sm hover:border-accent"
+                  className="glass-hover flex items-center justify-between gap-3 rounded-xl bg-mist/60 px-3 py-2 text-sm text-ink"
                 >
                   <span className="flex items-center gap-2">
                     {c.needs_human && (
-                      <span className="rounded-sm bg-amber-100 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-800">
+                      <span className="rounded-full bg-marigold/25 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-ink">
                         Needs you
                       </span>
                     )}
-                    <span className="font-mono text-xs text-slate-500">{c.session_token.slice(0, 8)}…</span>
-                    <span className={`text-xs font-medium ${c.channel === "whatsapp" ? "text-emerald-600" : "text-slate-400"}`}>
+                    <span className="font-mono text-xs text-muted">{c.session_token.slice(0, 8)}…</span>
+                    <span className={`text-xs font-medium ${c.channel === "whatsapp" ? "text-accent" : "text-muted"}`}>
                       {c.channel === "whatsapp" ? "WhatsApp" : "Web"}
                     </span>
                   </span>
-                  <span className="text-xs text-slate-500">{formatRelativeTime(c.last_message_at)}</span>
+                  <span className="text-xs text-muted">{formatRelativeTime(c.last_message_at)}</span>
                 </Link>
               </li>
             ))}
           </ul>
         )}
-      </div>
+      </section>
 
     </div>
   );
