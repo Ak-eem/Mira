@@ -23,13 +23,12 @@ type OrderRow = {
 const DAY_MS = 24 * 60 * 60 * 1000;
 const TZ = "Africa/Lagos";
 const dayKey = (d: Date) => new Intl.DateTimeFormat("en-CA", { timeZone: TZ }).format(d);
-const dayLabel = (d: Date) => new Intl.DateTimeFormat("en-GB", { timeZone: TZ, day: "numeric", month: "short" }).format(d);
 
 // PostgREST returns at most 1000 rows per request, so page through (capped at 5000)
 // rather than silently under-counting a busy month.
-async function fetchPaged<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null }>): Promise<T[]> {
+async function fetchPaged<T>(page: (from: number, to: number) => PromiseLike<{ data: T[] | null }>, maxRows = 5000): Promise<T[]> {
   const rows: T[] = [];
-  for (let from = 0; from < 5000; from += 1000) {
+  for (let from = 0; from < maxRows; from += 1000) {
     const { data } = await page(from, from + 999);
     if (!data) break;
     rows.push(...data);
@@ -38,16 +37,22 @@ async function fetchPaged<T>(page: (from: number, to: number) => PromiseLike<{ d
   return rows;
 }
 
-// One point per day for the last 30 days, zero-filled so quiet days still show.
-function dailySeries(now: number, entries: { at: string; value: number }[]): ChartPoint[] {
-  const totals = new Map<string, number>();
+// One point per day for the last CHART_DAYS days (the 90 shown plus the 90 before, for comparing),
+// zero-filled so quiet days still show. `channel` splits a day into parts.
+const CHART_DAYS = 180;
+function dailySeries(now: number, entries: { at: string; value: number; channel?: string }[]): ChartPoint[] {
+  const days = new Map<string, { value: number; parts: Record<string, number> }>();
   for (const entry of entries) {
     const key = dayKey(new Date(entry.at));
-    totals.set(key, (totals.get(key) ?? 0) + entry.value);
+    const day = days.get(key) ?? { value: 0, parts: {} };
+    day.value += entry.value;
+    if (entry.channel) day.parts[entry.channel] = (day.parts[entry.channel] ?? 0) + entry.value;
+    days.set(key, day);
   }
-  return Array.from({ length: 30 }, (_, i) => {
-    const date = new Date(now - (29 - i) * DAY_MS);
-    return { label: dayLabel(date), value: totals.get(dayKey(date)) ?? 0 };
+  return Array.from({ length: CHART_DAYS }, (_, i) => {
+    const date = new Date(now - (CHART_DAYS - 1 - i) * DAY_MS);
+    const day = days.get(dayKey(date));
+    return { t: date.getTime(), value: day?.value ?? 0, ...(day ? { parts: day.parts } : {}) };
   });
 }
 
@@ -144,6 +149,7 @@ export default async function PortalDashboardPage({
   const now = Date.now();
   const thirtyDaysAgo = new Date(now - 30 * DAY_MS).toISOString();
   const sixtyDaysAgo = new Date(now - 60 * DAY_MS).toISOString();
+  const chartStart = new Date(now - CHART_DAYS * DAY_MS).toISOString();
 
   const count = (table: string) => supabase.from(table).select("id", { count: "exact", head: true }).eq("business_id", businessId);
 
@@ -166,6 +172,7 @@ export default async function PortalDashboardPage({
     { count: inviteCount },
     conversationRows,
     orderRows,
+    chartOrderRows,
     orderTakingEnabled,
   ] = await timed("portal:home-queries", Promise.all([
     count("conversations").gte("started_at", thirtyDaysAgo),
@@ -194,8 +201,11 @@ export default async function PortalDashboardPage({
     count("faqs"),
     count("policies"),
     count("team_invites").in("status", ["pending", "accepted"]),
-    fetchPaged<{ started_at: string }>((from, to) =>
-      supabase.from("conversations").select("started_at").eq("business_id", businessId).gte("started_at", thirtyDaysAgo).order("started_at").range(from, to),
+    // Newest first, so a very busy business loses its oldest days (not the latest) past the cap.
+    fetchPaged<{ started_at: string; channel: string | null }>(
+      (from, to) =>
+        supabase.from("conversations").select("started_at, channel").eq("business_id", businessId).gte("started_at", chartStart).order("started_at", { ascending: false }).range(from, to),
+      10000,
     ),
     fetchPaged<OrderRow>((from, to) =>
       supabase
@@ -207,12 +217,27 @@ export default async function PortalDashboardPage({
         .order("created_at")
         .range(from, to),
     ),
+    fetchPaged<{ created_at: string; total: number | null }>(
+      (from, to) =>
+        supabase
+          .from("orders")
+          .select("created_at, total")
+          .eq("business_id", businessId)
+          .in("status", ["placed", "shipped", "delivered"])
+          .gte("created_at", chartStart)
+          .order("created_at", { ascending: false })
+          .range(from, to),
+      10000,
+    ),
     getOrderTakingEnabled(businessId),
   ]));
 
-  const conversationSeries = dailySeries(now, conversationRows.map((r) => ({ at: r.started_at, value: 1 })));
-  const orderSeries = dailySeries(now, orderRows.map((r) => ({ at: r.created_at, value: Number(r.total ?? 0) })));
-  const showOrders = orderTakingEnabled || orderRows.length > 0;
+  const conversationSeries = dailySeries(
+    now,
+    conversationRows.map((r) => ({ at: r.started_at, value: 1, channel: r.channel === "whatsapp" || r.channel === "email" ? r.channel : "web" })),
+  );
+  const orderSeries = dailySeries(now, chartOrderRows.map((r) => ({ at: r.created_at, value: Number(r.total ?? 0) })));
+  const showOrders = orderTakingEnabled || chartOrderRows.length > 0;
 
   const chartMetrics: ChartMetric[] = [
     {
@@ -220,6 +245,11 @@ export default async function PortalDashboardPage({
       title: "Conversations",
       kind: "count",
       points: conversationSeries,
+      channels: [
+        { id: "web", label: "Website" },
+        { id: "whatsapp", label: "WhatsApp" },
+        { id: "email", label: "Email" },
+      ],
       emptyMessage: "Your activity shows up here once customers start chatting with Mira.",
     },
     {
