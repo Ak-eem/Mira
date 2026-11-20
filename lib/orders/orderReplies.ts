@@ -15,6 +15,10 @@ export function getOrderRecapReply(items: ResolvedItem[], total: number, currenc
   );
 }
 
+export function getOrderRecapExpiredReply(): string {
+  return "That order summary is a little old, so prices or stock may have changed and I haven't sent it. Tell me what you'd like again and I'll give you a fresh summary to confirm.";
+}
+
 export function getOrderPlacedReply(businessName: string): string {
   return `Thank you! I've sent your order to the ${businessName} team. They'll confirm it here shortly and I'll keep you posted.`;
 }

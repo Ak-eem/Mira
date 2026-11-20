@@ -6,7 +6,9 @@ import {
   getOrderPlacedReply,
   getOrderProblemReply,
   getOrderRecapReply,
+  getOrderRecapExpiredReply,
 } from "@/lib/orders/orderReplies";
+import { isRecapFresh } from "@/lib/orders/recapFreshness";
 import { CUSTOMER_DELIVERABLE_STATUSES } from "@/lib/orders/status";
 import { transitionOrderStatus } from "@/lib/orders/transition";
 
@@ -61,7 +63,7 @@ export async function processOrderRequest(
 ): Promise<HandledReply> {
   const { data: lastAssistant, error: lastError } = await supabase
     .from("messages")
-    .select("context_snapshot")
+    .select("context_snapshot, created_at")
     .eq("conversation_id", ctx.conversationId)
     .eq("role", "assistant")
     .order("created_at", { ascending: false })
@@ -70,7 +72,16 @@ export async function processOrderRequest(
   if (lastError) throw lastError;
 
   const snapshot = (lastAssistant?.context_snapshot ?? null) as RecapSnapshot | null;
-  const recap = snapshot?.orderRecap === true && Array.isArray(snapshot.items) && snapshot.items.length > 0 ? snapshot : null;
+  const storedRecap = snapshot?.orderRecap === true && Array.isArray(snapshot.items) && snapshot.items.length > 0 ? snapshot : null;
+  // An old recap is never placed: prices and stock may have moved since the customer saw it.
+  const recap = storedRecap && isRecapFresh(lastAssistant?.created_at) ? storedRecap : null;
+
+  if (request.customerConfirmed && storedRecap && !recap) {
+    const content = getOrderRecapExpiredReply();
+    const saved = await record({ content, snapshot: { orderRecapExpired: true } });
+    if (!saved) throw new Error("Could not record expired recap reply.");
+    return { reply: content, messageId: saved.messageId };
+  }
 
   if (request.customerConfirmed && recap) {
     const replyText = getOrderPlacedReply(ctx.businessName);

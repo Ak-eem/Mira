@@ -354,16 +354,29 @@ export function ActivityPanel({ metrics, className = "" }: { metrics: ChartMetri
                       <circle cx={xLine(n - 1)} cy={y(cur[n - 1].value)} r={4} fill="var(--color-ink)" />
                       <circle cx={xLine(best)} cy={y(cur[best].value)} r={6} fill="var(--color-surface)" />
                       <circle cx={xLine(best)} cy={y(cur[best].value)} r={4} fill="var(--color-marigold)" />
-                      <text
-                        x={xLine(best)}
-                        y={y(cur[best].value) < M.top + 20 ? y(cur[best].value) + 20 : y(cur[best].value) - 12}
-                        textAnchor={xLine(best) > width * 0.72 ? "end" : xLine(best) < width * 0.12 ? "start" : "middle"}
-                        fontSize={11}
-                        fontWeight={600}
-                        fill="var(--color-ink)"
-                      >
-                        Best: {format(cur[best].value)}
-                      </text>
+                      {(() => {
+                        // Beside the point when it sits at the top (a spike), above it otherwise; a surface-coloured
+                        // halo keeps the words readable where they cross the line.
+                        const bx = xLine(best);
+                        const by = y(cur[best].value);
+                        const nearTop = by < M.top + 24;
+                        const toLeft = bx > width * 0.5;
+                        return (
+                          <text
+                            x={nearTop ? (toLeft ? bx - 12 : bx + 12) : bx}
+                            y={nearTop ? by + 4 : by - 12}
+                            textAnchor={nearTop ? (toLeft ? "end" : "start") : bx > width * 0.72 ? "end" : bx < width * 0.12 ? "start" : "middle"}
+                            fontSize={11}
+                            fontWeight={600}
+                            fill="var(--color-ink)"
+                            stroke="var(--color-surface)"
+                            strokeWidth={3}
+                            paintOrder="stroke"
+                          >
+                            Best: {format(cur[best].value)}
+                          </text>
+                        );
+                      })()}
                     </>
                   )
                 ) : (
