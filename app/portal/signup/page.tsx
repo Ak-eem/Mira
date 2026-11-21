@@ -6,6 +6,8 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import GoogleAuthButton from "@/app/components/GoogleAuthButton";
 import CodeSlots, { type CodeSlotsStatus } from "@/components/site/CodeSlots";
+import { TermsAgreement } from "@/components/legal/TermsAgreement";
+import { AGREEMENT_REQUIRED_MESSAGE, TERMS_VERSION, forgetAgreement, rememberAgreement } from "@/lib/legal";
 
 function getApiErrorMessage(value: unknown, fallback: string): string {
   if (
@@ -27,6 +29,7 @@ export default function PortalSignupPage() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [teamChoice, setTeamChoice] = useState<"invite" | "just-me" | "">("");
+  const [agreed, setAgreed] = useState(false);
   const [otp, setOtp] = useState("");
   const [verificationSent, setVerificationSent] = useState(false);
   const [emailVerified, setEmailVerified] = useState(false);
@@ -103,6 +106,12 @@ export default function PortalSignupPage() {
       return;
     }
 
+    // Agreed BEFORE the account exists; the database also refuses to create the business without a record of it.
+    if (!agreed) {
+      setError(AGREEMENT_REQUIRED_MESSAGE);
+      return;
+    }
+
     if (!emailVerified) {
       setError("Verify your email before creating an account.");
       return;
@@ -163,6 +172,17 @@ export default function PortalSignupPage() {
         }
       }
 
+      // Record the agreement against the new account (who, which version, the exact words, when, from where).
+      // provision_new_business below refuses to run without it.
+      const { error: agreementError } = await supabase.rpc("record_terms_acceptance", {
+        p_terms_version: TERMS_VERSION,
+        p_source: "portal_signup",
+      });
+      if (agreementError) {
+        setError("Account created, but we couldn't record your agreement. Sign in and try again, or contact support.");
+        return;
+      }
+
       // Businesses are admin-only to insert directly (see migration 0001) --
       // this RPC is the one sanctioned way a fresh signup creates its own
       // business and gets a 14-day trial in a single atomic call.
@@ -177,11 +197,14 @@ export default function PortalSignupPage() {
         setError(
           provisionError.message === "TRIAL_ALREADY_USED"
             ? "This account has already used its free trial. Contact us to set up billing."
-            : "Account created, but we couldn't set up your business automatically. Contact support.",
+            : provisionError.message === "TERMS_NOT_ACCEPTED"
+              ? AGREEMENT_REQUIRED_MESSAGE
+              : "Account created, but we couldn't set up your business automatically. Contact support.",
         );
         return;
       }
 
+      forgetAgreement();
       router.push("/portal/signup/complete");
       router.refresh();
     } catch (submitError) {
@@ -203,7 +226,14 @@ export default function PortalSignupPage() {
           Mira <span className="font-normal text-accent">for Business</span>
         </h1>
         <div className="ui-card ui-enter space-y-4 !p-6 sm:!p-8">
-          <GoogleAuthButton next="/portal/signup/complete" label="Sign up with Google" />
+          <TermsAgreement checked={agreed} onChange={setAgreed} />
+
+          <GoogleAuthButton
+            next="/portal/signup/complete"
+            label="Sign up with Google"
+            disabled={!agreed}
+            onBeforeStart={() => rememberAgreement("google_signup")}
+          />
 
           <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-wide text-slate-500">
             <span className="h-px flex-1 bg-slate-200" />
@@ -362,7 +392,7 @@ export default function PortalSignupPage() {
           {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
           <button
             type="submit"
-            disabled={submitting || !emailVerified || !teamChoice}
+            disabled={submitting || !emailVerified || !teamChoice || !agreed}
             className="ui-btn ui-btn-primary w-full"
           >
             {submitting ? "Creating account…" : "Create account"}

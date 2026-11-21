@@ -1,8 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { TermsAgreement } from "@/components/legal/TermsAgreement";
+import { AGREEMENT_REQUIRED_MESSAGE, TERMS_VERSION, forgetAgreement, readRememberedAgreement } from "@/lib/legal";
+
+// The browser remembers a tick made on the signup page (see lib/legal.ts). Read through useSyncExternalStore so the
+// server render and the first client render agree, then it flips to what is really stored.
+const subscribeNothing = () => () => {};
 
 // Reached only from app/auth/callback/route.ts, for a Google sign-in whose
 // account has no business yet. A password signup (app/portal/signup)
@@ -12,6 +18,8 @@ import { createClient } from "@/lib/supabase/client";
 export default function BusinessNamePage() {
   const router = useRouter();
   const [businessName, setBusinessName] = useState("");
+  const [agreed, setAgreed] = useState(false);
+  const alreadyAgreed = useSyncExternalStore(subscribeNothing, () => readRememberedAgreement() !== null, () => false);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
@@ -22,12 +30,27 @@ export default function BusinessNamePage() {
       setError("Enter your business name.");
       return;
     }
+    // Either they ticked on the signup page (remembered in this browser) or they tick it here.
+    const remembered = readRememberedAgreement();
+    if (!remembered && !agreed) {
+      setError(AGREEMENT_REQUIRED_MESSAGE);
+      return;
+    }
     setSubmitting(true);
     try {
       const supabase = createClient();
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push("/portal/login");
+        return;
+      }
+      // Record the agreement first; provision_new_business refuses to create a business without it.
+      const { error: agreementError } = await supabase.rpc("record_terms_acceptance", {
+        p_terms_version: TERMS_VERSION,
+        p_source: remembered?.source ?? "business_name",
+      });
+      if (agreementError) {
+        setError("We couldn't record your agreement. Please try again, or contact support.");
         return;
       }
       const { error: provisionError } = await supabase.rpc("provision_new_business", {
@@ -38,10 +61,13 @@ export default function BusinessNamePage() {
         setError(
           provisionError.message === "TRIAL_ALREADY_USED"
             ? "This account has already used its free trial. Contact us to set up billing."
-            : "We couldn't set up your business automatically. Contact support.",
+            : provisionError.message === "TERMS_NOT_ACCEPTED"
+              ? AGREEMENT_REQUIRED_MESSAGE
+              : "We couldn't set up your business automatically. Contact support.",
         );
         return;
       }
+      forgetAgreement();
       router.push("/portal/signup/complete");
       router.refresh();
     } catch (submitError) {
@@ -72,11 +98,19 @@ export default function BusinessNamePage() {
             />
           </div>
 
+          {alreadyAgreed ? (
+            <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600 ring-1 ring-slate-200/80">
+              You confirmed you own this business and agreed to the Terms of Service and Privacy Policy when you signed up.
+            </p>
+          ) : (
+            <TermsAgreement checked={agreed} onChange={setAgreed} />
+          )}
+
           {error && <p className="rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700" role="alert">{error}</p>}
 
           <button
             type="submit"
-            disabled={submitting}
+            disabled={submitting || (!alreadyAgreed && !agreed)}
             className="ui-btn ui-btn-primary w-full"
           >
             {submitting ? "Setting up…" : "Create my dashboard"}

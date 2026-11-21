@@ -33,7 +33,7 @@ export default function PrivacyPolicyPage() {
               Privacy Policy
             </h1>
             <p className="mt-2 text-xs font-medium uppercase tracking-wider text-slate-400">
-              Last updated: October 2026
+              Last updated: November 2026
             </p>
 
             <div className="mt-8 space-y-8 text-sm leading-7 text-slate-600">
@@ -70,6 +70,9 @@ export default function PrivacyPolicyPage() {
                   </li>
                   <li>
                     <strong>Feedback &amp; Review Data:</strong> Thumbs-up or thumbs-down ratings on AI replies, an optional reason a customer gives for a thumbs-down, and review notes that a business&apos;s own staff add about a reply.
+                  </li>
+                  <li>
+                    <strong>Agreement Records:</strong> When a business owner creates an account we record that they agreed to our Terms of Service, Privacy Policy and ownership confirmation: the version and exact wording, the date and time, the screen where it was given, and the IP address and browser they used. We keep this as evidence of what was agreed, and it is not shown to customers or other businesses.
                   </li>
                   <li>
                     <strong>Business Account Information:</strong> Account credentials, business profiles, knowledge base uploads (FAQs, product catalogs, service lists), and billing contact details for subscribing business owners.
