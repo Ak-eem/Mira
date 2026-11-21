@@ -12,6 +12,8 @@ const NAV_ITEMS = [
   { segment: "", label: "Overview" },
   { segment: "conversations", label: "Chat" },
   { segment: "analytics", label: "Business Analytics" },
+  { segment: "orders", label: "Orders" },
+  { segment: "nudges", label: "Nudges" },
   { segment: "services", label: "Services" },
   { segment: "products", label: "Products" },
   { segment: "faqs", label: "FAQs" },
