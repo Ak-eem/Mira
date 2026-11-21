@@ -35,11 +35,12 @@ export default async function AdminBusinessLayout({
   if (!business) notFound();
 
   return (
-    <div className="flex flex-col md:flex-row md:gap-6">
+    <div>
       <BusinessSidebar
         businessId={businessId}
         businessName={business.name}
         allBusinesses={allBusinesses ?? [{ id: businessId, name: business.name }]}
+        email={admin.email}
       />
       <div className="min-w-0 flex-1">
         <nav aria-label="Breadcrumb" className="mb-4 flex flex-wrap items-center gap-x-1 gap-y-0.5 text-sm text-slate-500">
