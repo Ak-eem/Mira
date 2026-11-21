@@ -1,8 +1,6 @@
-import { DashboardLink } from "@/components/DashboardLink";
 import { redirect } from "next/navigation";
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { AdminSidebar } from "./AdminSidebar";
-import { AdminSignOutButton } from "./AdminSignOutButton";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { FeedbackProvider } from "@/components/ui/Feedback";
 
@@ -29,19 +27,8 @@ export default async function AdminLayout({
     <ThemeProvider>
       <FeedbackProvider>
       <div className="mira-wash min-h-screen">
-      <header className="glass-panel-strong sticky top-0 z-10 flex items-center justify-between gap-3 px-4 py-3 sm:px-6">
-        <div className="flex min-w-0 items-center gap-4">
-          <DashboardLink scope="admin" className="whitespace-nowrap font-semibold text-slate-900">
-            Mira <span className="font-normal text-accent">Admin</span>
-          </DashboardLink>
-          <span className="hidden truncate text-sm text-slate-500 sm:inline">{admin.email}</span>
-        </div>
-        <AdminSignOutButton />
-      </header>
-      <div className="flex w-full flex-col px-4 py-6 md:flex-row md:gap-6 md:px-6 md:py-8 lg:px-8">
-        <AdminSidebar />
-        <main className="min-w-0 flex-1">{children}</main>
-      </div>
+        <AdminSidebar email={admin.email} />
+        <main className="min-w-0 overflow-x-clip px-5 py-6 min-[900px]:ml-[240px] min-[900px]:px-11 min-[900px]:py-9">{children}</main>
       </div>
       </FeedbackProvider>
     </ThemeProvider>
