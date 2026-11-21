@@ -6,10 +6,10 @@ import { SaveStatus } from "@/components/ui/SaveStatus";
 import { useAutoSave } from "@/components/ui/useAutoSave";
 import { saveOrderTaking } from "./actions";
 
-export function OrderTakingPanel({ businessId, initialEnabled, canEdit }: { businessId: string; initialEnabled: boolean; canEdit: boolean }) {
+export function OrderTakingPanel({ businessId, initialEnabled, canEdit, save = saveOrderTaking }: { businessId: string; initialEnabled: boolean; canEdit: boolean; save?: (businessId: string, enabled: boolean) => Promise<{ error: string | null }> }) {
   const router = useRouter();
   const [enabled, setEnabled] = useState(initialEnabled);
-  const { status, error, run } = useAutoSave((next: boolean) => saveOrderTaking(businessId, next), () => router.refresh());
+  const { status, error, run } = useAutoSave((next: boolean) => save(businessId, next), () => router.refresh());
 
   function change(next: boolean) {
     setEnabled(next);

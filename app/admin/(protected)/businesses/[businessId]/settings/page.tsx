@@ -11,6 +11,13 @@ import { SchoolModePanel } from "./SchoolModePanel";
 import { DELETE_REQUEST_SUMMARY } from "@/lib/deletionRequest";
 import { TeamInviteForm } from "./TeamInviteForm";
 import { AgentSettingsPanel } from "./AgentSettingsPanel";
+import { BrandColorPanel } from "@/app/portal/(protected)/[businessId]/settings/BrandColorPanel";
+import { OrderTakingPanel } from "@/app/portal/(protected)/[businessId]/settings/OrderTakingPanel";
+import { GroundingPanel } from "@/app/portal/(protected)/[businessId]/settings/GroundingPanel";
+import { getChatColors } from "@/lib/brandSettings";
+import { getOrderTakingEnabled } from "@/lib/orderSettings";
+import { getGroundingSettings } from "@/lib/grounding/settings";
+import { saveChatColorsAsAdmin, saveGroundingAsAdmin, saveOrderTakingAsAdmin } from "./parity-actions";
 
 export const dynamic = "force-dynamic";
 
@@ -128,6 +135,12 @@ export default async function SettingsPage({ params }: PageProps) {
 
   if (!business) notFound();
 
+  const [chatColors, orderTakingEnabled, groundingSettings] = await Promise.all([
+    getChatColors(businessId),
+    getOrderTakingEnabled(businessId),
+    getGroundingSettings(supabase, businessId),
+  ]);
+
   const serviceRole = createServiceRoleClient();
   const { data: deletionRequest } = await supabase
     .from("activity_log")
@@ -187,6 +200,22 @@ export default async function SettingsPage({ params }: PageProps) {
         </a>
       </section>
 
+      <BrandColorPanel
+        businessId={businessId}
+        businessName={business.name}
+        initialBrand={chatColors.brandColor}
+        initialBackground={chatColors.backgroundColor}
+        canEdit
+        save={saveChatColorsAsAdmin}
+      />
+      <OrderTakingPanel businessId={businessId} initialEnabled={orderTakingEnabled} canEdit save={saveOrderTakingAsAdmin} />
+      <GroundingPanel
+        businessId={businessId}
+        initialLevel={groundingSettings.reviewLevel}
+        initialEscalate={groundingSettings.escalateRepeat}
+        canEdit
+        save={saveGroundingAsAdmin}
+      />
       <OwnersPanel businessId={businessId} owners={owners} />
       <AgentSettingsPanel
         businessId={businessId}

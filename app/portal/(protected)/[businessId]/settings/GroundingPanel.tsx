@@ -9,11 +9,11 @@ import { saveGroundingSettings } from "./actions";
 
 type Level = "low" | "medium";
 
-export function GroundingPanel({ businessId, initialLevel, initialEscalate, canEdit }: { businessId: string; initialLevel: Level; initialEscalate: boolean; canEdit: boolean }) {
+export function GroundingPanel({ businessId, initialLevel, initialEscalate, canEdit, save = saveGroundingSettings }: { businessId: string; initialLevel: Level; initialEscalate: boolean; canEdit: boolean; save?: (businessId: string, level: string, escalate: boolean) => Promise<{ error: string | null }> }) {
   const router = useRouter();
   const [level, setLevel] = useState<Level>(initialLevel);
   const [escalate, setEscalate] = useState(initialEscalate);
-  const { status, error, run } = useAutoSave((next: { level: Level; escalate: boolean }) => saveGroundingSettings(businessId, next.level, next.escalate), () => router.refresh());
+  const { status, error, run } = useAutoSave((next: { level: Level; escalate: boolean }) => save(businessId, next.level, next.escalate), () => router.refresh());
 
   function changeLevel(next: Level) {
     const previous = level;

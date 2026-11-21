@@ -67,12 +67,15 @@ export function BrandColorPanel({
   initialBrand,
   initialBackground,
   canEdit,
+  save: saveColors = saveChatColors,
 }: {
   businessId: string;
   businessName: string;
   initialBrand: string | null;
   initialBackground: string | null;
   canEdit: boolean;
+  // The admin page passes its own action, so the same panel works for platform staff.
+  save?: (businessId: string, colors: { brand: string | null; background: string | null }) => Promise<{ error: string | null }>;
 }) {
   const router = useRouter();
   const [saved, setSaved] = useState({ brand: initialBrand, background: initialBackground });
@@ -100,7 +103,7 @@ export function BrandColorPanel({
     setBusy(true);
     setError(null);
     setNote(null);
-    const result = await saveChatColors(businessId, { brand: check.brand, background: check.background });
+    const result = await saveColors(businessId, { brand: check.brand, background: check.background });
     setBusy(false);
     if (result.error) {
       setError(result.error);
