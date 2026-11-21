@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type CSSProperties } from "react";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import { RubberSegment } from "@/components/ui/RubberSegment";
 import { naira } from "@/lib/site/format";
@@ -116,6 +116,7 @@ export function ActivityPanel({ metrics, className = "" }: { metrics: ChartMetri
   const [compare, setCompare] = useState(false);
   const [table, setTable] = useState(false);
   const [hover, setHover] = useState<number | null>(null);
+  const [glide, setGlide] = useState(false);
   const [width, setWidth] = useState(640);
   const boxRef = useRef<HTMLDivElement>(null);
   const tipId = useId();
@@ -324,9 +325,9 @@ export function ActivityPanel({ metrics, className = "" }: { metrics: ChartMetri
                 tabIndex={0}
                 aria-label={`${metric.title}: ${format(total)} in the last ${range} days. Use the left and right arrow keys to read each day.`}
                 aria-describedby={hover !== null ? tipId : undefined}
-                onPointerMove={(event) => setHover(indexFromEvent(event))}
+                onPointerMove={(event) => { setGlide(hover !== null); setHover(indexFromEvent(event)); }}
                 onPointerDown={(event) => setHover(indexFromEvent(event))}
-                onPointerLeave={() => setHover(null)}
+                onPointerLeave={() => { setGlide(false); setHover(null); }}
                 onBlur={() => setHover(null)}
                 onKeyDown={onKey}
               >
@@ -383,16 +384,17 @@ export function ActivityPanel({ metrics, className = "" }: { metrics: ChartMetri
                   cur.map((p, i) => {
                     const bw = Math.min(24, slot * 0.68);
                     const bx = xBar(i) - bw / 2;
-                    const delay = { animationDelay: `${Math.min(i * 8, 260)}ms` };
-                    const cls = "origin-bottom animate-grow [transform-box:fill-box] motion-reduce:animate-none";
+                    const delay = { "--bar-delay": `${Math.round((i / Math.max(cur.length - 1, 1)) * 770)}ms` } as CSSProperties;
+                    const cls = "bar-grow [transform-box:fill-box]";
+                    const gcls = `transition-[transform,opacity,filter] duration-200 motion-reduce:transition-none ${hover === i ? "-translate-y-1 brightness-110" : hover !== null ? "opacity-75" : ""}`;
                     if (!splitting) {
                       const h = Math.max((p.value / scale.top) * ih, p.value > 0 ? 2 : 0);
-                      return h > 0 ? <path key={p.t} d={roundTop(bx, y(0) - h, bw, h, 4)} fill={hover === i ? "var(--color-marigold)" : "var(--color-ink)"} className={cls} style={delay} /> : null;
+                      return h > 0 ? <g key={p.t} className={gcls}><path d={roundTop(bx, y(0) - h, bw, h, 4)} fill={hover === i ? "var(--color-marigold)" : "var(--color-ink)"} className={cls} style={delay} /></g> : null;
                     }
                     let acc = 0;
                     const present = channels.filter((c) => (p.parts?.[c.id] ?? 0) > 0);
                     return (
-                      <g key={p.t}>
+                      <g key={p.t} className={gcls}>
                         {present.map((c, k) => {
                           const h = ((p.parts?.[c.id] ?? 0) / scale.top) * ih;
                           const top = y(0) - acc - h;
@@ -423,8 +425,8 @@ export function ActivityPanel({ metrics, className = "" }: { metrics: ChartMetri
               <div
                 id={tipId}
                 role="status"
-                className={`pointer-events-none absolute z-10 min-w-[150px] max-w-[220px] rounded-xl border border-line bg-surface px-3 py-2 text-xs text-ink shadow-[0_12px_28px_-12px_rgb(15_42_34/0.45)] transition-opacity duration-100 ${hover !== null ? "opacity-100" : "opacity-0"}`}
-                style={{ left: tipLeft, top: tipTop }}
+                className={`pointer-events-none absolute z-10 min-w-[150px] max-w-[220px] rounded-xl border border-line bg-surface px-3 py-2 text-xs text-ink shadow-[0_12px_28px_-12px_rgb(15_42_34/0.45)] ${glide ? "transition-[opacity,transform] duration-150 ease-out" : "transition-opacity duration-100"} motion-reduce:transition-none ${hover !== null ? "opacity-100" : "opacity-0"}`}
+                style={{ left: 0, top: 0, transform: `translate3d(${tipLeft}px, ${tipTop}px, 0)` }}
               >
                 {active ? (
                   <>

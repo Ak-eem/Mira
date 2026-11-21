@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { saveAgentSettingsAsAdmin } from "./agent-actions";
 import type { ProviderName } from "@/lib/ai/geminiFetch";
+import { AdminSelect } from "@/components/ui/AdminSelect";
 
 export function AgentSettingsPanel({
   businessId,
@@ -57,14 +58,15 @@ export function AgentSettingsPanel({
 
       <div>
         <label className="block text-sm font-medium text-slate-700">Which AI agent</label>
-        <select
-          className="mt-1 w-full ui-field"
+        <AdminSelect
+          className="mt-1"
+          fullWidth
+          ariaLabel="Which AI agent"
+          size="lg"
           value={provider}
-          onChange={(e) => setProvider(e.target.value as ProviderName)}
-        >
-          <option value="groq">Groq</option>
-          <option value="gemini">Gemini</option>
-        </select>
+          onChange={(next) => setProvider(next as ProviderName)}
+          options={[{ value: "groq", label: "Groq" }, { value: "gemini", label: "Gemini" }]}
+        />
       </div>
 
       {error && <p className="text-sm text-red-600">{error}</p>}

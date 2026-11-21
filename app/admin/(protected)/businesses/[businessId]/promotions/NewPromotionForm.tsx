@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createPromotion } from "./actions";
+import { AdminSelect } from "@/components/ui/AdminSelect";
 
 export function NewPromotionForm({
   businessId,
@@ -53,16 +54,14 @@ export function NewPromotionForm({
       />
 
       {services.length > 0 && (
-        <select
-          className="w-full ui-field"
+        <AdminSelect
+          fullWidth
+          ariaLabel="Service this promotion applies to"
+          size="lg"
           value={serviceId}
-          onChange={(e) => setServiceId(e.target.value)}
-        >
-          <option value="">Applies to all services</option>
-          {services.map((s) => (
-            <option key={s.id} value={s.id}>{s.name} only</option>
-          ))}
-        </select>
+          onChange={setServiceId}
+          options={[{ value: "", label: "Applies to all services" }, ...services.map((s) => ({ value: s.id, label: `${s.name} only` }))]}
+        />
       )}
 
       <div className="flex gap-2">

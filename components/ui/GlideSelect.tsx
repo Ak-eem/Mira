@@ -34,6 +34,10 @@ export interface GlideSelectProps {
   className?: string;
   /** Chip stretches to the container and long labels truncate. */
   fullWidth?: boolean;
+  /** Submits the current value with a surrounding <form> under this field name. */
+  name?: string;
+  /** Hairline around the chip, for use as a form field. */
+  borderColor?: string;
 }
 
 type Phase = 'closed' | 'open' | 'closing';
@@ -83,7 +87,9 @@ const GlideSelect: React.FC<GlideSelectProps> = ({
   disabled = false,
   ariaLabel = 'Select',
   className = '',
-  fullWidth = false
+  fullWidth = false,
+  name,
+  borderColor = 'transparent'
 }) => {
   const items = options.map(norm);
   const [inner, setInner] = useState(defaultValue ?? '');
@@ -273,6 +279,7 @@ const GlideSelect: React.FC<GlideSelectProps> = ({
           '--gs-surface': surfaceColor,
           '--gs-highlight': highlightColor,
           '--gs-text': textColor,
+          '--gs-border': borderColor,
           '--gs-radius': `${radius}px`,
           '--gs-inner-radius': `${Math.max(3, radius - 4)}px`,
           '--gs-chip': `${S.chip}px`,
@@ -300,7 +307,7 @@ const GlideSelect: React.FC<GlideSelectProps> = ({
         aria-activedescendant={active !== null ? `${id}-${active}` : undefined}
         aria-label={ariaLabel}
         disabled={disabled}
-        className={`group/trigger relative m-0 inline-flex ${fullWidth ? "w-full justify-between " : ""}cursor-pointer touch-manipulation items-center gap-1.5 border-0 pr-2 pl-2.5 leading-none font-medium outline-none select-none [-webkit-tap-highlight-color:transparent] [font-family:inherit] [height:var(--gs-chip)] [border-radius:var(--gs-inner-radius)] [background:var(--gs-surface)] [color:var(--gs-text)] [font-size:var(--gs-font)] [transition:background-color_100ms_ease,transform_160ms_cubic-bezier(0.23,1,0.32,1)] disabled:cursor-default enabled:active:scale-[0.97] motion-reduce:enabled:active:scale-100 motion-reduce:[transition:background-color_100ms_ease] aria-expanded:[background:color-mix(in_srgb,var(--gs-highlight)_60%,var(--gs-surface))] [@media(hover:hover)_and_(pointer:fine)]:enabled:hover:[background:color-mix(in_srgb,var(--gs-highlight)_60%,var(--gs-surface))]`}
+        className={`group/trigger relative m-0 inline-flex ${fullWidth ? "w-full justify-between " : ""}cursor-pointer touch-manipulation items-center gap-1.5 border-0 pr-2 pl-2.5 leading-none font-medium outline-none select-none [-webkit-tap-highlight-color:transparent] [font-family:inherit] [box-shadow:inset_0_0_0_1px_var(--gs-border)] [height:var(--gs-chip)] [border-radius:var(--gs-inner-radius)] [background:var(--gs-surface)] [color:var(--gs-text)] [font-size:var(--gs-font)] [transition:background-color_100ms_ease,transform_160ms_cubic-bezier(0.23,1,0.32,1)] disabled:cursor-default enabled:active:scale-[0.97] motion-reduce:enabled:active:scale-100 motion-reduce:[transition:background-color_100ms_ease] aria-expanded:[background:color-mix(in_srgb,var(--gs-highlight)_60%,var(--gs-surface))] [@media(hover:hover)_and_(pointer:fine)]:enabled:hover:[background:color-mix(in_srgb,var(--gs-highlight)_60%,var(--gs-surface))]`}
         onPointerDown={e => {
           if (e.button !== 0 || disabled) return;
           e.currentTarget.focus({ preventScroll: true });
@@ -323,6 +330,7 @@ const GlideSelect: React.FC<GlideSelectProps> = ({
           <HugeiconsIcon icon={ArrowDown01Icon} size={12} strokeWidth={2.5} />
         </span>
       </button>
+      {name ? <input type="hidden" name={name} value={current} /> : null}
       {phase !== 'closed' ? (
         <div
           ref={menuRef}

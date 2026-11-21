@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { updateSubscription } from "./subscription-actions";
+import { AdminSelect } from "@/components/ui/AdminSelect";
 
 type Subscription = {
   plan: "base" | "pro";
@@ -53,27 +54,32 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
         <div className="flex gap-3">
           <div>
             <label className="block text-xs font-medium text-slate-600">Plan</label>
-            <select
-              className="mt-1 ui-field"
+            <AdminSelect
+              className="mt-1"
+              ariaLabel="Plan"
+              size="lg"
+              menuWidth={160}
               value={plan}
-              onChange={(e) => setPlan(e.target.value as "base" | "pro")}
-            >
-              <option value="base">Base</option>
-              <option value="pro">Pro</option>
-            </select>
+              onChange={(next) => setPlan(next as "base" | "pro")}
+              options={[{ value: "base", label: "Base" }, { value: "pro", label: "Pro" }]}
+            />
           </div>
           <div>
             <label className="block text-xs font-medium text-slate-600">Status</label>
-            <select
-              className="mt-1 ui-field"
+            <AdminSelect
+              className="mt-1"
+              ariaLabel="Status"
+              size="lg"
+              menuWidth={176}
               value={status}
-              onChange={(e) => setStatus(e.target.value as "trialing" | "active" | "past_due" | "cancelled")}
-            >
-              <option value="trialing">Trialing</option>
-              <option value="active">Active</option>
-              <option value="past_due">Past due</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
+              onChange={(next) => setStatus(next as "trialing" | "active" | "past_due" | "cancelled")}
+              options={[
+                { value: "trialing", label: "Trialing" },
+                { value: "active", label: "Active" },
+                { value: "past_due", label: "Past due" },
+                { value: "cancelled", label: "Cancelled" },
+              ]}
+            />
           </div>
         </div>
 
@@ -86,15 +92,19 @@ export function SubscriptionPanel({ businessId, subscription }: { businessId: st
           <div className="flex gap-3">
             <div>
               <label className="block text-xs font-medium text-slate-600">Nudges tier</label>
-              <select
-                className="mt-1 ui-field"
+              <AdminSelect
+                className="mt-1"
+                ariaLabel="Nudges tier"
+                size="lg"
+                menuWidth={220}
                 value={nudgesTier}
-                onChange={(e) => setNudgesTier(e.target.value)}
-              >
-                <option value="">Choose…</option>
-                <option value="basic">Basic — ₦5,000/mo</option>
-                <option value="plus">Plus — ₦10,000/mo</option>
-              </select>
+                onChange={setNudgesTier}
+                options={[
+                  { value: "", label: "Choose…" },
+                  { value: "basic", label: "Basic — ₦5,000/mo" },
+                  { value: "plus", label: "Plus — ₦10,000/mo" },
+                ]}
+              />
             </div>
             <div>
               <label className="block text-xs font-medium text-slate-600">Max nudges/customer/week</label>

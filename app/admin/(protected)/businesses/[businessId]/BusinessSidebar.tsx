@@ -46,7 +46,7 @@ export function BusinessSidebar({
         Menu
       </button>
       {open && <button type="button" aria-label="Close navigation" onClick={() => setOpen(false)} className="fixed inset-0 z-20 bg-slate-900/30 md:hidden" />}
-      <nav className={`glass-panel-strong fixed inset-y-0 left-0 z-30 flex w-64 flex-col gap-3 overflow-y-auto rounded-none p-4 transition-transform md:static md:z-auto md:w-56 md:rounded-xl md:p-3 ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
+      <nav className={`glass-panel-strong !border-0 shadow-[0_1px_2px_rgba(15,42,34,0.06),0_12px_28px_-18px_rgba(15,42,34,0.35)] fixed inset-y-0 left-0 z-30 flex w-64 flex-col gap-3 overflow-y-auto rounded-none p-4 transition-transform md:static md:z-auto md:w-56 md:rounded-2xl md:p-3 ${open ? "translate-x-0" : "-translate-x-full md:translate-x-0"}`}>
         <button type="button" onClick={() => setOpen(false)} className="self-end text-sm text-slate-500 md:hidden">Close</button>
         <div>
           <Link href="/admin/businesses" onClick={() => setOpen(false)} className="text-xs text-slate-500 hover:underline">
@@ -62,10 +62,10 @@ export function BusinessSidebar({
               size="md"
               radius={12}
               menuWidth={0}
-              surfaceColor="#ffffff"
-              highlightColor="#d7ebe4"
-              textColor="#0f172a"
-              accentColor="#0f766e"
+              surfaceColor="var(--color-surface)"
+              highlightColor="var(--color-mist)"
+              textColor="var(--color-ink)"
+              accentColor="var(--color-marigold)"
             />
           </div>
         </div>
