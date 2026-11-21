@@ -19,7 +19,7 @@ export default async function PortalUpgradePage({
   } = await supabase.auth.getUser();
 
   if (!user) redirect("/portal/login");
-  if (!businessId) redirect("/inbox");
+  if (!businessId) redirect("/portal");
 
   const { data: ownerMembership } = await supabase
     .from("business_owners")
@@ -29,12 +29,12 @@ export default async function PortalUpgradePage({
     .eq("role", "owner")
     .maybeSingle();
 
-  if (!ownerMembership) redirect("/inbox");
+  if (!ownerMembership) redirect("/portal");
 
   const owner = await getCurrentBusinessOwner();
   if (!owner) redirect("/portal/login");
   const business = owner.businesses.find((item) => item.id === businessId);
-  if (!business) redirect("/inbox");
+  if (!business) redirect("/portal");
   const access = await getBusinessEntitlement(business.id);
 
   const status = access.subscription?.status;

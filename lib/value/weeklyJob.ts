@@ -88,7 +88,7 @@ export async function runWeeklySummaries(client: Client, sendEmail: SendEmail, s
           stats,
           currency: business.currency || "NGN",
           dashboardUrl: base,
-          inboxUrl: `${base}/inbox`,
+          inboxUrl: `${base}/conversations`,
           settingsUrl: `${base}/settings`,
         });
         for (const to of emails) {

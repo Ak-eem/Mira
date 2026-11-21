@@ -43,11 +43,11 @@ check("a chat is enough", worthSending({ ...base, conversations: 1 }));
 check("an order alone is enough", worthSending({ ...base, orders: 1, sales: 2500 }));
 
 // --- the email ---
-const url = { dashboardUrl: "https://app.test/portal/b1", inboxUrl: "https://app.test/portal/b1/inbox", settingsUrl: "https://app.test/portal/b1/settings" };
+const url = { dashboardUrl: "https://app.test/portal/b1", inboxUrl: "https://app.test/portal/b1/conversations", settingsUrl: "https://app.test/portal/b1/settings" };
 const full = weeklySummaryEmail({ businessName: "Ada's Bakery", rangeLabel: "Mon 2 Nov to Sun 8 Nov", currency: "NGN", ...url, stats: { conversations: 42, repliesSent: 130, orders: 7, sales: 31500, afterHours: 12, waitingNow: 2 } });
 check("email: subject names the business, chats and orders", full.subject === "Last week on Ada's Bakery: 42 chats, 7 orders");
 check("email: the real numbers and money are in the text", /42 customers started a chat/.test(full.text) && /130 replies/.test(full.text) && /7 orders worth ₦31,500/.test(full.text) && /12 chats started outside your opening hours/.test(full.text));
-check("email: tells them who is waiting, with a link", /2 customers are waiting for you right now: https:\/\/app\.test\/portal\/b1\/inbox/.test(full.text));
+check("email: tells them who is waiting, with a link", /2 customers are waiting for you right now: https:\/\/app\.test\/portal\/b1\/conversations/.test(full.text));
 check("email: has a way to turn it off, in text and html", full.text.includes(url.settingsUrl) && full.html.includes(url.settingsUrl));
 const lean = weeklySummaryEmail({ businessName: "Quiet Co", rangeLabel: "x", currency: "NGN", ...url, stats: { ...base, conversations: 1, repliesSent: 2 } });
 check("email: lines with nothing to say are left out, never '0 orders'", !/order/.test(lean.text.replace("Open your dashboard", "")) && !/outside your opening hours/.test(lean.text) && !/waiting for you/.test(lean.text));

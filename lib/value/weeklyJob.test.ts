@@ -102,7 +102,7 @@ async function main() {
   check("Mira's replies are counted, not the customer's messages", /<b>5 replies<\/b>/.test(toB1[0].html));
   check("chats outside opening hours are counted (the Tuesday evening and Saturday ones)", /<b>2 chats<\/b> started outside your opening hours/.test(toB1[0].html));
   check("the customer waiting right now is flagged", /1 customer is waiting for you right now/.test(toB1[0].html));
-  check("the email links to this business's own pages", toB1[0].html.includes("https://app.test/portal/b1/settings") && toB1[0].html.includes("https://app.test/portal/b1/inbox"));
+  check("the email links to this business's own pages", toB1[0].html.includes("https://app.test/portal/b1/settings") && toB1[0].html.includes("https://app.test/portal/b1/conversations"));
   check("a lapsed business gets nothing and is not even claimed", !sent.some((m) => m.subject.includes("Lapsed")) && !claims.includes("b2"));
   check("a quiet week sends nothing, but the week is marked done", !sent.some((m) => m.subject.includes("Quiet Co")) && claims.includes("b3"));
   check("another business's activity does not leak in", sent.filter((m) => m.subject.includes("Late Starter")).length === 1 && /1 chat/.test(sent.find((m) => m.subject.includes("Late Starter"))!.subject));
