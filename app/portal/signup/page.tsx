@@ -1,5 +1,8 @@
 "use client";
 
+import { BusinessTypeChoice } from "@/components/signup/BusinessTypeChoice";
+import { applyBusinessType } from "@/lib/signupBusinessType";
+import type { BusinessType } from "@/lib/businessTypes";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -25,6 +28,7 @@ function getApiErrorMessage(value: unknown, fallback: string): string {
 export default function PortalSignupPage() {
   const router = useRouter();
   const [businessName, setBusinessName] = useState("");
+  const [businessType, setBusinessType] = useState<BusinessType>("general");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -186,7 +190,7 @@ export default function PortalSignupPage() {
       // Businesses are admin-only to insert directly (see migration 0001) --
       // this RPC is the one sanctioned way a fresh signup creates its own
       // business and gets a 14-day trial in a single atomic call.
-      const { error: provisionError } = await supabase.rpc(
+      const { data: newBusinessId, error: provisionError } = await supabase.rpc(
         "provision_new_business",
         {
           p_name: businessName.trim(),
@@ -204,6 +208,7 @@ export default function PortalSignupPage() {
         return;
       }
 
+      await applyBusinessType(supabase, newBusinessId, businessType);
       forgetAgreement();
       router.push("/portal/signup/complete");
       router.refresh();
@@ -254,6 +259,8 @@ export default function PortalSignupPage() {
               required
             />
           </div>
+
+          <BusinessTypeChoice value={businessType} onChange={setBusinessType} />
 
           <fieldset>
             <legend className="ui-label">

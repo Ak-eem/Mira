@@ -1,6 +1,7 @@
 import { notifyHandoff } from "@/lib/notifications/notifyHandoff";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
+import { looksLikeTechResearchQuestion, researchContext, researchTech } from "@/lib/ai/techStore";
 import { productSearchLines, searchProducts, type FoundProduct } from "@/lib/products/search";
 import { isFallbackReply } from "@/lib/ai/buildPrompt";
 import { getSchoolGuardianContext, isSchoolGuardianLookupEligible } from "@/lib/ai/buildContext";
@@ -461,6 +462,13 @@ export async function processMessage(
     }
   }
 
+  // Tech store: a question about specs or releases also gets a quick, cached web lookup (never prices or stock).
+  let techResearch: string | null = null;
+  if (context.business?.business_type === "tech_store" && looksLikeTechResearchQuestion(trimmedMessage)) {
+    const findings = await researchTech(trimmedMessage);
+    if (findings) techResearch = researchContext(findings);
+  }
+
   let replyText: string;
   let aiMetadata;
   let orderRequest: Awaited<ReturnType<typeof composeReply>>["orderRequest"];
@@ -471,7 +479,7 @@ export async function processMessage(
       history,
       message: trimmedMessage,
       orderTool: context.business?.ai_order_taking === true,
-      extraSystemContext: [schoolGuardianContext, catalogueMatches].filter(Boolean).join("\n\n") || null,
+      extraSystemContext: [schoolGuardianContext, catalogueMatches, techResearch].filter(Boolean).join("\n\n") || null,
     });
     replyText = result.text;
     aiMetadata = result.metadata;

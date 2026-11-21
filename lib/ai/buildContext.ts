@@ -1,3 +1,4 @@
+import { TECH_STORE_GUIDANCE } from "@/lib/ai/techStore";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { WEEKDAY_NAMES, formatTime, isOpenNow } from "@/lib/hours";
 import { buildContactLinks } from "@/lib/contactLinks";
@@ -7,6 +8,7 @@ const CONTEXT_TTL_MS = 60_000;
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const SECTION_LIMITS = {
+  techStore: 2000,
   business: 450,
   contact: 300,
   services: 1100,
@@ -98,6 +100,7 @@ function section(title: string, lines: string[], maxChars: number): { title: str
 function fitContext(
   sections: { title: string; text: string }[],
   businessId: string,
+  budget: number = MAX_CONTEXT_CHARS,
 ): string {
   const lines: string[] = [];
   const droppedTitles: string[] = [];
@@ -107,13 +110,13 @@ function fitContext(
     const { title, text } = sections[i];
     const nextLength = length + (lines.length > 0 ? 2 : 0) + text.length;
 
-    if (nextLength <= MAX_CONTEXT_CHARS) {
+    if (nextLength <= budget) {
       lines.push(text);
       length = nextLength;
       continue;
     }
 
-    const remaining = MAX_CONTEXT_CHARS - length - (lines.length > 0 ? 2 : 0);
+    const remaining = budget - length - (lines.length > 0 ? 2 : 0);
     if (remaining >= 18) {
       lines.push(truncateLines(text.split("\n"), remaining));
     } else {
@@ -338,6 +341,11 @@ export async function buildBusinessContext(
     }
   }
 
+  // Tech-store guidance goes first and gets its own room, so it is never the part dropped when the catalogue fills the budget.
+  const techSections =
+    business.business_type === "tech_store"
+      ? [section("How to handle this tech store", TECH_STORE_GUIDANCE.split("\n"), SECTION_LIMITS.techStore)]
+      : [];
   const sections = [
     section("Business", [
       `Name: ${business.name}`,
@@ -392,7 +400,7 @@ export async function buildBusinessContext(
       ai_order_taking: business.ai_order_taking === true,
       business_type: business.business_type,
     },
-    contextText: fitContext(sections, businessId),
+    contextText: fitContext(techSections.concat(sections), businessId, MAX_CONTEXT_CHARS + techSections.reduce((n, x) => n + x.text.length + 2, 0)),
     products: products.map((p) => ({ id: p.id, name: p.name, image_url: p.image_url })),
     productsTruncated,
   };

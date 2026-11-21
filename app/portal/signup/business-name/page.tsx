@@ -1,5 +1,8 @@
 "use client";
 
+import { BusinessTypeChoice } from "@/components/signup/BusinessTypeChoice";
+import { applyBusinessType } from "@/lib/signupBusinessType";
+import type { BusinessType } from "@/lib/businessTypes";
 import { useState, useSyncExternalStore } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -18,6 +21,7 @@ const subscribeNothing = () => () => {};
 export default function BusinessNamePage() {
   const router = useRouter();
   const [businessName, setBusinessName] = useState("");
+  const [businessType, setBusinessType] = useState<BusinessType>("general");
   const [agreed, setAgreed] = useState(false);
   const alreadyAgreed = useSyncExternalStore(subscribeNothing, () => readRememberedAgreement() !== null, () => false);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +57,7 @@ export default function BusinessNamePage() {
         setError("We couldn't record your agreement. Please try again, or contact support.");
         return;
       }
-      const { error: provisionError } = await supabase.rpc("provision_new_business", {
+      const { data: newBusinessId, error: provisionError } = await supabase.rpc("provision_new_business", {
         p_name: businessName.trim(),
         p_owner_id: user.id,
       });
@@ -67,6 +71,7 @@ export default function BusinessNamePage() {
         );
         return;
       }
+      await applyBusinessType(supabase, newBusinessId, businessType);
       forgetAgreement();
       router.push("/portal/signup/complete");
       router.refresh();
@@ -97,6 +102,8 @@ export default function BusinessNamePage() {
               autoFocus
             />
           </div>
+
+          <BusinessTypeChoice value={businessType} onChange={setBusinessType} />
 
           {alreadyAgreed ? (
             <p className="rounded-xl bg-slate-50 px-3 py-2 text-xs leading-5 text-slate-600 ring-1 ring-slate-200/80">

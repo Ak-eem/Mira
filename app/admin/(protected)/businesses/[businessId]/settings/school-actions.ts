@@ -4,14 +4,15 @@ import { revalidatePath } from "next/cache";
 import { getCurrentAdmin } from "@/lib/supabase/admin-auth";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/activityLog";
+import { ALL_BUSINESS_TYPES, type BusinessType } from "@/lib/businessTypes";
 
-// Switching a business to "school" turns on the School page in its portal and the school
+// The business type tunes the AI. Switching to "school" turns on the School page in its portal and the school
 // calendar / guardian fee lookup in the AI. It doesn't delete anything when switched back:
 // school data is kept and simply stops being used.
-export async function setBusinessType(input: { businessId: string; businessType: "general" | "school" }) {
+export async function setBusinessType(input: { businessId: string; businessType: BusinessType }) {
   const admin = await getCurrentAdmin();
   if (!admin) return { error: "Not authenticated." };
-  if (input.businessType !== "general" && input.businessType !== "school") return { error: "Unknown business type." };
+  if (!ALL_BUSINESS_TYPES.some((t) => t.value === input.businessType)) return { error: "Unknown business type." };
 
   const supabase = await createClient();
   const { error } = await supabase.from("businesses").update({ business_type: input.businessType }).eq("id", input.businessId);
