@@ -69,7 +69,8 @@ export function BusinessSidebar({
           <nav aria-label="Business navigation" className="space-y-0.5">
             {NAV_ITEMS.map((item) => {
               const href = item.segment ? `${base}/${item.segment}` : base;
-              const active = isRouteGroupActive(pathname, href);
+              // Overview is the section's root, so it must match exactly or it would stay lit on every sub-page.
+              const active = item.segment ? isRouteGroupActive(pathname, href) : pathname === href;
               return (
                 <Link
                   key={item.segment || "overview"}
