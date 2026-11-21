@@ -1,6 +1,7 @@
 import { notifyHandoff } from "@/lib/notifications/notifyHandoff";
 import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
+import { productSearchLines, searchProducts, type FoundProduct } from "@/lib/products/search";
 import { isFallbackReply } from "@/lib/ai/buildPrompt";
 import { getSchoolGuardianContext, isSchoolGuardianLookupEligible } from "@/lib/ai/buildContext";
 import { composeReply } from "@/lib/ai/composeReply";
@@ -449,6 +450,17 @@ export async function processMessage(
     schoolGuardianContext = await getSchoolGuardianContext(businessId, sessionToken.slice(3));
   }
 
+  // A catalogue bigger than the prompt can hold: look up what this customer is asking about and add it,
+  // so the assistant can answer about any product, not just the first 50 listed.
+  let foundProducts: FoundProduct[] = [];
+  let catalogueMatches: string | null = null;
+  if (context.productsTruncated) {
+    foundProducts = await searchProducts(supabase, businessId, trimmedMessage);
+    if (foundProducts.length > 0) {
+      catalogueMatches = `Products from the full catalogue that match the customer's message (these are real, and complete for what they asked about):\n${productSearchLines(foundProducts, context.business?.currency ?? "NGN").join("\n")}`;
+    }
+  }
+
   let replyText: string;
   let aiMetadata;
   let orderRequest: Awaited<ReturnType<typeof composeReply>>["orderRequest"];
@@ -459,7 +471,7 @@ export async function processMessage(
       history,
       message: trimmedMessage,
       orderTool: context.business?.ai_order_taking === true,
-      extraSystemContext: schoolGuardianContext,
+      extraSystemContext: [schoolGuardianContext, catalogueMatches].filter(Boolean).join("\n\n") || null,
     });
     replyText = result.text;
     aiMetadata = result.metadata;
@@ -517,7 +529,7 @@ export async function processMessage(
     return { reply: handled.reply, messageId: handled.messageId, productImages: [] };
   }
 
-  const productImages = matchProductImages(replyText, context.products);
+  const productImages = matchProductImages(replyText, [...context.products, ...foundProducts.filter((p) => !context.products.some((c) => c.id === p.id)).map((p) => ({ id: p.id, name: p.name, image_url: p.image_url }))]);
 
   // Recorded atomically with the last_message_at bump. The insert still
   // selects the row back (feedback thumbs need a real message id), so a

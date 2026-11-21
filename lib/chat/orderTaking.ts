@@ -1,3 +1,4 @@
+import { searchProducts } from "@/lib/products/search";
 import type { createServiceRoleClient } from "@/lib/supabase/service-role";
 import type { OrderRequest } from "@/lib/ai/generateReply";
 import { resolveOrderItems, type CatalogProduct } from "@/lib/orders/resolveItems";
@@ -134,7 +135,18 @@ export async function processOrderRequest(
     .limit(200);
   if (catalogError) throw catalogError;
 
-  const resolved = resolveOrderItems(request.items, (catalog ?? []) as CatalogProduct[]);
+  // A big catalogue does not fit in the first 200 rows, so also look up each item the customer
+  // asked for by name. resolveOrderItems still decides what matches; this only widens what it can see.
+  const known = new Map(((catalog ?? []) as CatalogProduct[]).map((p) => [p.id, p]));
+  if (known.size >= 200) {
+    for (const item of request.items.slice(0, 20)) {
+      for (const found of await searchProducts(supabase, ctx.businessId, String(item?.name ?? ""), 10)) {
+        known.set(found.id, { id: found.id, name: found.name, price: found.price, is_available: found.is_available, stock_quantity: found.stock_quantity });
+      }
+    }
+  }
+
+  const resolved = resolveOrderItems(request.items, [...known.values()]);
 
   if (!resolved.ok) {
     const content = getOrderProblemReply(resolved);

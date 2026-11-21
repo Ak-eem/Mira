@@ -57,6 +57,8 @@ export type BusinessContext = {
     business_type: string;
   };
   contextText: string;
+  // True when the catalogue is bigger than what fits in the prompt; the chat then searches for what the customer asked about.
+  productsTruncated?: boolean;
   products: { id: string; name: string; image_url: string | null }[];
 };
 
@@ -392,6 +394,7 @@ export async function buildBusinessContext(
     },
     contextText: fitContext(sections, businessId),
     products: products.map((p) => ({ id: p.id, name: p.name, image_url: p.image_url })),
+    productsTruncated,
   };
 
   if (!promptOverride) cacheContext(businessId, value);
