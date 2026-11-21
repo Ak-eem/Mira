@@ -1,4 +1,7 @@
+import { sendAlert } from '@/lib/alerts';
+import { activateWithPeriod } from '@/lib/billing/activation';
 import { nextPeriodEnd } from '@/lib/billing/periodEnd';
+import { disputeAlert, isMissingFunctionError, parseDisputeResult, parseRefundResult, refundAlert } from '@/lib/billing/refunds';
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import { NextResponse } from 'next/server';
 import { getPlanConfig, quotedAmountKobo } from '@/lib/paystack';
@@ -31,19 +34,89 @@ function validSignature(raw: string, received: string | null, secret: string) {
   return actual.length === expected.length && timingSafeEqual(actual, expected);
 }
 
-async function handleRefund(data: Record<string, unknown>) {
+function transactionReference(data: Record<string, unknown>): string | undefined {
   const nested = data.transaction && typeof data.transaction === 'object' ? (data.transaction as Record<string, unknown>) : {};
-  const reference = [data.transaction_reference, nested.reference, data.reference].find((value): value is string => typeof value === 'string' && value.length > 0);
+  return [data.transaction_reference, nested.reference, data.reference].find((value): value is string => typeof value === 'string' && value.length > 0);
+}
+
+// Best effort: a missing name only makes an alert less friendly, it must never break the webhook.
+async function businessNameFor(client: ReturnType<typeof createServiceRoleClient>, businessId: string | undefined): Promise<string | null> {
+  if (!businessId) return null;
+  try {
+    const { data } = await client.from('businesses').select('name').eq('id', businessId).maybeSingle();
+    return typeof data?.name === 'string' ? data.name : null;
+  } catch {
+    return null;
+  }
+}
+
+async function handleRefund(data: Record<string, unknown>) {
+  const reference = transactionReference(data);
   if (!reference) {
     console.error('Paystack refund event without a transaction reference', data);
     return NextResponse.json({ received: true });
   }
   const refundAmount = typeof data.amount === 'number' && Number.isSafeInteger(data.amount) ? data.amount : null;
-  const { error } = await createServiceRoleClient().rpc('revoke_paystack_subscription', { p_reference: reference, p_refund_amount: refundAmount });
-  if (error) {
-    console.error('Subscription revoke RPC failed', error);
-    return NextResponse.json({ error: 'Subscription revoke failed' }, { status: 500 });
+  const client = createServiceRoleClient();
+
+  // The database works out which days this payment bought and removes exactly those (migration 0075).
+  const { data: result, error } = await client.rpc('refund_paystack_payment', { p_reference: reference, p_refund_amount: refundAmount });
+
+  if (error && isMissingFunctionError(error)) {
+    // The app was deployed before migration 0075 was applied: keep the older behaviour so a refund is never ignored.
+    const legacy = await client.rpc('revoke_paystack_subscription', { p_reference: reference, p_refund_amount: refundAmount });
+    if (legacy.error) {
+      console.error('Subscription revoke RPC failed', legacy.error);
+      return NextResponse.json({ error: 'Subscription revoke failed' }, { status: 500 });
+    }
+    await sendAlert(client, {
+      key: `refund-legacy-${reference}`,
+      subject: 'Refund received: apply database migration 0075',
+      lines: [`Payment: ${reference}`, 'Mira handled it the older way (cancels only if it was the latest payment). Apply 0075_paystack_refunds.sql in Supabase so refunds are handled properly and recorded.'],
+      cooldownMinutes: 24 * 60,
+    });
+    return NextResponse.json({ received: true });
   }
+  if (error) {
+    console.error('Refund RPC failed', error);
+    return NextResponse.json({ error: 'Refund handling failed' }, { status: 500 });
+  }
+
+  const parsed = parseRefundResult(result);
+  if (!parsed) {
+    console.error('Refund RPC returned an unexpected result', result);
+    await sendAlert(client, {
+      key: `refund-unreadable-${reference}`,
+      subject: 'Refund received but the result was unreadable',
+      lines: [`Payment: ${reference}`, 'Check the business subscription and the Paystack dashboard by hand.'],
+      cooldownMinutes: 24 * 60,
+    });
+    return NextResponse.json({ received: true });
+  }
+
+  const alert = refundAlert(parsed, reference, await businessNameFor(client, parsed.businessId));
+  if (alert) await sendAlert(client, alert);
+  return NextResponse.json({ received: true });
+}
+
+// Chargebacks: recorded and sent to the operator, but access is deliberately not auto-revoked
+// (a dispute can be won). Paystack gives a short deadline to respond, so the alert matters.
+async function handleDispute(eventName: string, data: Record<string, unknown>) {
+  console.warn('Paystack dispute event received', { event: eventName, data });
+  const reference = transactionReference(data);
+  const client = createServiceRoleClient();
+
+  let result = null;
+  if (reference) {
+    const { data: raw, error } = await client.rpc('record_paystack_dispute', { p_reference: reference });
+    if (error) {
+      if (!isMissingFunctionError(error)) console.error('Dispute RPC failed', error);
+    } else {
+      result = parseDisputeResult(raw);
+    }
+  }
+  const alert = disputeAlert(eventName, result, reference, await businessNameFor(client, result?.businessId));
+  if (alert) await sendAlert(client, alert);
   return NextResponse.json({ received: true });
 }
 
@@ -61,9 +134,7 @@ export async function POST(request: Request) {
   try { event = JSON.parse(rawBody); } catch { return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 }); }
   if (event.event === 'refund.processed') return handleRefund(event.data ?? {});
   if (typeof event.event === 'string' && event.event.startsWith('charge.dispute.')) {
-    // Logged for manual review; access is not auto-revoked on a dispute.
-    console.warn('Paystack dispute event received', { event: event.event, data: event.data });
-    return NextResponse.json({ received: true });
+    return handleDispute(event.event, event.data ?? {});
   }
   if (event.event !== 'charge.success') return NextResponse.json({ received: true });
   const data = event.data ?? {};
@@ -112,7 +183,11 @@ export async function POST(request: Request) {
   // Paying early adds the new period to the end of the current one instead of replacing it.
   const { data: current } = await serviceRole.from('business_subscriptions').select('status, expires_at').eq('business_id', businessId).maybeSingle();
   const expiresAt = nextPeriodEnd({ now: Date.now(), status: current?.status ?? null, expiresAt: current?.expires_at ?? null, durationDays: config.durationDays });
-  const { error } = await serviceRole.rpc('activate_paystack_subscription', { p_business_id: businessId, p_user_id: userId, p_reference: reference, p_amount: data.amount as number, p_expires_at: expiresAt, p_expected_amount_kobo: expectedKobo, p_plan: 'base' });
+  const { error } = await activateWithPeriod(
+    (name, args) => serviceRole.rpc(name, args),
+    { p_business_id: businessId, p_user_id: userId, p_reference: reference, p_amount: data.amount as number, p_expires_at: expiresAt, p_expected_amount_kobo: expectedKobo, p_plan: 'base' },
+    config.durationDays,
+  );
   if (error) {
     // "user is no longer associated" is an expected, non-retriable outcome
     // (membership changed after checkout began) -- ack it so Paystack

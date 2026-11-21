@@ -1,3 +1,4 @@
+import { activateWithPeriod } from '@/lib/billing/activation';
 import { nextPeriodEnd } from '@/lib/billing/periodEnd';
 import { NextResponse } from 'next/server';
 import { getPlanConfig, quotedAmountKobo, verifyPaystackTransaction } from '@/lib/paystack';
@@ -53,7 +54,11 @@ export async function GET(request: Request) {
   const serviceRole = createServiceRoleClient();
   const { data: current } = await serviceRole.from('business_subscriptions').select('status, expires_at').eq('business_id', metadata.business_id).maybeSingle();
   const expiresAt = nextPeriodEnd({ now: Date.now(), status: current?.status ?? null, expiresAt: current?.expires_at ?? null, durationDays: config.durationDays });
-  const { error: rpcError } = await serviceRole.rpc('activate_paystack_subscription', { p_business_id: metadata.business_id, p_user_id: user.id, p_reference: reference, p_amount: data.amount, p_expires_at: expiresAt, p_expected_amount_kobo: expectedKobo, p_plan: 'base' });
+  const { error: rpcError } = await activateWithPeriod(
+    (name, args) => serviceRole.rpc(name, args),
+    { p_business_id: metadata.business_id, p_user_id: user.id, p_reference: reference, p_amount: data.amount, p_expires_at: expiresAt, p_expected_amount_kobo: expectedKobo, p_plan: 'base' },
+    config.durationDays,
+  );
   if (rpcError) { console.error('Subscription activation RPC failed', rpcError); return NextResponse.json({ error: 'Subscription activation failed' }, { status: 500 }); }
   return NextResponse.json({ success: true, status, terminal: true });
 }
