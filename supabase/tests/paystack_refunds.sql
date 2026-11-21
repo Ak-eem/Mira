@@ -1,4 +1,4 @@
--- Refunds and chargebacks (migration 0075). Rolls back, safe anywhere.
+-- Refunds and chargebacks (migration 0077). Rolls back, safe anywhere.
 -- Time is simulated by moving paystack_payments.created_at back, since now() is fixed inside a
 -- transaction. Numbers: a payment buys 30 days; amounts are kobo.
 begin;

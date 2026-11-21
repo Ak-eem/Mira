@@ -100,7 +100,7 @@ async function main() {
   check(activate?.body.p_expected_amount_kobo === 1_000_000 && activate?.body.p_amount === 1_000_000, "activation passes the paid and expected amounts");
   check(activate?.body.p_period_days === 30, "activation tells the database how many days this payment bought (so a refund can remove exactly those)");
 
-  // Deployed before migration 0075: the database does not know p_period_days yet. The payment must still go through.
+  // Deployed before migration 0077: the database does not know p_period_days yet. The payment must still go through.
   rpcMissing = new Set(["activate_paystack_subscription"]);
   r = await send(chargeEvent());
   check(r.status === 500, "if activation itself is missing entirely, Paystack is asked to retry");
@@ -181,7 +181,7 @@ async function main() {
   r = await send({ event: "refund.processed", data: { transaction_reference: "ref_123", amount: 1_000_000 } });
   const legacy = r.calls.find((c) => c.name === "revoke_paystack_subscription");
   check(r.status === 200 && legacy?.body.p_reference === "ref_123" && legacy?.body.p_refund_amount === 1_000_000, "before the migration, refunds still work the older way");
-  check(r.emails.length === 1 && r.emails[0].subject.includes("0075"), "and the operator is told to apply the migration");
+  check(r.emails.length === 1 && r.emails[0].subject.includes("0077"), "and the operator is told to apply the migration");
   rpcMissing = new Set();
 
   rpcError = { message: "boom" };

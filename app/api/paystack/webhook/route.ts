@@ -59,11 +59,11 @@ async function handleRefund(data: Record<string, unknown>) {
   const refundAmount = typeof data.amount === 'number' && Number.isSafeInteger(data.amount) ? data.amount : null;
   const client = createServiceRoleClient();
 
-  // The database works out which days this payment bought and removes exactly those (migration 0075).
+  // The database works out which days this payment bought and removes exactly those (migration 0077).
   const { data: result, error } = await client.rpc('refund_paystack_payment', { p_reference: reference, p_refund_amount: refundAmount });
 
   if (error && isMissingFunctionError(error)) {
-    // The app was deployed before migration 0075 was applied: keep the older behaviour so a refund is never ignored.
+    // The app was deployed before migration 0077 was applied: keep the older behaviour so a refund is never ignored.
     const legacy = await client.rpc('revoke_paystack_subscription', { p_reference: reference, p_refund_amount: refundAmount });
     if (legacy.error) {
       console.error('Subscription revoke RPC failed', legacy.error);
@@ -71,8 +71,8 @@ async function handleRefund(data: Record<string, unknown>) {
     }
     await sendAlert(client, {
       key: `refund-legacy-${reference}`,
-      subject: 'Refund received: apply database migration 0075',
-      lines: [`Payment: ${reference}`, 'Mira handled it the older way (cancels only if it was the latest payment). Apply 0075_paystack_refunds.sql in Supabase so refunds are handled properly and recorded.'],
+      subject: 'Refund received: apply database migration 0077',
+      lines: [`Payment: ${reference}`, 'Mira handled it the older way (cancels only if it was the latest payment). Apply 0077_paystack_refunds.sql in Supabase so refunds are handled properly and recorded.'],
       cooldownMinutes: 24 * 60,
     });
     return NextResponse.json({ received: true });

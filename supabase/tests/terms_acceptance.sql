@@ -1,4 +1,4 @@
--- Tests for the ownership agreement (migrations 0076 and 0077). Rolled back at the end; a failure raises.
+-- Tests for the ownership agreement (migrations 0075 and 0076). Rolled back at the end; a failure raises.
 --  1. recording: the words come from the database, one record per person per version, who/when/where are kept
 --  2. the table is invisible and untouchable to every client (evidence cannot be edited or deleted by its owner)
 --  3. enforcement: no agreement, no business; the agreement is tied to the business it was given for

@@ -3,7 +3,7 @@
 -- of Service and Privacy Policy.
 --
 -- This migration is ADDITIVE and safe to apply before the new signup screens are deployed: nothing existing changes.
--- Enforcement (provision_new_business refusing to create a business without a record) is migration 0077, which must
+-- Enforcement (provision_new_business refusing to create a business without a record) is migration 0076, which must
 -- only be applied AFTER the new site is live, or signups on the old site would start failing.
 --
 -- What is stored per acceptance: the account, the version, the exact words agreed to (copied from this file, never

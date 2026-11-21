@@ -119,7 +119,7 @@ async function main() {
   check("the Privacy Policy discloses the agreement record, including IP address and browser", /Agreement Records/.test(privacy) && /IP address and browser/.test(privacy));
 
   // ---- enforcement migration ----
-  const enforce = read("supabase/migrations/0077_require_terms_acceptance.sql");
+  const enforce = read("supabase/migrations/0076_require_terms_acceptance.sql");
   check("the enforcement migration refuses with TERMS_NOT_ACCEPTED and ties the agreement to the business", /TERMS_NOT_ACCEPTED/.test(enforce) && /update terms_acceptances/.test(enforce));
   check("the enforcement migration warns it must be applied only after the new site is live", /ONLY AFTER/.test(enforce));
 }

@@ -1,4 +1,4 @@
--- ENFORCEMENT for 0076: provision_new_business (the only sanctioned way a self-service signup creates its business)
+-- ENFORCEMENT for 0075: provision_new_business (the only sanctioned way a self-service signup creates its business)
 -- now refuses to run unless the person has a recorded acceptance of the CURRENT terms. Editing the signup page can no
 -- longer skip the agreement.
 --
