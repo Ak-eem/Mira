@@ -1,5 +1,7 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
+import { parseProductsCsv } from "@/lib/products/csvImport";
 import { getCurrentEditor } from "@/lib/supabase/editor-auth";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/activityLog";
@@ -180,4 +182,50 @@ export async function removeProductImage(productId: string) {
 
   await logActivity(product.business_id, "product", productId, "updated", `"${product.name}" photo removed`);
   return { error: null };
+}
+
+// Bulk-add products from a checked spreadsheet. The rows are checked again here on the server
+// (never trust the browser), products whose name already exists are skipped so importing the same
+// file twice cannot create duplicates, and everything goes in with one database call.
+export async function importProducts(input: { businessId: string; csv: string }): Promise<{
+  error: string | null;
+  imported: number;
+  skippedExisting: number;
+}> {
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated.", imported: 0, skippedExisting: 0 };
+
+  const parsed = parseProductsCsv(input.csv);
+  if (parsed.fatal) return { error: parsed.fatal, imported: 0, skippedExisting: 0 };
+  if (parsed.rows.length === 0) return { error: "There are no valid products in that file.", imported: 0, skippedExisting: 0 };
+
+  const supabase = await createClient();
+  const { data: existing, error: existingError } = await supabase
+    .from("products")
+    .select("name")
+    .eq("business_id", input.businessId)
+    .limit(10000);
+  if (existingError) return { error: existingError.message, imported: 0, skippedExisting: 0 };
+
+  const have = new Set((existing ?? []).map((p) => p.name.trim().toLowerCase()));
+  const fresh = parsed.rows.filter((row) => !have.has(row.name.toLowerCase()));
+  const skippedExisting = parsed.rows.length - fresh.length;
+  if (fresh.length === 0) return { error: null, imported: 0, skippedExisting };
+
+  const { error } = await supabase.from("products").insert(
+    fresh.map((row) => ({
+      business_id: input.businessId,
+      name: row.name,
+      description: row.description || null,
+      price: row.price,
+      stock_quantity: row.stockQuantity,
+      is_available: row.stockQuantity === null || row.stockQuantity > 0,
+    })),
+  );
+  if (error) return { error: error.message, imported: 0, skippedExisting: 0 };
+
+  await logActivity(input.businessId, "product", null, "created", `${editor.email} imported ${fresh.length} products from a spreadsheet`, "admin_ui");
+  revalidatePath(`/admin/businesses/${input.businessId}/products`);
+  revalidatePath(`/portal/${input.businessId}/products`);
+  return { error: null, imported: fresh.length, skippedExisting };
 }

@@ -3,6 +3,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { AddSheet } from "@/components/ui/Sheet";
 import { createClient } from "@/lib/supabase/server";
 import { NewProductForm } from "./NewProductForm";
+import { ImportProducts } from "./ImportProducts";
 import { ProductList } from "./ProductList";
 
 export default async function ProductsPage({
@@ -31,9 +32,14 @@ export default async function ProductsPage({
         title="Products"
         subtitle="What Mira tells customers about price, stock and availability."
         action={products?.length ? (
-          <AddSheet fab label="Add product">
-            <NewProductForm businessId={businessId} />
-          </AddSheet>
+          <div className="flex items-center gap-2">
+            <AddSheet label="Import spreadsheet">
+              <ImportProducts businessId={businessId} currency={business?.currency ?? "₦"} />
+            </AddSheet>
+            <AddSheet fab label="Add product">
+              <NewProductForm businessId={businessId} />
+            </AddSheet>
+          </div>
         ) : undefined}
       />
 
@@ -45,9 +51,14 @@ export default async function ProductsPage({
           title="No products yet"
           description="Add what you sell, with prices and stock, so Mira can answer customers accurately."
           action={
-            <AddSheet label="Add your first product">
-              <NewProductForm businessId={businessId} />
-            </AddSheet>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <AddSheet label="Add your first product">
+                <NewProductForm businessId={businessId} />
+              </AddSheet>
+              <AddSheet label="Import spreadsheet">
+                <ImportProducts businessId={businessId} currency={business?.currency ?? "₦"} />
+              </AddSheet>
+            </div>
           }
         />
       )}
