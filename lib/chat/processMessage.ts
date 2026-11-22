@@ -11,7 +11,7 @@ import { classifyIntent } from "@/lib/ai/classifyIntent";
 import { recordAiResponseTelemetry } from "@/lib/analytics/recordTelemetry";
 import { errorCodeFor, errorDetailFor, providerFor } from "@/lib/ai/providerError";
 import { after } from "next/server";
-import { getOfflineGateReply } from "@/lib/chat/offlineReply";
+import { getClosedNotice } from "@/lib/chat/offlineReply";
 import { getHandoffReply, getPausedReply, isFrustrationSignal, type HandoffReason } from "@/lib/chat/handoff";
 import { matchProductImages, type ProductImageRef } from "@/lib/chat/matchProductImages";
 import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
@@ -227,28 +227,10 @@ export async function processMessage(
     throw new ProcessMessageError("Something went wrong. Please try again.", 500);
   }
 
-  // Only the opener of a brand-new conversation can get the instant
-  // closed-hours reply. An ongoing conversation always goes through the
-  // real pipeline below, which is already hours-aware via buildContext.
-  if (isNewConversation) {
-    const offlineReply = await getOfflineGateReply(supabase, businessId);
-    if (offlineReply) {
-      const { data: saved, error: offlineInsertError } = await recordAssistantReply(supabase, {
-        conversationId: conversation.id,
-        businessId,
-        content: offlineReply,
-        snapshot: { offlineGate: true },
-        inboundKey: replyKey,
-      });
-
-      if (offlineInsertError || !saved) {
-        console.error("Offline reply insert failed:", offlineInsertError);
-        throw new ProcessMessageError("Something went wrong. Please try again.", 500);
-      }
-
-      return { reply: offlineReply, messageId: saved.messageId, productImages: [] };
-    }
-  }
+  // Only the opener of a brand-new conversation gets the "we're closed" notice,
+  // and it goes in FRONT of the AI's real answer rather than replacing it. An
+  // ongoing conversation is already hours-aware via buildContext.
+  const closedNotice = isNewConversation ? await getClosedNotice(supabase, businessId) : null;
 
   const context = await buildBusinessContext(businessId);
   const businessName = context.business?.name ?? "this business";
@@ -537,6 +519,9 @@ export async function processMessage(
     return { reply: handled.reply, messageId: handled.messageId, productImages: [] };
   }
 
+  // Notice + answer. Images and the grounding check below still look at the AI's own text only.
+  const finalText = closedNotice ? `${closedNotice}\n\n${replyText}` : replyText;
+
   const productImages = matchProductImages(replyText, [...context.products, ...foundProducts.filter((p) => !context.products.some((c) => c.id === p.id)).map((p) => ({ id: p.id, name: p.name, image_url: p.image_url }))]);
 
   // Recorded atomically with the last_message_at bump. The insert still
@@ -545,8 +530,8 @@ export async function processMessage(
   const { data: savedAssistantMessage, error: assistantInsertError } = await recordAssistantReply(supabase, {
     conversationId: conversation.id,
     businessId,
-    content: replyText,
-    snapshot: { productImages },
+    content: finalText,
+    snapshot: closedNotice ? { productImages, closedNotice: true } : { productImages },
     inboundKey: replyKey,
     // Written in the same transaction as the reply, so a retry can never
     // record the same interest twice.
@@ -587,5 +572,5 @@ export async function processMessage(
     },
   }));
 
-  return { reply: replyText, messageId: savedAssistantMessage.messageId, productImages };
+  return { reply: finalText, messageId: savedAssistantMessage.messageId, productImages };
 }

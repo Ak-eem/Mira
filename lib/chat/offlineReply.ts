@@ -1,21 +1,20 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { WEEKDAY_NAMES, WEEKDAY_SHORT_TO_INDEX, formatTime, isOpenNow, type HoursRow } from "@/lib/hours";
 
-// Deliberately not every message -- only the first message of a brand-new
-// conversation. Mira doesn't get tired: a catalog/FAQ question at 11pm is
-// something the AI can answer correctly right now, and replacing that with
-// a canned "we're closed" message is a downgrade for a question that never
-// needed a human. Gating only the opener sets expectations immediately
-// (fast, no LLM call) without giving up the AI's usefulness for the rest
-// of the conversation -- buildContext already puts "Currently: OPEN/CLOSED"
-// in the AI's own system prompt, so later messages are still hours-aware.
+// A short "we're closed" notice for the first message of a brand-new
+// conversation. It is put IN FRONT of the AI's real answer (see processMessage),
+// never instead of it: Mira doesn't get tired, and a catalog/FAQ question at
+// 11pm can be answered correctly right now. The notice only sets expectations
+// about when a human is back. Later messages get no notice -- buildContext
+// already puts "Currently: OPEN/CLOSED" in the AI's own system prompt, so they
+// are still hours-aware.
 //
 // Small, deliberate query duplication with buildContext here (business
 // timezone + business_hours + closures) rather than refactoring
 // buildContext to expose its internals -- this is a narrow, additive
 // feature and buildContext's fitting/caching logic works today; not worth
 // the risk of touching it for this.
-export async function getOfflineGateReply(
+export async function getClosedNotice(
   supabase: SupabaseClient,
   businessId: string,
 ): Promise<string | null> {
@@ -51,7 +50,7 @@ function closureReply(businessName: string, endsAt: string, timezone: string): s
   const daysAway = Math.ceil((end.getTime() - Date.now()) / 86_400_000);
 
   if (daysAway > 14) {
-    return `Thanks for reaching out! ${businessName} is temporarily closed right now. We'll get back to you as soon as we reopen.`;
+    return `Heads up: ${businessName} is temporarily closed right now. Here's the answer to your question, and the team will follow up on anything else when we reopen.`;
   }
 
   // A bad timezone value throws RangeError. Fail safe (same as isOpenNow /
@@ -66,16 +65,16 @@ function closureReply(businessName: string, endsAt: string, timezone: string): s
       minute: "2-digit",
     }).format(end);
   } catch {
-    return `Thanks for reaching out! ${businessName} is temporarily closed right now. We'll get back to you as soon as we reopen.`;
+    return `Heads up: ${businessName} is temporarily closed right now. Here's the answer to your question, and the team will follow up on anything else when we reopen.`;
   }
 
-  return `Thanks for reaching out! ${businessName} is temporarily closed right now, back ${formatted}. We'll get back to you when we reopen.`;
+  return `Heads up: ${businessName} is temporarily closed right now, back ${formatted}. Here's the answer to your question, and the team will follow up on anything else when we reopen.`;
 }
 
 function hoursReply(businessName: string, hours: HoursRow[], timezone: string): string {
   const next = findNextOpen(hours, timezone);
   const when = next ? `, back ${next}` : "";
-  return `Thanks for reaching out! ${businessName} is closed right now${when}. Go ahead and ask — I'll do what I can, and the team will follow up on anything else when we're open.`;
+  return `Heads up: ${businessName} is closed right now${when}. Here's the answer to your question, and the team will follow up on anything else when we're open.`;
 }
 
 // Checks today's remaining hours first, then scans forward up to 7 days.
