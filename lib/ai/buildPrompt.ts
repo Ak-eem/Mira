@@ -5,6 +5,11 @@ const FALLBACK_TEMPLATE =
 
 export type ChatMessage = { role: "customer" | "assistant"; content: string };
 
+/** The standard "I don't have that" reply. Also what a reply is swapped for when the pre-send check can't make it safe. */
+export function fallbackReplyFor(businessName: string): string {
+  return FALLBACK_TEMPLATE.replace("{business}", businessName);
+}
+
 /**
  * Recognizes whether a response matches the standard fallback sentence.
  */

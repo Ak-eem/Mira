@@ -3,7 +3,7 @@ import { createServiceRoleClient } from "@/lib/supabase/service-role";
 import { buildBusinessContext } from "@/lib/ai/buildContext";
 import { looksLikeTechResearchQuestion, researchContext, researchTech } from "@/lib/ai/techStore";
 import { productSearchLines, searchProducts, type FoundProduct } from "@/lib/products/search";
-import { isFallbackReply } from "@/lib/ai/buildPrompt";
+import { fallbackReplyFor, isFallbackReply } from "@/lib/ai/buildPrompt";
 import { getSchoolGuardianContext, isSchoolGuardianLookupEligible } from "@/lib/ai/buildContext";
 import { composeReply } from "@/lib/ai/composeReply";
 import { loadPriorMessages } from "@/lib/chat/history";
@@ -18,7 +18,8 @@ import { CONVERSATION_IDLE_TIMEOUT_MS } from "@/lib/chat/conversation";
 import { replyKeyFor } from "@/lib/chat/inboundKey";
 import { processDeliveryConfirmation, processOrderRequest, type RecordReply } from "@/lib/chat/orderTaking";
 import { isDeliveryConfirmation } from "@/lib/orders/deliveryPhrase";
-import { assessGrounding } from "@/lib/grounding/assess";
+import { assessGrounding, type GroundingInput } from "@/lib/grounding/assess";
+import { correctionNote, findUnsupportedFacts } from "@/lib/grounding/guard";
 import { getGroundingSettings } from "@/lib/grounding/settings";
 import { recordGroundingAssessment } from "@/lib/grounding/record";
 
@@ -519,6 +520,44 @@ export async function processMessage(
     return { reply: handled.reply, messageId: handled.messageId, productImages: [] };
   }
 
+  // Check the draft BEFORE it goes out. What the model was given includes the per-conversation extras, so a price from a
+  // catalogue search match counts as known. One rewrite is allowed; if that still states an unknown price, time, link or
+  // contact, the customer gets the standard "I don't have that" reply (which also feeds the repeat-fallback handoff).
+  const knowledgeText = [context.contextText, schoolGuardianContext, catalogueMatches, techResearch].filter(Boolean).join("\n");
+  const customerMessages = [...(priorMessages ?? []).filter((m) => m.role === "customer").map((m) => m.content), trimmedMessage];
+  const groundingInputFor = (reply: string): GroundingInput => ({
+    reply,
+    knowledge: knowledgeText,
+    customerMessages,
+    businessName,
+    currency: context.business?.currency ?? "NGN",
+  });
+  let guardOutcome: "rewritten" | "blocked" | null = null;
+  const unsupportedFacts = findUnsupportedFacts(groundingInputFor(replyText));
+  if (unsupportedFacts.length > 0) {
+    console.warn("Pre-send check: unsupported facts in draft", { businessId, facts: unsupportedFacts.map((f) => `${f.type}:${f.value}`) });
+    try {
+      const retry = await composeReply({
+        context,
+        history,
+        message: trimmedMessage,
+        disableTools: true,
+        extraSystemContext: [schoolGuardianContext, catalogueMatches, techResearch, correctionNote(unsupportedFacts)].filter(Boolean).join("\n\n"),
+      });
+      if (retry.text.trim() && findUnsupportedFacts(groundingInputFor(retry.text)).length === 0) {
+        replyText = retry.text;
+        guardOutcome = "rewritten";
+      } else {
+        replyText = fallbackReplyFor(businessName);
+        guardOutcome = "blocked";
+      }
+    } catch (retryError) {
+      console.error("Pre-send rewrite failed:", retryError);
+      replyText = fallbackReplyFor(businessName);
+      guardOutcome = "blocked";
+    }
+  }
+
   // Notice + answer. Images and the grounding check below still look at the AI's own text only.
   const finalText = closedNotice ? `${closedNotice}\n\n${replyText}` : replyText;
 
@@ -531,7 +570,7 @@ export async function processMessage(
     conversationId: conversation.id,
     businessId,
     content: finalText,
-    snapshot: closedNotice ? { productImages, closedNotice: true } : { productImages },
+    snapshot: { productImages, ...(closedNotice ? { closedNotice: true } : {}), ...(guardOutcome ? { guard: guardOutcome } : {}) },
     inboundKey: replyKey,
     // Written in the same transaction as the reply, so a retry can never
     // record the same interest twice.
@@ -560,16 +599,7 @@ export async function processMessage(
     businessId,
     messageId: savedAssistantMessage.messageId,
     question: trimmedMessage,
-    input: {
-      reply: replyText,
-      knowledge: context.contextText,
-      customerMessages: [
-        ...(priorMessages ?? []).filter((m) => m.role === "customer").map((m) => m.content),
-        trimmedMessage,
-      ],
-      businessName,
-      currency: context.business?.currency ?? "NGN",
-    },
+    input: groundingInputFor(replyText),
   }));
 
   return { reply: finalText, messageId: savedAssistantMessage.messageId, productImages };
