@@ -1,5 +1,6 @@
 import "server-only";
 import { Resend } from "resend";
+import { markdownToHtml, markdownToPlainText } from "@/lib/email/formatReply";
 
 export async function sendEmailReply(
   to: string,
@@ -27,7 +28,8 @@ export async function sendEmailReply(
         from,
         to: [to],
         subject: /^re:/i.test(subject.trim()) ? subject : `Re: ${subject}`,
-        text: body,
+        text: markdownToPlainText(body),
+        html: markdownToHtml(body),
         headers,
       },
       idempotencyKey ? { idempotencyKey } : undefined,
