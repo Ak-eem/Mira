@@ -11,6 +11,8 @@ export async function sendEmailReply(
   // Sent as Resend's Idempotency-Key: if a retry re-sends after a send that
   // actually succeeded, Resend returns the original instead of a second email.
   idempotencyKey?: string,
+  // The business's own Mira address: a customer who hits reply writes back to it, and the thread carries on.
+  replyTo?: string,
 ): Promise<boolean> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey || !from) {
@@ -30,6 +32,7 @@ export async function sendEmailReply(
         subject: /^re:/i.test(subject.trim()) ? subject : `Re: ${subject}`,
         text: markdownToPlainText(body),
         html: markdownToHtml(body),
+        ...(replyTo ? { replyTo } : {}),
         headers,
       },
       idempotencyKey ? { idempotencyKey } : undefined,

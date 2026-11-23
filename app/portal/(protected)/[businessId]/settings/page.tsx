@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { getCurrentBusinessOwner } from "@/lib/supabase/portal-auth";
 import { createClient } from "@/lib/supabase/server";
 import { EmailForwardingGuide } from "@/components/EmailForwardingGuide";
+import { EnableEmailAddress } from "@/components/EnableEmailAddress";
 import { getCurrentDraft, getActiveRelease, getPublishedHistory } from "@/lib/promptReleases";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -111,12 +112,16 @@ export default async function PortalSettingsPage({ params, searchParams }: PageP
             <div id="import-website" className="scroll-mt-24">
               <WebsiteImport businessId={businessId} />
             </div>
-            {inboundAddress && (
+            {(inboundAddress || isOwner) && (
               <section className="ui-card space-y-1">
                 <p className="ui-section-label ml-0">Email</p>
                 <h2 className="text-lg font-semibold tracking-tight">Let Mira answer your customer emails</h2>
-                <p className="ui-subtitle mt-0">Forward your support email to the address below and Mira will reply on your behalf.</p>
-                <EmailForwardingGuide inboundAddress={inboundAddress} />
+                <p className="ui-subtitle mt-0">Forward your support email to a Mira address and Mira will reply on your behalf.</p>
+                {inboundAddress ? (
+                  <EmailForwardingGuide inboundAddress={inboundAddress} />
+                ) : (
+                  <EnableEmailAddress businessId={businessId} />
+                )}
               </section>
             )}
           </>

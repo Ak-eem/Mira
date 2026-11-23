@@ -171,6 +171,7 @@ export async function processEmailQueued(client: Client, queued: Pick<QueueRow, 
     replyText,
     args.messageId,
     `mira-reply-${queued.id}`,
+    toAddress,
   );
   if (!sent) throw new Error("Could not send email reply.");
   await markInboundSent(client, queued.id);
