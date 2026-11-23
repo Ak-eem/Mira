@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { clearHandoff } from "@/lib/chat/clearHandoff";
 import { closeConversation } from "@/lib/chat/closeConversation";
 import { sendWhatsappReply } from "@/lib/whatsapp/sendMessage";
+import { sendEmailReply } from "@/lib/email/sendReply";
 import { MAX_FEEDBACK_NOTE_LENGTH, isFeedbackReason, type FeedbackReason } from "@/lib/feedback/reasons";
 
 // Mirrors app/admin/.../conversations/actions.ts's resolveHandoff, but
@@ -109,6 +110,30 @@ export async function replyToConversation(
       return {
         error: "Reply saved, but the WhatsApp message failed to send. Check the WhatsApp configuration and try again.",
       };
+    }
+  }
+
+  // An email conversation: the person's reply goes back to the customer by email, with the business's Mira address as
+  // reply-to so their answer lands in this same conversation.
+  if (conversation.channel === "email" && conversation.session_token.startsWith("email_")) {
+    const customerEmail = conversation.session_token.slice("email_".length);
+    const { data: business } = await supabase
+      .from("businesses")
+      .select("name, email_inbound_address")
+      .eq("id", businessId)
+      .maybeSingle();
+
+    const sent = await sendEmailReply(
+      customerEmail,
+      process.env.RESEND_FROM_EMAIL ?? "",
+      `Your message to ${business?.name ?? "us"}`,
+      trimmed,
+      undefined,
+      `staff-reply-${insertedMessage.id}`,
+      business?.email_inbound_address ?? undefined,
+    );
+    if (!sent) {
+      return { error: "Reply saved, but the email failed to send. Please try again." };
     }
   }
 
