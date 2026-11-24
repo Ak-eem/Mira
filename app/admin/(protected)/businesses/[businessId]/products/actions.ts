@@ -1,7 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { parseProductsCsv } from "@/lib/products/csvImport";
+import { parseProductsCsv, type ImportParse, type ImportRow } from "@/lib/products/csvImport";
+import { SHOPIFY_MAX_PAGES, SHOPIFY_PAGE_SIZE, normalizeShopUrl, parseShopifyPages } from "@/lib/products/shopifyImport";
+import { fetchUrl } from "@/lib/ai/urlFetch";
 import { getCurrentEditor } from "@/lib/supabase/editor-auth";
 import { createClient } from "@/lib/supabase/server";
 import { logActivity } from "@/lib/activityLog";
@@ -184,14 +186,45 @@ export async function removeProductImage(productId: string) {
   return { error: null };
 }
 
-// Bulk-add products from a checked spreadsheet. The rows are checked again here on the server
-// (never trust the browser), products whose name already exists are skipped so importing the same
-// file twice cannot create duplicates, and everything goes in with one database call.
-export async function importProducts(input: { businessId: string; csv: string }): Promise<{
-  error: string | null;
-  imported: number;
-  skippedExisting: number;
-}> {
+type ImportResult = { error: string | null; imported: number; skippedExisting: number };
+
+// Shared by the spreadsheet and Shopify imports. Products whose name already exists are skipped so importing twice
+// cannot create duplicates, and everything goes in with one database call.
+async function insertImportRows(businessId: string, rows: ImportRow[], editorEmail: string, source: string): Promise<ImportResult> {
+  const supabase = await createClient();
+  const { data: existing, error: existingError } = await supabase
+    .from("products")
+    .select("name")
+    .eq("business_id", businessId)
+    .limit(10000);
+  if (existingError) return { error: existingError.message, imported: 0, skippedExisting: 0 };
+
+  const have = new Set((existing ?? []).map((p) => p.name.trim().toLowerCase()));
+  const fresh = rows.filter((row) => !have.has(row.name.toLowerCase()));
+  const skippedExisting = rows.length - fresh.length;
+  if (fresh.length === 0) return { error: null, imported: 0, skippedExisting };
+
+  const { error } = await supabase.from("products").insert(
+    fresh.map((row) => ({
+      business_id: businessId,
+      name: row.name,
+      description: row.description || null,
+      price: row.price,
+      stock_quantity: row.stockQuantity,
+      is_available: row.stockQuantity === null || row.stockQuantity > 0,
+      ...(row.imageUrl ? { image_url: row.imageUrl } : {}),
+    })),
+  );
+  if (error) return { error: error.message, imported: 0, skippedExisting: 0 };
+
+  await logActivity(businessId, "product", null, "created", `${editorEmail} imported ${fresh.length} products from ${source}`, "admin_ui");
+  revalidatePath(`/admin/businesses/${businessId}/products`);
+  revalidatePath(`/portal/${businessId}/products`);
+  return { error: null, imported: fresh.length, skippedExisting };
+}
+
+// Bulk-add products from a checked spreadsheet. The rows are checked again here on the server (never trust the browser).
+export async function importProducts(input: { businessId: string; csv: string }): Promise<ImportResult> {
   const editor = await getCurrentEditor();
   if (!editor) return { error: "Not authenticated.", imported: 0, skippedExisting: 0 };
 
@@ -199,33 +232,54 @@ export async function importProducts(input: { businessId: string; csv: string })
   if (parsed.fatal) return { error: parsed.fatal, imported: 0, skippedExisting: 0 };
   if (parsed.rows.length === 0) return { error: "There are no valid products in that file.", imported: 0, skippedExisting: 0 };
 
-  const supabase = await createClient();
-  const { data: existing, error: existingError } = await supabase
-    .from("products")
-    .select("name")
-    .eq("business_id", input.businessId)
-    .limit(10000);
-  if (existingError) return { error: existingError.message, imported: 0, skippedExisting: 0 };
+  return insertImportRows(input.businessId, parsed.rows, editor.email, "a spreadsheet");
+}
 
-  const have = new Set((existing ?? []).map((p) => p.name.trim().toLowerCase()));
-  const fresh = parsed.rows.filter((row) => !have.has(row.name.toLowerCase()));
-  const skippedExisting = parsed.rows.length - fresh.length;
-  if (fresh.length === 0) return { error: null, imported: 0, skippedExisting };
+// Reads a Shopify store's public catalogue (<shop>/products.json). The fetch is the SSRF-safe one used for web research.
+async function loadShopifyCatalogue(address: string): Promise<ImportParse> {
+  const base = normalizeShopUrl(address);
+  if (!base) return { rows: [], problems: [], fatal: "That doesn't look like a website address. Try something like mystore.com." };
 
-  const { error } = await supabase.from("products").insert(
-    fresh.map((row) => ({
-      business_id: input.businessId,
-      name: row.name,
-      description: row.description || null,
-      price: row.price,
-      stock_quantity: row.stockQuantity,
-      is_available: row.stockQuantity === null || row.stockQuantity > 0,
-    })),
-  );
-  if (error) return { error: error.message, imported: 0, skippedExisting: 0 };
+  const pages: unknown[] = [];
+  try {
+    for (let page = 1; page <= SHOPIFY_MAX_PAGES; page += 1) {
+      const response = await fetchUrl(`${base}/products.json?limit=${SHOPIFY_PAGE_SIZE}&page=${page}`);
+      if (!response.ok) {
+        if (page === 1) return { rows: [], problems: [], fatal: "That site doesn't share a product list, so it may not be a Shopify store. Use a spreadsheet instead." };
+        break;
+      }
+      let json: unknown;
+      try {
+        json = await response.json();
+      } catch {
+        if (page === 1) return { rows: [], problems: [], fatal: "That site doesn't share a product list, so it may not be a Shopify store. Use a spreadsheet instead." };
+        break;
+      }
+      pages.push(json);
+      const count = (json as { products?: unknown[] } | null)?.products?.length ?? 0;
+      if (count < SHOPIFY_PAGE_SIZE) break;
+    }
+  } catch {
+    return { rows: [], problems: [], fatal: "Couldn't reach that website. Check the address and try again." };
+  }
+  return parseShopifyPages(pages);
+}
 
-  await logActivity(input.businessId, "product", null, "created", `${editor.email} imported ${fresh.length} products from a spreadsheet`, "admin_ui");
-  revalidatePath(`/admin/businesses/${input.businessId}/products`);
-  revalidatePath(`/portal/${input.businessId}/products`);
-  return { error: null, imported: fresh.length, skippedExisting };
+// Step 1: look only, nothing is saved. The owner reviews what was found.
+export async function previewShopifyStore(input: { address: string }): Promise<ImportParse> {
+  const editor = await getCurrentEditor();
+  if (!editor) return { rows: [], problems: [], fatal: "Not authenticated." };
+  return loadShopifyCatalogue(input.address);
+}
+
+// Step 2: after the owner confirms. The store is read again here on the server rather than trusting rows from the browser.
+export async function importFromShopify(input: { businessId: string; address: string }): Promise<ImportResult> {
+  const editor = await getCurrentEditor();
+  if (!editor) return { error: "Not authenticated.", imported: 0, skippedExisting: 0 };
+
+  const parsed = await loadShopifyCatalogue(input.address);
+  if (parsed.fatal) return { error: parsed.fatal, imported: 0, skippedExisting: 0 };
+  if (parsed.rows.length === 0) return { error: "There are no usable products on that store.", imported: 0, skippedExisting: 0 };
+
+  return insertImportRows(input.businessId, parsed.rows, editor.email, "a Shopify store");
 }

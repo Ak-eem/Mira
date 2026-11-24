@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { IMPORT_TEMPLATE_CSV, parseProductsCsv } from "@/lib/products/csvImport";
-import { importProducts } from "./actions";
+import type { ImportParse } from "@/lib/products/csvImport";
+import { importFromShopify, importProducts, previewShopifyStore } from "./actions";
 
 // Pick a spreadsheet (or paste from one), see exactly what will be added and what is wrong, then confirm.
 // The checking happens here in the browser so it feels instant; the server checks again when you confirm.
@@ -13,6 +14,40 @@ export function ImportProducts({ businessId, currency = "₦" }: { businessId: s
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<{ imported: number; skippedExisting: number } | null>(null);
+
+  const [shopAddress, setShopAddress] = useState("");
+  const [shopLoading, setShopLoading] = useState(false);
+  const [shopPreview, setShopPreview] = useState<{ address: string; result: ImportParse } | null>(null);
+
+  async function lookUpStore() {
+    setShopLoading(true);
+    setError(null);
+    setDone(null);
+    setShopPreview(null);
+    const result = await previewShopifyStore({ address: shopAddress });
+    setShopLoading(false);
+    if (result.fatal) {
+      setError(result.fatal);
+      return;
+    }
+    setShopPreview({ address: shopAddress, result });
+  }
+
+  async function confirmShop() {
+    if (!shopPreview) return;
+    setWorking(true);
+    setError(null);
+    const result = await importFromShopify({ businessId, address: shopPreview.address });
+    setWorking(false);
+    if (result.error) {
+      setError(result.error);
+      return;
+    }
+    setDone({ imported: result.imported, skippedExisting: result.skippedExisting });
+    setShopPreview(null);
+    setShopAddress("");
+    router.refresh();
+  }
 
   const parsed = useMemo(() => (text.trim() ? parseProductsCsv(text) : null), [text]);
 
@@ -41,8 +76,48 @@ export function ImportProducts({ businessId, currency = "₦" }: { businessId: s
 
   return (
     <div className="space-y-4">
+      <div className="space-y-3 rounded-2xl border border-line p-3">
+        <label htmlFor="import-shop" className="ui-label">Import from a Shopify store</label>
+        <p className="text-sm text-muted">Paste the store&apos;s website address and Mira loads its products, prices, options and first photo for you to review before anything is saved.</p>
+        <div className="flex gap-2">
+          <input
+            id="import-shop"
+            className="ui-field min-w-0 flex-1"
+            value={shopAddress}
+            onChange={(e) => { setShopAddress(e.target.value); setShopPreview(null); }}
+            placeholder="mystore.com"
+            inputMode="url"
+            autoCapitalize="none"
+          />
+          <button type="button" className="ui-btn ui-btn-secondary" disabled={shopLoading || !shopAddress.trim()} onClick={lookUpStore}>
+            {shopLoading ? "Looking…" : "Look up"}
+          </button>
+        </div>
+        {shopPreview && (
+          <div className="space-y-3">
+            <p className="text-sm text-ink">
+              Found <strong>{shopPreview.result.rows.length}</strong> product{shopPreview.result.rows.length === 1 ? "" : "s"}
+              {shopPreview.result.problems.length > 0 ? <>, <strong>{shopPreview.result.problems.length}</strong> will be skipped</> : null}.
+              Stock counts are not public on Shopify, so only sold-out items are marked.
+            </p>
+            <ul className="max-h-48 space-y-1 overflow-y-auto rounded-xl bg-mist/60 p-2 text-sm">
+              {shopPreview.result.rows.slice(0, 8).map((row) => (
+                <li key={row.name} className="flex justify-between gap-3 px-2 py-1 text-ink">
+                  <span className="min-w-0 truncate">{row.name}</span>
+                  <span className="shrink-0 text-muted">{currency}{row.price.toLocaleString()}{row.stockQuantity === 0 ? " · sold out" : ""}</span>
+                </li>
+              ))}
+              {shopPreview.result.rows.length > 8 && <li className="px-2 py-1 text-xs text-muted">…and {shopPreview.result.rows.length - 8} more</li>}
+            </ul>
+            <button type="button" className="ui-btn ui-btn-primary" disabled={working || shopPreview.result.rows.length === 0} onClick={confirmShop}>
+              {working ? "Importing…" : `Import ${shopPreview.result.rows.length} product${shopPreview.result.rows.length === 1 ? "" : "s"}`}
+            </button>
+          </div>
+        )}
+      </div>
+
       <p className="text-sm text-muted">
-        Add many products at once. Use a spreadsheet saved as CSV with columns <strong className="text-ink">name</strong> and <strong className="text-ink">price</strong>,
+        Or add many products at once. Use a spreadsheet saved as CSV with columns <strong className="text-ink">name</strong> and <strong className="text-ink">price</strong>,
         and optionally <strong className="text-ink">stock</strong> and <strong className="text-ink">description</strong>. Prices like 450000, ₦450,000 and 450k all work.{" "}
         <a href={template} download="mira-products-template.csv" className="font-medium text-accent hover:underline">Download a template</a>
       </p>

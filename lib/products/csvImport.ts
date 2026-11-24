@@ -10,6 +10,8 @@ export type ImportRow = {
   description: string;
   price: number;
   stockQuantity: number | null;
+  // Only set by the Shopify import (a link to the store's own photo).
+  imageUrl?: string;
 };
 
 export type ImportProblem = { line: number; message: string };
