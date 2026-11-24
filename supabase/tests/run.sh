@@ -13,4 +13,5 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/tenant_isolation.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/order_taking_default.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/ask_your_data.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/paystack_refunds.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/billing_activation.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f supabase/tests/terms_acceptance.sql
